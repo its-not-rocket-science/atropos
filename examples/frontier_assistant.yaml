@@ -1,0 +1,10 @@
+name: frontier-assistant
+parameters_b: 120
+memory_gb: 80
+throughput_toks_per_sec: 22
+power_watts: 900
+requests_per_day: 250000
+tokens_per_request: 1800
+electricity_cost_per_kwh: 0.12
+annual_hardware_cost_usd: 280000
+one_time_project_cost_usd: 350000

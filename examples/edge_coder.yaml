@@ -1,0 +1,10 @@
+name: edge-coder
+parameters_b: 7
+memory_gb: 4.5
+throughput_toks_per_sec: 18
+power_watts: 75
+requests_per_day: 8000
+tokens_per_request: 600
+electricity_cost_per_kwh: 0.20
+annual_hardware_cost_usd: 2800
+one_time_project_cost_usd: 12000

@@ -1,0 +1,10 @@
+name: medium-coder
+parameters_b: 34
+memory_gb: 14
+throughput_toks_per_sec: 40
+power_watts: 320
+requests_per_day: 50000
+tokens_per_request: 1200
+electricity_cost_per_kwh: 0.15
+annual_hardware_cost_usd: 24000
+one_time_project_cost_usd: 27000
