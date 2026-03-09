@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from .hardware import GPUType
 
 QualityRisk = Literal["low", "medium", "high"]
 
@@ -21,8 +24,13 @@ class DeploymentScenario:
         requests_per_day: Number of requests per day.
         tokens_per_request: Average tokens per request.
         electricity_cost_per_kwh: Electricity cost per kWh.
-        annual_hardware_cost_usd: Annual hardware cost in USD.
         one_time_project_cost_usd: One-time optimization project cost in USD.
+        gpu_tier: GPU hardware tier for cost modeling.
+        gpu_count: Number of GPUs (auto-estimated if None).
+        batch_size: Request batch size (1 = no batching).
+        pricing_model: "cloud" or "reserved" pricing.
+        utilization: GPU utilization factor (0-1).
+        annual_hardware_cost_usd: Annual hardware cost (deprecated, use gpu_tier).
     """
 
     name: str
@@ -33,8 +41,13 @@ class DeploymentScenario:
     requests_per_day: int
     tokens_per_request: int
     electricity_cost_per_kwh: float
-    annual_hardware_cost_usd: float
     one_time_project_cost_usd: float
+    gpu_tier: GPUType | None = None
+    gpu_count: int | None = None
+    batch_size: int = 1
+    pricing_model: Literal["cloud", "reserved"] = "cloud"
+    utilization: float = 1.0
+    annual_hardware_cost_usd: float | None = None
 
 
 @dataclass(frozen=True)

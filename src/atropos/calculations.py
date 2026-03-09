@@ -11,6 +11,7 @@ from .models import DeploymentScenario, OptimizationOutcome, OptimizationStrateg
 
 DEFAULT_GRID_CO2E_KG_PER_KWH = 0.35
 DEFAULT_HARDWARE_SAVINGS_CORRELATION = 0.8
+DEFAULT_BATCHING_EFFICIENCY = 0.85  # Sub-linear scaling for batching
 
 
 def _validate_fraction(value: float, name: str) -> None:
@@ -39,16 +40,90 @@ def _validate_scenario(scenario: DeploymentScenario) -> None:
         raise ValueError(
             f"electricity_cost_per_kwh must be positive, got {scenario.electricity_cost_per_kwh}"
         )
-    if scenario.annual_hardware_cost_usd < 0:
+    if scenario.batch_size < 1:
+        raise ValueError(f"batch_size must be at least 1, got {scenario.batch_size}")
+    if not 0.0 <= scenario.utilization <= 1.0:
+        raise ValueError(f"utilization must be in [0, 1], got {scenario.utilization}")
+    # Validate hardware cost source
+    has_gpu_tier = scenario.gpu_tier is not None
+    has_annual_cost = scenario.annual_hardware_cost_usd is not None
+    if not has_gpu_tier and not has_annual_cost:
         raise ValueError(
-            "annual_hardware_cost_usd must be non-negative, got "
-            f"{scenario.annual_hardware_cost_usd}"
+            "Either gpu_tier or annual_hardware_cost_usd must be provided for cost modeling"
         )
-    if scenario.one_time_project_cost_usd < 0:
-        raise ValueError(
-            "one_time_project_cost_usd must be non-negative, "
-            f"got {scenario.one_time_project_cost_usd}"
-        )
+
+
+def _compute_batching_throughput_multiplier(
+    batch_size: int,
+    efficiency: float = DEFAULT_BATCHING_EFFICIENCY,
+) -> float:
+    """Compute throughput multiplier from batching.
+
+    Batching improves throughput sub-linearly due to memory bandwidth limits.
+    Formula: multiplier = batch_size^efficiency
+
+    Args:
+        batch_size: Number of requests processed together.
+        efficiency: Batching efficiency factor (0-1, higher = better scaling).
+
+    Returns:
+        Throughput multiplier relative to batch_size=1.
+    """
+    if batch_size <= 1:
+        return 1.0
+    result: float = batch_size ** efficiency
+    return result
+
+
+def _compute_hardware_cost(scenario: DeploymentScenario) -> float:
+    """Compute annual hardware cost from GPU tier or fallback.
+
+    Args:
+        scenario: Deployment scenario with GPU tier or annual cost.
+
+    Returns:
+        Annual hardware cost in USD.
+    """
+    # Use explicit annual cost if GPU tier not specified
+    if scenario.gpu_tier is None:
+        return scenario.annual_hardware_cost_usd or 0.0
+
+    # Import here to avoid circular imports
+    from .hardware import estimate_gpu_count, get_gpu_tier
+
+    tier = get_gpu_tier(scenario.gpu_tier)
+    gpu_count = scenario.gpu_count or estimate_gpu_count(scenario.memory_gb, scenario.gpu_tier)
+
+    return tier.annual_cost(
+        gpu_count=gpu_count,
+        utilization=scenario.utilization,
+        pricing_model=scenario.pricing_model,
+    )
+
+
+def _compute_power_from_gpu_tier(scenario: DeploymentScenario) -> float:
+    """Compute power draw from GPU tier if available.
+
+    Args:
+        scenario: Deployment scenario.
+
+    Returns:
+        Power in watts (falls back to scenario.power_watts if no GPU tier).
+    """
+    if scenario.gpu_tier is None:
+        return scenario.power_watts
+
+    from .hardware import estimate_gpu_count, get_gpu_tier
+
+    tier = get_gpu_tier(scenario.gpu_tier)
+    gpu_count = scenario.gpu_count or estimate_gpu_count(scenario.memory_gb, scenario.gpu_tier)
+
+    # Power scales with utilization (idle power ~20% of max)
+    idle_fraction = 0.2
+    active_fraction = scenario.utilization
+    power_multiplier = idle_fraction + (1 - idle_fraction) * active_fraction
+
+    return tier.typical_power_w * gpu_count * power_multiplier
 
 
 def combine_strategies(
@@ -112,6 +187,7 @@ def estimate_outcome(
     """Estimate outcome of applying a strategy to a deployment scenario.
 
     Calculates memory, throughput, energy, cost, and CO2e impacts.
+    Supports GPU tier-based cost modeling and batching effects.
     Returns complete baseline vs optimized comparison.
     """
     _validate_scenario(scenario)
@@ -129,13 +205,17 @@ def estimate_outcome(
     baseline_memory_gb = scenario.memory_gb
     optimized_memory_gb = baseline_memory_gb * (1 - strategy.memory_reduction_fraction)
 
-    baseline_throughput = scenario.throughput_toks_per_sec
+    # Apply batching effects to throughput
+    batching_multiplier = _compute_batching_throughput_multiplier(scenario.batch_size)
+    effective_baseline_throughput = scenario.throughput_toks_per_sec * batching_multiplier
+    baseline_throughput = effective_baseline_throughput
     optimized_throughput = baseline_throughput * (1 + strategy.throughput_improvement_fraction)
 
     baseline_latency_factor = 1.0
     optimized_latency_factor = baseline_throughput / optimized_throughput
 
-    baseline_power = scenario.power_watts
+    # Use GPU-tier based power if available
+    baseline_power = _compute_power_from_gpu_tier(scenario)
     optimized_power = baseline_power * (1 - strategy.power_reduction_fraction)
 
     baseline_seconds_per_request = scenario.tokens_per_request / baseline_throughput
@@ -152,14 +232,14 @@ def estimate_outcome(
     baseline_annual_energy_cost = baseline_annual_energy_kwh * scenario.electricity_cost_per_kwh
     optimized_annual_energy_cost = optimized_annual_energy_kwh * scenario.electricity_cost_per_kwh
 
-    baseline_total_cost = baseline_annual_energy_cost + scenario.annual_hardware_cost_usd
+    # Compute hardware cost from GPU tier or fallback
+    baseline_hardware_cost = _compute_hardware_cost(scenario)
+    baseline_total_cost = baseline_annual_energy_cost + baseline_hardware_cost
 
     hardware_cost_savings_fraction = (
         strategy.memory_reduction_fraction * hardware_savings_correlation
     )
-    optimized_hardware_cost = scenario.annual_hardware_cost_usd * (
-        1 - hardware_cost_savings_fraction
-    )
+    optimized_hardware_cost = baseline_hardware_cost * (1 - hardware_cost_savings_fraction)
     optimized_total_cost = optimized_annual_energy_cost + optimized_hardware_cost
 
     annual_total_savings = baseline_total_cost - optimized_total_cost
