@@ -1,0 +1,78 @@
+# CLI Usage
+
+## Commands
+
+### `list-presets`
+
+Show available built-in scenarios and strategies.
+
+```bash
+atropos list-presets
+```
+
+### `preset`
+
+Run analysis with a built-in scenario.
+
+```bash
+atropos preset medium-coder --strategy structured_pruning
+```
+
+Options:
+- `--strategy`: Strategy to use (default: structured_pruning)
+- `--with-quantization`: Add quantization effects
+- `--report`: Output format (text, json, markdown, html)
+
+### `scenario`
+
+Run analysis from a YAML scenario file.
+
+```bash
+atropos scenario my_scenario.yaml --report markdown
+```
+
+### `compare`
+
+Compare multiple strategies.
+
+```bash
+atropos compare medium-coder \
+  --strategies mild_pruning structured_pruning \
+  --format markdown
+```
+
+Options:
+- `--format`: text, markdown, or json
+- `--sort-by`: Sort by savings, breakeven, or risk
+- `--ascending`: Sort in ascending order
+- `--output`: Save to file
+
+### `batch`
+
+Process multiple scenario files.
+
+```bash
+atropos batch scenarios/ \
+  --strategies mild_pruning structured_pruning \
+  --output results.csv
+```
+
+### `sensitivity`
+
+Run sensitivity analysis on a parameter.
+
+```bash
+atropos sensitivity medium-coder \
+  --strategy structured_pruning \
+  --param memory_reduction_fraction \
+  --format json \
+  --output sensitivity.json
+```
+
+### `csv-to-markdown`
+
+Convert batch CSV results to markdown report.
+
+```bash
+atropos csv-to-markdown results.csv --output report.md
+```

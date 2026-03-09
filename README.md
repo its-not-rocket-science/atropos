@@ -2,6 +2,8 @@
 
 **Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
 
+📚 [Documentation](https://its-not-rocket-science.github.io/atropos/)
+
 Named after the Fate who cuts the thread, Atropos is built for practical deployment questions:
 
 - How much memory, throughput, energy, and cost improvement is realistic?
