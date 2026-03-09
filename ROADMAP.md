@@ -11,7 +11,7 @@
 
 - ✅ Monte Carlo uncertainty analysis
 - ✅ telemetry import from benchmark runs
-- experiment-tracker integration
+- ✅ experiment-tracker integration
 - region-specific grid carbon presets
 
 ## Long term

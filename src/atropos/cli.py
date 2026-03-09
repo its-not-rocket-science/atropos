@@ -6,11 +6,13 @@ import argparse
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
+from .integrations import TRACKERS, get_tracker, run_to_scenario
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
@@ -155,6 +157,38 @@ def build_parser() -> argparse.ArgumentParser:
     telemetry_parser.add_argument("--requests-per-day", type=int, help="Expected requests per day")
     telemetry_parser.add_argument("--output", "-o", type=Path, help="Output YAML file path")
     telemetry_parser.add_argument(
+        "--preview", action="store_true", help="Preview scenario params without saving"
+    )
+
+    exp_parser = subparsers.add_parser(
+        "import-experiment", help="Import scenario from experiment tracker (wandb/mlflow)."
+    )
+    exp_parser.add_argument(
+        "--tracker",
+        choices=list(TRACKERS.keys()),
+        required=True,
+        help="Experiment tracker type",
+    )
+    exp_parser.add_argument("--run-id", help="Specific run ID to import")
+    exp_parser.add_argument("--experiment", help="Experiment/project name")
+    exp_parser.add_argument("--entity", help="Entity/team name (wandb)")
+    exp_parser.add_argument("--project", help="Project name (wandb)")
+    exp_parser.add_argument("--limit", type=int, default=1, help="Number of runs to import")
+    exp_parser.add_argument("--api-key", help="API key for authentication")
+    exp_parser.add_argument("--host", help="Tracker host URL")
+    exp_parser.add_argument("--name", help="Scenario name (or use run ID)")
+    exp_parser.add_argument(
+        "--electricity-cost", type=float, default=0.15, help="Electricity cost per kWh"
+    )
+    exp_parser.add_argument(
+        "--hardware-cost", type=float, default=24000.0, help="Annual hardware cost in USD"
+    )
+    exp_parser.add_argument(
+        "--project-cost", type=float, default=27000.0, help="One-time project cost in USD"
+    )
+    exp_parser.add_argument("--requests-per-day", type=int, help="Expected requests per day")
+    exp_parser.add_argument("--output", "-o", type=Path, help="Output YAML file path")
+    exp_parser.add_argument(
         "--preview", action="store_true", help="Preview scenario params without saving"
     )
 
@@ -504,6 +538,106 @@ def main(argv: Sequence[str] | None = None) -> int:
                     yaml.dump(scenario_dict, f, default_flow_style=False, sort_keys=False)
                 print(f"\nSaved scenario to {args.output}")
             return 0
+
+        if args.command == "import-experiment":
+            # Validate args
+            if not args.run_id and not args.experiment:
+                print("Error: Either --run-id or --experiment must be provided", file=sys.stderr)
+                return 1
+
+            # Get tracker kwargs
+            tracker_kwargs: dict[str, Any] = {}
+            if args.entity:
+                tracker_kwargs["entity"] = args.entity
+
+            try:
+                tracker = get_tracker(
+                    args.tracker,
+                    api_key=args.api_key,
+                    host=args.host,
+                    **tracker_kwargs,
+                )
+
+                if args.run_id:
+                    run_kwargs = {}
+                    if args.project:
+                        run_kwargs["project"] = args.project
+                    run_info = tracker.get_run(args.run_id, **run_kwargs)
+                    runs = [run_info]
+                else:
+                    list_kwargs = {"limit": args.limit}
+                    if args.entity:
+                        list_kwargs["entity"] = args.entity
+                    runs = tracker.list_runs(experiment=args.experiment, **list_kwargs)
+
+                if not runs:
+                    print("No runs found matching criteria")
+                    return 0
+
+                # Process runs
+                for i, run in enumerate(runs):
+                    name = args.name or f"{run.experiment}-{run.run_id}"
+                    if len(runs) > 1:
+                        name = f"{name}-{i + 1}"
+
+                    scenario = run_to_scenario(
+                        run,
+                        name=name,
+                        electricity_cost_per_kwh=args.electricity_cost,
+                        annual_hardware_cost_usd=args.hardware_cost,
+                        one_time_project_cost_usd=args.project_cost,
+                        requests_per_day=args.requests_per_day,
+                    )
+
+                    # Preview
+                    if args.preview or not args.output or len(runs) > 1:
+                        print(f"\nScenario: {scenario.name}")
+                        print("=" * 50)
+                        print(f"Source: {run.tracker} / {run.experiment} / {run.run_id}")
+                        if run.url:
+                            print(f"URL: {run.url}")
+                        print(f"Parameters: {scenario.parameters_b}B")
+                        print(f"Memory: {scenario.memory_gb:.1f} GB")
+                        print(f"Throughput: {scenario.throughput_toks_per_sec:.1f} tok/s")
+                        print(f"Power: {scenario.power_watts:.0f} W")
+                        print(f"Requests/day: {scenario.requests_per_day}")
+                        print(f"Tokens/request: {scenario.tokens_per_request}")
+                        if run.tags:
+                            print(f"Tags: {', '.join(run.tags)}")
+
+                    # Save if output specified and single run or last run
+                    if args.output and len(runs) == 1:
+                        import yaml
+
+                        scenario_dict = {
+                            "name": scenario.name,
+                            "parameters_b": scenario.parameters_b,
+                            "memory_gb": scenario.memory_gb,
+                            "throughput_toks_per_sec": scenario.throughput_toks_per_sec,
+                            "power_watts": scenario.power_watts,
+                            "requests_per_day": scenario.requests_per_day,
+                            "tokens_per_request": scenario.tokens_per_request,
+                            "electricity_cost_per_kwh": scenario.electricity_cost_per_kwh,
+                            "annual_hardware_cost_usd": scenario.annual_hardware_cost_usd,
+                            "one_time_project_cost_usd": scenario.one_time_project_cost_usd,
+                        }
+                        with open(args.output, "w", encoding="utf-8") as f:
+                            yaml.dump(scenario_dict, f, default_flow_style=False, sort_keys=False)
+                        print(f"\nSaved scenario to {args.output}")
+
+                if len(runs) > 1:
+                    print(f"\nImported {len(runs)} scenarios from {args.tracker}")
+
+                return 0
+
+            except RuntimeError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                print("Install the required package:", file=sys.stderr)
+                if args.tracker == "wandb":
+                    print("  pip install wandb", file=sys.stderr)
+                elif args.tracker == "mlflow":
+                    print("  pip install mlflow", file=sys.stderr)
+                return 1
 
         parser.error(f"Unsupported command: {args.command}")
         return 2
