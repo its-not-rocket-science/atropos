@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Atropos is a Python CLI tool for estimating ROI (performance, energy, cost, break-even) of pruning and quantization optimizations for coding LLM deployments. It uses transparent formulas to estimate memory, throughput, power, and cost changes.
 
+## Non-negotiable rules
+- Do not commit code unless asked to, but suggest a commit message when a task is considered done
+- Keep the README and ROADMAP up-to-date
+- make sure tests and linting pass before considering any task done
+
 ## Development Commands
 
 Install dependencies:

@@ -8,10 +8,16 @@ from atropos.io import csv_to_markdown
 
 def test_csv_to_markdown_basic() -> None:
     """Test converting a simple CSV to markdown."""
-    csv_content = """scenario,strategy,memory_gb,throughput_tok/s,energy_wh_per_request,annual_savings_usd,break_even_months,quality_risk,co2e_savings_kg
-test-scenario,structured_pruning,10.92,48.00,4.17,12500.50,21.60,medium,525.00
-test-scenario,mild_pruning,12.60,43.20,5.21,6240.00,43.27,low,262.50
-"""
+    csv_content = (
+        "scenario,strategy,memory_gb,"
+        "throughput_tok/s,energy_wh_per_request,"
+        "annual_savings_usd,break_even_months,"
+        "quality_risk,co2e_savings_kg\n"
+        "test-scenario,structured_pruning,10.92,"
+        "48.00,4.17,12500.50,21.60,medium,525.00\n"
+        "test-scenario,mild_pruning,12.60,43.20,"
+        "5.21,6240.00,43.27,low,262.50\n"
+    )
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         f.write(csv_content)

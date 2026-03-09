@@ -13,7 +13,7 @@ from .core.calculator import ROICalculator
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
-from .reporting import generate_comparison_table
+from .reporting import generate_comparison_json, generate_comparison_table
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,7 +42,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--strategies", nargs="+", required=True, choices=sorted(STRATEGIES.keys())
     )
     compare_parser.add_argument("--with-quantization", action="store_true")
-    compare_parser.add_argument("--format", choices=["text", "markdown"], default="text")
+    compare_parser.add_argument(
+        "--format", choices=["text", "markdown", "json"], default="text"
+    )
+    compare_parser.add_argument(
+        "--sort-by", choices=["savings", "breakeven", "risk"], default="savings"
+    )
+    compare_parser.add_argument("--ascending", action="store_true", help="Sort in ascending order")
     compare_parser.add_argument("--output", "-o", type=Path)
 
     batch_parser = subparsers.add_parser("batch", help="Process multiple scenario files.")
@@ -68,6 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     sensitivity_parser.add_argument("--variations", type=int, default=5)
     sensitivity_parser.add_argument("--step", type=float, default=0.1)
     sensitivity_parser.add_argument("--output", "-o", type=Path)
+    sensitivity_parser.add_argument("--format", choices=["text", "csv", "json"], default="text")
 
     csv_md_parser = subparsers.add_parser(
         "csv-to-markdown", help="Convert CSV results to markdown report."
@@ -150,11 +157,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             results = calculator.compare_strategies(
                 scenario_name, args.strategies, args.with_quantization
             )
+
+            # Sort results
+            outcomes = list(results.values())
+            reverse = not args.ascending
+            if args.sort_by == "savings":
+                outcomes.sort(key=lambda o: o.annual_total_savings_usd, reverse=reverse)
+            elif args.sort_by == "breakeven":
+                outcomes.sort(
+                    key=lambda o: (o.break_even_years or float('inf')), reverse=reverse
+                )
+            elif args.sort_by == "risk":
+                risk_order = {"low": 0, "medium": 1, "high": 2}
+                outcomes.sort(key=lambda o: risk_order[o.quality_risk], reverse=reverse)
+
+            # Generate output
             if args.format == "markdown":
-                content = generate_comparison_table(results.values())
+                content = generate_comparison_table(outcomes)
+            elif args.format == "json":
+                content = generate_comparison_json(outcomes)
             else:
                 content = "\n\n".join(
-                    render_report(outcome, "text") for outcome in results.values()
+                    render_report(outcome, "text") for outcome in outcomes
                 )
             if args.output:
                 args.output.write_text(content)
@@ -177,9 +201,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             sens_results = calculator.sensitivity_analysis(
                 scenario_name, args.strategy, args.param, args.variations, args.step
             )
-            if args.output:
+
+            if args.format == "csv" and args.output:
                 export_to_csv((outcome for _, outcome in sens_results), args.output)
                 print(f"Saved sensitivity results to {args.output}")
+            elif args.format == "json":
+                import json
+                data = [
+                    {
+                        "variation_factor": factor,
+                        "annual_savings_usd": outcome.annual_total_savings_usd,
+                        "break_even_months": (
+                            outcome.break_even_years * 12 if outcome.break_even_years else None
+                        ),
+                        "optimized_memory_gb": outcome.optimized_memory_gb,
+                        "optimized_throughput": outcome.optimized_throughput_toks_per_sec,
+                    }
+                    for factor, outcome in sens_results
+                ]
+                content = json.dumps(data, indent=2)
+                if args.output:
+                    args.output.write_text(content)
+                    print(f"Saved sensitivity results to {args.output}")
+                else:
+                    print(content)
             else:
                 for factor, outcome in sens_results:
                     months = (

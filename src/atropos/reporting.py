@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 
 from .models import OptimizationOutcome
@@ -63,8 +64,26 @@ def generate_comparison_table(outcomes: Iterable[OptimizationOutcome]) -> str:
     return "\n".join(rows)
 
 
+def generate_comparison_json(outcomes: Iterable[OptimizationOutcome]) -> str:
+    """Generate a JSON comparison report for multiple outcomes."""
+    data = [
+        {
+            "strategy": o.strategy_name,
+            "baseline_memory_gb": o.baseline_memory_gb,
+            "optimized_memory_gb": o.optimized_memory_gb,
+            "baseline_throughput": o.baseline_throughput_toks_per_sec,
+            "optimized_throughput": o.optimized_throughput_toks_per_sec,
+            "annual_savings_usd": o.annual_total_savings_usd,
+            "break_even_months": o.break_even_years * 12 if o.break_even_years else None,
+            "co2e_savings_kg": o.annual_co2e_savings_kg,
+            "quality_risk": o.quality_risk,
+        }
+        for o in outcomes
+    ]
+    return json.dumps(data, indent=2)
+
+
 def generate_html_report(outcome: OptimizationOutcome) -> str:
-    """Generate an HTML report for an outcome."""
     months = None if outcome.break_even_years is None else outcome.break_even_years * 12
     break_even = "never" if months is None else f"{months:.1f} months"
     mem_reduction = (1 - outcome.optimized_memory_gb / outcome.baseline_memory_gb) * 100

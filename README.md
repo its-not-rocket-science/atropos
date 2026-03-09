@@ -56,10 +56,22 @@ Compare strategies:
 atropos compare medium-coder --strategies mild_pruning structured_pruning --format markdown
 ```
 
+Sort comparison by break-even time:
+
+```bash
+atropos compare medium-coder --strategies mild_pruning structured_pruning --sort-by breakeven --ascending
+```
+
 Batch process a directory of scenarios:
 
 ```bash
 atropos batch examples --strategies mild_pruning structured_pruning --output results.csv
+```
+
+Run sensitivity analysis and export to JSON:
+
+```bash
+atropos sensitivity medium-coder --strategy structured_pruning --param memory_reduction_fraction --format json --output sensitivity.json
 ```
 
 Convert CSV results to markdown report:
