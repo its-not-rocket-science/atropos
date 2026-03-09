@@ -61,3 +61,4 @@ python_version = "3.10"
 strict = true
 mypy_path = "src"
 packages = ["atropos"]
+ignore_missing_imports = true

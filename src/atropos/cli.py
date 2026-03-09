@@ -203,6 +203,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--preview", action="store_true", help="Preview scenario params without saving"
     )
 
+    dashboard_parser = subparsers.add_parser(
+        "dashboard", help="Launch the interactive web dashboard."
+    )
+    dashboard_parser.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind the dashboard server"
+    )
+    dashboard_parser.add_argument(
+        "--port", type=int, default=8050, help="Port to run the dashboard server"
+    )
+    dashboard_parser.add_argument(
+        "--debug", action="store_true", help="Run in debug mode"
+    )
+
     carbon_parser = subparsers.add_parser(
         "list-carbon-presets", help="List available carbon intensity presets."
     )
@@ -735,6 +748,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print("\nUse --region CODE for details")
                     print("Cloud regions (e.g., us-east-1) are also supported")
             return 0
+
+        if args.command == "dashboard":
+            try:
+                from .dashboard import run_dashboard
+
+                print(f"Starting Atropos dashboard at http://{args.host}:{args.port}")
+                print("Press Ctrl+C to stop")
+                run_dashboard(host=args.host, port=args.port, debug=args.debug)
+                return 0
+            except ImportError:
+                print("Error: Dashboard dependencies not installed", file=sys.stderr)
+                print("Install with: pip install dash plotly pandas", file=sys.stderr)
+                return 1
 
         parser.error(f"Unsupported command: {args.command}")
         return 2
