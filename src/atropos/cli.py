@@ -15,6 +15,12 @@ from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
 from .reporting import generate_comparison_json, generate_comparison_table
+from .telemetry import (
+    PARSERS,
+    get_parser,
+    telemetry_to_scenario,
+    validate_telemetry,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -120,6 +126,38 @@ def build_parser() -> argparse.ArgumentParser:
     )
     csv_md_parser.add_argument("input", type=Path, help="Path to CSV file")
     csv_md_parser.add_argument("--output", "-o", type=Path, help="Output markdown file path")
+
+    telemetry_parser = subparsers.add_parser(
+        "import-telemetry", help="Import benchmark telemetry to create a scenario."
+    )
+    telemetry_parser.add_argument("input", type=Path, help="Path to telemetry file")
+    telemetry_parser.add_argument(
+        "--format",
+        choices=list(PARSERS.keys()),
+        required=True,
+        help="Telemetry format",
+    )
+    telemetry_parser.add_argument("--name", required=True, help="Scenario name")
+    telemetry_parser.add_argument(
+        "--mapping",
+        type=str,
+        help='Field mapping as JSON (e.g., \'{"memory_gb": "gpu_memory"}\')',
+    )
+    telemetry_parser.add_argument(
+        "--electricity-cost", type=float, default=0.15, help="Electricity cost per kWh"
+    )
+    telemetry_parser.add_argument(
+        "--hardware-cost", type=float, default=24000.0, help="Annual hardware cost in USD"
+    )
+    telemetry_parser.add_argument(
+        "--project-cost", type=float, default=27000.0, help="One-time project cost in USD"
+    )
+    telemetry_parser.add_argument("--requests-per-day", type=int, help="Expected requests per day")
+    telemetry_parser.add_argument("--output", "-o", type=Path, help="Output YAML file path")
+    telemetry_parser.add_argument(
+        "--preview", action="store_true", help="Preview scenario params without saving"
+    )
+
     return parser
 
 
@@ -396,6 +434,75 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"Saved markdown report to {args.output}")
             else:
                 print(markdown)
+            return 0
+
+        if args.command == "import-telemetry":
+            # Parse field mapping if provided
+            field_mapping = None
+            if args.mapping:
+                import json
+
+                field_mapping = json.loads(args.mapping)
+
+            # Get parser and parse telemetry
+            parser_instance = get_parser(args.format, field_mapping)
+            telemetry = parser_instance.parse_file(args.input)
+
+            # Validate telemetry
+            issues = validate_telemetry(telemetry)
+            if issues:
+                print("Telemetry validation issues:", file=sys.stderr)
+                for issue in issues:
+                    print(f"  - {issue}", file=sys.stderr)
+                if any("must be" in i for i in issues):
+                    return 1
+
+            # Create scenario
+            scenario = telemetry_to_scenario(
+                telemetry,
+                name=args.name,
+                electricity_cost_per_kwh=args.electricity_cost,
+                annual_hardware_cost_usd=args.hardware_cost,
+                one_time_project_cost_usd=args.project_cost,
+                requests_per_day=args.requests_per_day,
+            )
+
+            # Preview or save
+            if args.preview or not args.output:
+                print(f"\nScenario: {scenario.name}")
+                print("=" * 50)
+                print(f"Parameters: {scenario.parameters_b}B")
+                print(f"Memory: {scenario.memory_gb:.1f} GB")
+                print(f"Throughput: {scenario.throughput_toks_per_sec:.1f} tok/s")
+                print(f"Power: {scenario.power_watts:.0f} W")
+                print(f"Requests/day: {scenario.requests_per_day}")
+                print(f"Tokens/request: {scenario.tokens_per_request}")
+                print(f"Electricity cost: ${scenario.electricity_cost_per_kwh}/kWh")
+                print(f"Annual hardware: ${scenario.annual_hardware_cost_usd:,.0f}")
+                print(f"Project cost: ${scenario.one_time_project_cost_usd:,.0f}")
+                print(f"\nSource: {telemetry.source}")
+                if telemetry.raw_metrics:
+                    print(f"\nRaw metrics available: {len(telemetry.raw_metrics)} fields")
+
+            if args.output:
+                import yaml
+
+                # Convert dataclass to dict for YAML output
+                scenario_dict = {
+                    "name": scenario.name,
+                    "parameters_b": scenario.parameters_b,
+                    "memory_gb": scenario.memory_gb,
+                    "throughput_toks_per_sec": scenario.throughput_toks_per_sec,
+                    "power_watts": scenario.power_watts,
+                    "requests_per_day": scenario.requests_per_day,
+                    "tokens_per_request": scenario.tokens_per_request,
+                    "electricity_cost_per_kwh": scenario.electricity_cost_per_kwh,
+                    "annual_hardware_cost_usd": scenario.annual_hardware_cost_usd,
+                    "one_time_project_cost_usd": scenario.one_time_project_cost_usd,
+                }
+                with open(args.output, "w", encoding="utf-8") as f:
+                    yaml.dump(scenario_dict, f, default_flow_style=False, sort_keys=False)
+                print(f"\nSaved scenario to {args.output}")
             return 0
 
         parser.error(f"Unsupported command: {args.command}")

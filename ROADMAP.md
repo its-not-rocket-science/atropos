@@ -10,7 +10,7 @@
 ## Medium term
 
 - ✅ Monte Carlo uncertainty analysis
-- telemetry import from benchmark runs
+- ✅ telemetry import from benchmark runs
 - experiment-tracker integration
 - region-specific grid carbon presets
 
