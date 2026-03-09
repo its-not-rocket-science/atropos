@@ -134,6 +134,116 @@ def export_to_csv(outcomes: Iterable[OptimizationOutcome], path: str | Path) -> 
             )
 
 
+def csv_to_markdown(csv_path: str | Path, output_path: str | Path | None = None) -> str:
+    """Convert a CSV file of outcomes to a markdown report.
+
+    Args:
+        csv_path: Path to the CSV file containing outcome data.
+        output_path: Optional path to write the markdown output.
+            If None, returns the markdown string.
+
+    Returns:
+        The formatted markdown report.
+
+    Raises:
+        FileNotFoundError: If the CSV file does not exist.
+        ValueError: If the CSV format is invalid.
+    """
+    csv_file = Path(csv_path)
+    if not csv_file.exists():
+        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+
+    with csv_file.open("r", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    if not rows:
+        return "# Atropos Batch Analysis Report\n\nNo data found in CSV."
+
+    # Build markdown report
+    lines = [
+        "# Atropos Batch Analysis Report",
+        "",
+        f"Generated from: `{csv_file.name}`",
+        "",
+        "## Summary",
+        "",
+        f"- **Total scenarios analyzed**: {len(rows)}",
+        "",
+        "## Results by Scenario",
+        "",
+    ]
+
+    # Group by scenario
+    by_scenario: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        scenario = row.get("scenario", "unknown")
+        if scenario not in by_scenario:
+            by_scenario[scenario] = []
+        by_scenario[scenario].append(row)
+
+    for scenario_name, scenario_rows in sorted(by_scenario.items()):
+        lines.append(f"### {scenario_name}")
+        lines.append("")
+        header = "| Strategy | Memory (GB) | Throughput (tok/s) | Annual Savings |"
+        header += " Break-even | Risk |"
+        lines.append(header)
+        lines.append("|----------|-------------|-------------------|----------------|------------|------|")
+
+        for row in scenario_rows:
+            strategy = row.get("strategy", "unknown")
+            memory = row.get("memory_gb", "N/A")
+            throughput = row.get("throughput_tok/s", "N/A")
+            savings_raw = row.get("annual_savings_usd", "N/A")
+            be = row.get("break_even_months", "N/A")
+            risk = row.get("quality_risk", "N/A")
+
+            # Format currency
+            savings_display = savings_raw
+            if savings_raw != "N/A":
+                try:
+                    savings_display = f"${float(savings_raw):,.0f}"
+                except ValueError:
+                    pass
+
+            lines.append(
+                f"| {strategy} | {memory} | {throughput} | {savings_display} | {be} | {risk} |"
+            )
+
+        lines.append("")
+
+    # Add aggregate statistics
+    lines.append("## Aggregate Statistics")
+    lines.append("")
+
+    all_savings = []
+    for row in rows:
+        try:
+            savings = float(row.get("annual_savings_usd", 0))
+            all_savings.append(savings)
+        except ValueError:
+            pass
+
+    if all_savings:
+        total = sum(all_savings)
+        avg = total / len(all_savings)
+        max_savings = max(all_savings)
+        min_savings = min(all_savings)
+
+        lines.append(f"- **Total annual savings**: ${total:,.0f}")
+        lines.append(f"- **Average per scenario**: ${avg:,.0f}")
+        lines.append(f"- **Best case**: ${max_savings:,.0f}")
+        lines.append(f"- **Worst case**: ${min_savings:,.0f}")
+        lines.append("")
+
+    markdown = "\n".join(lines)
+
+    if output_path is not None:
+        Path(output_path).write_text(markdown)
+
+    return markdown
+
+
 def render_report(outcome: OptimizationOutcome, report_format: str) -> str:
     """Render an outcome in the specified format.
 

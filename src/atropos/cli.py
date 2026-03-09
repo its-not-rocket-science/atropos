@@ -10,7 +10,7 @@ from pathlib import Path
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
 from .core.calculator import ROICalculator
-from .io import export_to_csv, load_scenario, render_report
+from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
 from .reporting import generate_comparison_table
@@ -68,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
     sensitivity_parser.add_argument("--variations", type=int, default=5)
     sensitivity_parser.add_argument("--step", type=float, default=0.1)
     sensitivity_parser.add_argument("--output", "-o", type=Path)
+
+    csv_md_parser = subparsers.add_parser(
+        "csv-to-markdown", help="Convert CSV results to markdown report."
+    )
+    csv_md_parser.add_argument("input", type=Path, help="Path to CSV file")
+    csv_md_parser.add_argument("--output", "-o", type=Path, help="Output markdown file path")
     return parser
 
 
@@ -184,6 +190,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"factor={factor:.2f} savings=${outcome.annual_total_savings_usd:,.2f} "
                         f"break_even={break_even} memory={outcome.optimized_memory_gb:.2f}GB"
                     )
+            return 0
+
+        if args.command == "csv-to-markdown":
+            markdown = csv_to_markdown(args.input, args.output)
+            if args.output:
+                print(f"Saved markdown report to {args.output}")
+            else:
+                print(markdown)
             return 0
 
         parser.error(f"Unsupported command: {args.command}")

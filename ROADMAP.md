@@ -2,8 +2,8 @@
 
 ## Near term
 
-- add notebook examples
-- add CSV-to-markdown report generation
+- ✅ add notebook examples
+- ✅ add CSV-to-markdown report generation
 - expand comparison and sensitivity CLI output
 - publish documentation pages
 

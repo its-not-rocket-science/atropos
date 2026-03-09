@@ -18,6 +18,7 @@ Future: Atropos Pipeline will automate the full workflow—assess, prune, fine-t
 - pruning and quantization strategy composition
 - validation and error handling
 - comparison, batch, and sensitivity-analysis commands
+- CSV-to-markdown report generation
 - markdown / HTML / JSON reporting
 - tests, CI workflows, pre-commit config, and Makefile
 
@@ -59,6 +60,12 @@ Batch process a directory of scenarios:
 
 ```bash
 atropos batch examples --strategies mild_pruning structured_pruning --output results.csv
+```
+
+Convert CSV results to markdown report:
+
+```bash
+atropos csv-to-markdown results.csv --output report.md
 ```
 
 ## Strategy model
