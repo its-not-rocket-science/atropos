@@ -10,6 +10,8 @@ from typing import Any
 
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
+from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
+from .config import AtroposConfig
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
 from .integrations import TRACKERS, get_tracker, run_to_scenario
@@ -40,10 +42,16 @@ def build_parser() -> argparse.ArgumentParser:
     preset_parser = subparsers.add_parser("preset", help="Run a built-in scenario preset.")
     preset_parser.add_argument("name", choices=sorted(SCENARIOS.keys()))
     _add_strategy_args(preset_parser)
+    preset_parser.add_argument(
+        "--region", help="Region for carbon intensity (ISO code or cloud region like us-east-1)"
+    )
 
     scenario_parser = subparsers.add_parser("scenario", help="Run a scenario from a YAML file.")
     scenario_parser.add_argument("path", type=Path)
     _add_strategy_args(scenario_parser)
+    scenario_parser.add_argument(
+        "--region", help="Region for carbon intensity (ISO code or cloud region like us-east-1)"
+    )
 
     compare_parser = subparsers.add_parser("compare", help="Compare multiple strategies.")
     compare_parser.add_argument("scenario", help="Scenario name or path to YAML")
@@ -57,6 +65,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compare_parser.add_argument("--ascending", action="store_true", help="Sort in ascending order")
     compare_parser.add_argument("--output", "-o", type=Path)
+    compare_parser.add_argument(
+        "--region", help="Region for carbon intensity (ISO code or cloud region like us-east-1)"
+    )
 
     batch_parser = subparsers.add_parser("batch", help="Process multiple scenario files.")
     batch_parser.add_argument("directory", type=Path)
@@ -192,6 +203,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--preview", action="store_true", help="Preview scenario params without saving"
     )
 
+    carbon_parser = subparsers.add_parser(
+        "list-carbon-presets", help="List available carbon intensity presets."
+    )
+    carbon_parser.add_argument(
+        "--region", help="Show details for specific region (ISO code or cloud region)"
+    )
+    carbon_parser.add_argument(
+        "--format", choices=["text", "json"], default="text", help="Output format"
+    )
+
     return parser
 
 
@@ -248,7 +269,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             strategy = STRATEGIES[args.strategy]
             if args.with_quantization:
                 strategy = combine_strategies(strategy, QUANTIZATION_BONUS)
-            print(render_report(estimate_outcome(scenario, strategy), args.report))
+            grid_co2e = get_carbon_intensity(args.region) if args.region else 0.35
+            outcome = estimate_outcome(scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e)
+            print(render_report(outcome, args.report))
             return 0
 
         if args.command == "scenario":
@@ -256,12 +279,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             strategy = STRATEGIES[args.strategy]
             if args.with_quantization:
                 strategy = combine_strategies(strategy, QUANTIZATION_BONUS)
-            print(render_report(estimate_outcome(scenario, strategy), args.report))
+            grid_co2e = get_carbon_intensity(args.region) if args.region else 0.35
+            outcome = estimate_outcome(scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e)
+            print(render_report(outcome, args.report))
             return 0
 
         if args.command == "compare":
             scenario_name, scenario = _load_scenario_input(args.scenario)
-            calculator = ROICalculator()
+            grid_co2e = get_carbon_intensity(args.region) if args.region else 0.35
+            config = AtroposConfig(grid_co2e_factor=grid_co2e)
+            calculator = ROICalculator(config=config)
             calculator.register_scenario(scenario)
             for name in args.strategies:
                 calculator.register_strategy(STRATEGIES[name])
@@ -638,6 +665,76 @@ def main(argv: Sequence[str] | None = None) -> int:
                 elif args.tracker == "mlflow":
                     print("  pip install mlflow", file=sys.stderr)
                 return 1
+
+        if args.command == "list-carbon-presets":
+            if args.region:
+                # Show specific region
+                intensity = get_carbon_intensity(args.region)
+                preset = None
+                for code, p in CARBON_PRESETS.items():
+                    if code == args.region.upper() or p.region_name.lower() == args.region.lower():
+                        preset = p
+                        break
+
+                if args.format == "json":
+                    import json
+
+                    region_data: dict[str, Any] = {
+                        "region": args.region,
+                        "carbon_intensity_kg_per_kwh": intensity,
+                        "preset": {
+                            "region_code": preset.region_code if preset else args.region.upper(),
+                            "region_name": preset.region_name if preset else "Unknown",
+                            "data_year": preset.data_year if preset else 2023,
+                            "source": preset.source if preset else "Global average",
+                            "notes": preset.notes if preset else "",
+                        }
+                        if preset
+                        else None,
+                    }
+                    print(json.dumps(region_data, indent=2))
+                else:
+                    print(f"\nRegion: {args.region}")
+                    print("=" * 50)
+                    print(f"Carbon intensity: {intensity:.3f} kg CO2e/kWh")
+                    if preset:
+                        print(f"Region name: {preset.region_name}")
+                        print(f"Data year: {preset.data_year}")
+                        print(f"Source: {preset.source}")
+                        if preset.notes:
+                            print(f"Notes: {preset.notes}")
+            else:
+                # List all regions
+                regions = list_regions()
+
+                if args.format == "json":
+                    import json
+
+                    data_list: list[dict[str, Any]] = [
+                        {
+                            "region_code": code,
+                            "region_name": CARBON_PRESETS[code].region_name,
+                            "carbon_intensity_kg_per_kwh": CARBON_PRESETS[
+                                code
+                            ].carbon_intensity_kg_per_kwh,
+                        }
+                        for code in regions
+                    ]
+                    print(json.dumps(data_list, indent=2))
+                else:
+                    print("\nAvailable carbon intensity presets:")
+                    print("=" * 70)
+                    print(f"{'Code':<6} {'Region':<30} {'Intensity (kg/kWh)':<20}")
+                    print("-" * 70)
+                    for code in regions:
+                        preset = CARBON_PRESETS[code]
+                        print(
+                            f"{code:<6} {preset.region_name:<30} "
+                            f"{preset.carbon_intensity_kg_per_kwh:<20.3f}"
+                        )
+                    print("\nUse --region CODE for details")
+                    print("Cloud regions (e.g., us-east-1) are also supported")
+            return 0
 
         parser.error(f"Unsupported command: {args.command}")
         return 2
