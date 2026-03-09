@@ -46,6 +46,7 @@ htmlcov/
 
 # Claude Code
 .claude/
+run-claude.cmd
 
 # Project specific
 *.log
