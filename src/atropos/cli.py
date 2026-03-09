@@ -10,6 +10,7 @@ from typing import Any
 
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
+from .calibration import calibrate_scenario, generate_calibration_report
 from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
 from .config import AtroposConfig
 from .core.calculator import ROICalculator
@@ -224,6 +225,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     carbon_parser.add_argument(
         "--format", choices=["text", "json"], default="text", help="Output format"
+    )
+
+    calibrate_parser = subparsers.add_parser(
+        "calibrate",
+        help="Calibrate scenario parameters against real telemetry data.",
+    )
+    calibrate_parser.add_argument(
+        "scenario", help="Scenario name (preset) or path to YAML file"
+    )
+    calibrate_parser.add_argument(
+        "telemetry", type=Path, help="Path to telemetry file (JSON, CSV, or log)"
+    )
+    calibrate_parser.add_argument(
+        "--parser", choices=list(PARSERS.keys()), help="Telemetry parser type"
+    )
+    calibrate_parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=10.0,
+        help="Acceptable variance tolerance percentage (default: 10)",
+    )
+    calibrate_parser.add_argument(
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="Output format",
+    )
+    calibrate_parser.add_argument(
+        "--output", "-o", type=Path, help="Output file path (default: stdout)"
     )
 
     return parser
@@ -761,6 +791,52 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print("Error: Dashboard dependencies not installed", file=sys.stderr)
                 print("Install with: pip install dash plotly pandas", file=sys.stderr)
                 return 1
+
+        if args.command == "calibrate":
+            # Load scenario
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+
+            # Parse telemetry
+            parser = get_parser(args.parser) if args.parser else None
+            if parser:
+                telemetry = parser.parse(args.telemetry)
+            else:
+                # Auto-detect parser from file extension
+                from .telemetry import PARSERS
+
+                suffix = args.telemetry.suffix.lower()
+                if suffix == ".json":
+                    telemetry = PARSERS["vllm"].parse(args.telemetry)
+                elif suffix == ".csv":
+                    telemetry = PARSERS["csv"].parse(args.telemetry)
+                else:
+                    print(
+                        f"Error: Cannot auto-detect parser for {suffix} files. "
+                        "Use --parser.",
+                        file=sys.stderr,
+                    )
+                    return 1
+
+            # Validate telemetry
+            issues = validate_telemetry(telemetry)
+            if issues:
+                print("Warning: Telemetry validation issues:", file=sys.stderr)
+                for issue in issues:
+                    print(f"  - {issue}", file=sys.stderr)
+
+            # Run calibration
+            result = calibrate_scenario(scenario, telemetry, tolerance_pct=args.tolerance)
+
+            # Generate report
+            report = generate_calibration_report(result, format=args.format)
+
+            if args.output:
+                args.output.write_text(report)
+                print(f"Calibration report saved to {args.output}")
+            else:
+                print(report)
+
+            return 0
 
         parser.error(f"Unsupported command: {args.command}")
         return 2

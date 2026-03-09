@@ -18,7 +18,7 @@
 
 - ✅ lightweight web dashboard
 - ✅ richer cost models for GPU tiers and batching
-- scenario calibration from real serving traces
+- ✅ scenario calibration from real serving traces
 
 ## Atropos Pipeline (new)
 
