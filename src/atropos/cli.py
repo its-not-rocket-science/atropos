@@ -10,6 +10,7 @@ from pathlib import Path
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
 from .core.calculator import ROICalculator
+from .core.uncertainty import ParameterDistribution
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
@@ -75,6 +76,46 @@ def build_parser() -> argparse.ArgumentParser:
     sensitivity_parser.add_argument("--step", type=float, default=0.1)
     sensitivity_parser.add_argument("--output", "-o", type=Path)
     sensitivity_parser.add_argument("--format", choices=["text", "csv", "json"], default="text")
+
+    mc_parser = subparsers.add_parser(
+        "monte-carlo", help="Run Monte Carlo uncertainty analysis."
+    )
+    mc_parser.add_argument("scenario", help="Scenario name or path to YAML")
+    mc_parser.add_argument("--strategy", required=True, choices=sorted(STRATEGIES.keys()))
+    mc_parser.add_argument(
+        "--params",
+        nargs="+",
+        default=["memory_reduction_fraction", "throughput_improvement_fraction"],
+        help=("Parameters to vary "
+              "(default: memory_reduction_fraction throughput_improvement_fraction)"),
+    )
+    mc_parser.add_argument(
+        "--distribution",
+        choices=["normal", "uniform", "triangular"],
+        default="normal",
+        help="Distribution type for parameter variation",
+    )
+    mc_parser.add_argument(
+        "--std-dev",
+        type=float,
+        default=0.1,
+        help="Standard deviation for normal distribution (as fraction of mean)",
+    )
+    mc_parser.add_argument(
+        "--range",
+        type=float,
+        default=0.2,
+        dest="range_fraction",
+        help="Range for uniform/triangular distribution (as +/- fraction of mean)",
+    )
+    mc_parser.add_argument(
+        "--simulations", type=int, default=1000, help="Number of simulations to run"
+    )
+    mc_parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+    mc_parser.add_argument("--output", "-o", type=Path, help="Output file path")
+    mc_parser.add_argument(
+        "--format", choices=["text", "json", "csv"], default="text", help="Output format"
+    )
 
     csv_md_parser = subparsers.add_parser(
         "csv-to-markdown", help="Convert CSV results to markdown report."
@@ -235,6 +276,123 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"factor={factor:.2f} savings=${outcome.annual_total_savings_usd:,.2f} "
                         f"break_even={break_even} memory={outcome.optimized_memory_gb:.2f}GB"
                     )
+            return 0
+
+        if args.command == "monte-carlo":
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+            calculator = ROICalculator()
+            calculator.register_scenario(scenario)
+            calculator.register_strategy(STRATEGIES[args.strategy])
+
+            distributions = [
+                ParameterDistribution(
+                    param_name=p,
+                    distribution=args.distribution,
+                    std_dev=args.std_dev,
+                    range_fraction=args.range_fraction,
+                )
+                for p in args.params
+            ]
+
+            result = calculator.monte_carlo_analysis(
+                scenario_name,
+                args.strategy,
+                distributions,
+                num_simulations=args.simulations,
+                seed=args.seed,
+            )
+
+            if args.format == "json":
+                import json
+
+                data = {
+                    "scenario": result.scenario_name,
+                    "strategy": result.strategy_name,
+                    "simulations": result.num_simulations,
+                    "savings": {
+                        "mean": result.savings_mean,
+                        "std": result.savings_std,
+                        "p5": result.savings_p5,
+                        "p25": result.savings_p25,
+                        "median": result.savings_median,
+                        "p75": result.savings_p75,
+                        "p95": result.savings_p95,
+                    },
+                    "break_even": {
+                        "mean": result.break_even_mean,
+                        "median": result.break_even_median,
+                    },
+                    "probabilities": {
+                        "positive_roi": result.probability_positive_roi,
+                        "break_even_within_1yr": result.probability_break_even_within_1yr,
+                        "break_even_within_2yr": result.probability_break_even_within_2yr,
+                    },
+                    "co2e_savings_mean_kg": result.co2e_savings_mean,
+                    "memory_reduction_mean": result.memory_reduction_mean,
+                }
+                content = json.dumps(data, indent=2)
+                if args.output:
+                    args.output.write_text(content)
+                    print(f"Saved Monte Carlo results to {args.output}")
+                else:
+                    print(content)
+            elif args.format == "csv":
+                if args.output:
+                    export_to_csv(result.all_outcomes, args.output)
+                    print(f"Saved {len(result.all_outcomes)} outcomes to {args.output}")
+                else:
+                    print("CSV format requires --output file")
+                    return 1
+            else:
+                print("\nMonte Carlo Uncertainty Analysis")
+                print("=" * 50)
+                print(f"Scenario: {result.scenario_name}")
+                print(f"Strategy: {result.strategy_name}")
+                print(f"Simulations: {result.num_simulations}")
+                print(f"\nParameters varied: {', '.join(args.params)}")
+                print(f"Distribution: {args.distribution}")
+                print("\nAnnual Savings Distribution:")
+                print(f"  Mean:   ${result.savings_mean:,.2f}")
+                print(f"  StdDev: ${result.savings_std:,.2f}")
+                print(f"  P5:     ${result.savings_p5:,.2f}")
+                print(f"  P25:    ${result.savings_p25:,.2f}")
+                print(f"  Median: ${result.savings_median:,.2f}")
+                print(f"  P75:    ${result.savings_p75:,.2f}")
+                print(f"  P95:    ${result.savings_p95:,.2f}")
+                print("\nBreak-even Time:")
+                if result.break_even_mean:
+                    print(f"  Mean:   {result.break_even_mean:.2f} years")
+                    print(f"  Median: {result.break_even_median:.2f} years")
+                else:
+                    print("  No break-even in most simulations")
+                print("\nProbabilities:")
+                print(f"  Positive ROI: {result.probability_positive_roi:.1%}")
+                print(f"  Break-even <= 1yr: {result.probability_break_even_within_1yr:.1%}")
+                print(f"  Break-even <= 2yr: {result.probability_break_even_within_2yr:.1%}")
+                print("\nOther Metrics:")
+                print(f"  Mean CO2e savings: {result.co2e_savings_mean:.1f} kg/year")
+                print(f"  Mean memory reduction: {result.memory_reduction_mean:.1%}")
+
+                if args.output:
+                    args.output.write_text(
+                        f"# Monte Carlo Analysis: {result.scenario_name}\n\n"
+                        f"**Strategy:** {result.strategy_name}  \n"
+                        f"**Simulations:** {result.num_simulations}  \n\n"
+                        "## Annual Savings Distribution\n\n"
+                        "| Metric | Value |\n"
+                        "|--------|-------|\n"
+                        f"| Mean | ${result.savings_mean:,.2f} |\n"
+                        f"| P5 | ${result.savings_p5:,.2f} |\n"
+                        f"| Median | ${result.savings_median:,.2f} |\n"
+                        f"| P95 | ${result.savings_p95:,.2f} |\n\n"
+                        "## Probabilities\n\n"
+                        f"- **Positive ROI:** {result.probability_positive_roi:.1%}\n"
+                        "- **Break-even <= 1 year:** "
+                        f"{result.probability_break_even_within_1yr:.1%}\n"
+                        "- **Break-even <= 2 years:** "
+                        f"{result.probability_break_even_within_2yr:.1%}\n"
+                    )
+                    print(f"\nSaved report to {args.output}")
             return 0
 
         if args.command == "csv-to-markdown":

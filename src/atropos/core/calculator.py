@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import TYPE_CHECKING
 
 from ..calculations import combine_strategies, estimate_outcome
 from ..config import AtroposConfig
 from ..models import DeploymentScenario, OptimizationOutcome, OptimizationStrategy
 from ..presets import QUANTIZATION_BONUS
+from .uncertainty import MonteCarloResult, ParameterDistribution, run_monte_carlo
+
+if TYPE_CHECKING:
+    pass
 
 
 class ROICalculator:
@@ -120,3 +125,46 @@ class ROICalculator:
             )
             results.append((factor, outcome))
         return sorted(results, key=lambda x: x[0])
+
+    def monte_carlo_analysis(
+        self,
+        scenario_name: str,
+        strategy_name: str,
+        distributions: list[ParameterDistribution],
+        num_simulations: int = 1000,
+        seed: int | None = None,
+    ) -> MonteCarloResult:
+        """Run Monte Carlo uncertainty analysis.
+
+        Args:
+            scenario_name: Name of the registered scenario.
+            strategy_name: Name of the registered strategy.
+            distributions: Parameter distributions to sample from.
+            num_simulations: Number of simulation runs.
+            seed: Random seed for reproducibility.
+
+        Returns:
+            MonteCarloResult with statistical summaries.
+
+        Raises:
+            KeyError: If scenario or strategy is not registered.
+        """
+        if scenario_name not in self.scenarios:
+            raise KeyError(f"Scenario '{scenario_name}' not found")
+        if strategy_name not in self.strategies:
+            raise KeyError(f"Strategy '{strategy_name}' not found")
+
+        scenario = self.scenarios[scenario_name]
+        strategy = self.strategies[strategy_name]
+
+        def estimator(scen: DeploymentScenario, strat: OptimizationStrategy) -> OptimizationOutcome:
+            return estimate_outcome(
+                scen,
+                strat,
+                grid_co2e_kg_per_kwh=self.config.grid_co2e_factor,
+                hardware_savings_correlation=self.config.hardware_savings_correlation,
+            )
+
+        return run_monte_carlo(
+            scenario, strategy, distributions, estimator, num_simulations, seed
+        )
