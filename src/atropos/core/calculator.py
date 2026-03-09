@@ -165,6 +165,4 @@ class ROICalculator:
                 hardware_savings_correlation=self.config.hardware_savings_correlation,
             )
 
-        return run_monte_carlo(
-            scenario, strategy, distributions, estimator, num_simulations, seed
-        )
+        return run_monte_carlo(scenario, strategy, distributions, estimator, num_simulations, seed)

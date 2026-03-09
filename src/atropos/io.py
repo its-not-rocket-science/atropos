@@ -188,7 +188,9 @@ def csv_to_markdown(csv_path: str | Path, output_path: str | Path | None = None)
         header = "| Strategy | Memory (GB) | Throughput (tok/s) | Annual Savings |"
         header += " Break-even | Risk |"
         lines.append(header)
-        lines.append("|----------|-------------|-------------------|----------------|------------|------|")
+        lines.append(
+            "|----------|-------------|-------------------|----------------|------------|------|"
+        )
 
         for row in scenario_rows:
             strategy = row.get("strategy", "unknown")

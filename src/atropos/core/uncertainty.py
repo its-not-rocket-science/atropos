@@ -39,9 +39,7 @@ class ParameterDistribution:
             return random.uniform(base_value - delta, base_value + delta)
         if self.distribution == "triangular":
             delta = base_value * self.range_fraction
-            return random.triangular(
-                base_value - delta, base_value + delta, base_value
-            )
+            return random.triangular(base_value - delta, base_value + delta, base_value)
         return base_value
 
 
@@ -121,12 +119,8 @@ def run_monte_carlo(
     outcomes: list[OptimizationOutcome] = []
 
     # Map distribution names to actual distribution objects for quick lookup
-    scenario_dists = {
-        d.param_name: d for d in distributions if hasattr(scenario, d.param_name)
-    }
-    strategy_dists = {
-        d.param_name: d for d in distributions if hasattr(strategy, d.param_name)
-    }
+    scenario_dists = {d.param_name: d for d in distributions if hasattr(scenario, d.param_name)}
+    strategy_dists = {d.param_name: d for d in distributions if hasattr(strategy, d.param_name)}
 
     for _ in range(num_simulations):
         # Sample scenario parameters
@@ -135,7 +129,7 @@ def run_monte_carlo(
             for k, v in scenario.__dict__.items()
             if not k.startswith("_")
         }
-        sampled_scenario = type(scenario)(**scenario_values)
+        sampled_scenario = type(scenario)(**scenario_values)  # type: ignore[arg-type]
 
         # Sample strategy parameters
         strategy_values = {
@@ -143,7 +137,7 @@ def run_monte_carlo(
             for k, v in strategy.__dict__.items()
             if not k.startswith("_")
         }
-        sampled_strategy = type(strategy)(**strategy_values)
+        sampled_strategy = type(strategy)(**strategy_values)  # type: ignore[arg-type]
 
         try:
             outcome = estimator(sampled_scenario, sampled_strategy)
@@ -157,13 +151,10 @@ def run_monte_carlo(
 
     # Calculate statistics
     savings_values = sorted(o.annual_total_savings_usd for o in outcomes)
-    break_even_values = [
-        o.break_even_years for o in outcomes if o.break_even_years is not None
-    ]
+    break_even_values = [o.break_even_years for o in outcomes if o.break_even_years is not None]
     co2e_values = [o.annual_co2e_savings_kg for o in outcomes]
     memory_values = [
-        (o.baseline_memory_gb - o.optimized_memory_gb) / o.baseline_memory_gb
-        for o in outcomes
+        (o.baseline_memory_gb - o.optimized_memory_gb) / o.baseline_memory_gb for o in outcomes
     ]
 
     def percentile(values: list[float], p: float) -> float:
@@ -199,9 +190,7 @@ def run_monte_carlo(
         break_even_mean=sum(break_even_values) / len(break_even_values)
         if break_even_values
         else None,
-        break_even_median=percentile(sorted(break_even_values), 50)
-        if break_even_values
-        else None,
+        break_even_median=percentile(sorted(break_even_values), 50) if break_even_values else None,
         probability_positive_roi=positive_roi_count / len(outcomes),
         probability_break_even_within_1yr=break_even_1yr_count / len(outcomes),
         probability_break_even_within_2yr=break_even_2yr_count / len(outcomes),

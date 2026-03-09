@@ -43,9 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--strategies", nargs="+", required=True, choices=sorted(STRATEGIES.keys())
     )
     compare_parser.add_argument("--with-quantization", action="store_true")
-    compare_parser.add_argument(
-        "--format", choices=["text", "markdown", "json"], default="text"
-    )
+    compare_parser.add_argument("--format", choices=["text", "markdown", "json"], default="text")
     compare_parser.add_argument(
         "--sort-by", choices=["savings", "breakeven", "risk"], default="savings"
     )
@@ -77,17 +75,17 @@ def build_parser() -> argparse.ArgumentParser:
     sensitivity_parser.add_argument("--output", "-o", type=Path)
     sensitivity_parser.add_argument("--format", choices=["text", "csv", "json"], default="text")
 
-    mc_parser = subparsers.add_parser(
-        "monte-carlo", help="Run Monte Carlo uncertainty analysis."
-    )
+    mc_parser = subparsers.add_parser("monte-carlo", help="Run Monte Carlo uncertainty analysis.")
     mc_parser.add_argument("scenario", help="Scenario name or path to YAML")
     mc_parser.add_argument("--strategy", required=True, choices=sorted(STRATEGIES.keys()))
     mc_parser.add_argument(
         "--params",
         nargs="+",
         default=["memory_reduction_fraction", "throughput_improvement_fraction"],
-        help=("Parameters to vary "
-              "(default: memory_reduction_fraction throughput_improvement_fraction)"),
+        help=(
+            "Parameters to vary "
+            "(default: memory_reduction_fraction throughput_improvement_fraction)"
+        ),
     )
     mc_parser.add_argument(
         "--distribution",
@@ -205,9 +203,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.sort_by == "savings":
                 outcomes.sort(key=lambda o: o.annual_total_savings_usd, reverse=reverse)
             elif args.sort_by == "breakeven":
-                outcomes.sort(
-                    key=lambda o: (o.break_even_years or float('inf')), reverse=reverse
-                )
+                outcomes.sort(key=lambda o: (o.break_even_years or float("inf")), reverse=reverse)
             elif args.sort_by == "risk":
                 risk_order = {"low": 0, "medium": 1, "high": 2}
                 outcomes.sort(key=lambda o: risk_order[o.quality_risk], reverse=reverse)
@@ -218,9 +214,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             elif args.format == "json":
                 content = generate_comparison_json(outcomes)
             else:
-                content = "\n\n".join(
-                    render_report(outcome, "text") for outcome in outcomes
-                )
+                content = "\n\n".join(render_report(outcome, "text") for outcome in outcomes)
             if args.output:
                 args.output.write_text(content)
             else:
@@ -248,6 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"Saved sensitivity results to {args.output}")
             elif args.format == "json":
                 import json
+
                 data = [
                     {
                         "variation_factor": factor,
@@ -305,7 +300,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.format == "json":
                 import json
 
-                data = {
+                mc_data: dict[str, object] = {
                     "scenario": result.scenario_name,
                     "strategy": result.strategy_name,
                     "simulations": result.num_simulations,
@@ -330,7 +325,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "co2e_savings_mean_kg": result.co2e_savings_mean,
                     "memory_reduction_mean": result.memory_reduction_mean,
                 }
-                content = json.dumps(data, indent=2)
+                content = json.dumps(mc_data, indent=2)
                 if args.output:
                     args.output.write_text(content)
                     print(f"Saved Monte Carlo results to {args.output}")

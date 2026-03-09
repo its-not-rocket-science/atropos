@@ -47,9 +47,7 @@ class TestParameterDistribution:
 
     def test_normal_distribution(self):
         """Test normal distribution sampling."""
-        dist = ParameterDistribution(
-            param_name="test", distribution="normal", std_dev=0.1
-        )
+        dist = ParameterDistribution(param_name="test", distribution="normal", std_dev=0.1)
         # With seed, should be reproducible
         values = [dist.sample(100.0) for _ in range(100)]
         # All values should be reasonably close to base value
@@ -60,9 +58,7 @@ class TestParameterDistribution:
 
     def test_uniform_distribution(self):
         """Test uniform distribution sampling."""
-        dist = ParameterDistribution(
-            param_name="test", distribution="uniform", range_fraction=0.2
-        )
+        dist = ParameterDistribution(param_name="test", distribution="uniform", range_fraction=0.2)
         values = [dist.sample(100.0) for _ in range(100)]
         # All values should be within range
         assert all(80 <= v <= 120 for v in values)
@@ -211,8 +207,7 @@ class TestRunMonteCarlo:
         assert result.num_simulations == 100
         # All outcomes should have valid savings values
         assert all(
-            isinstance(o.annual_total_savings_usd, (int, float))
-            for o in result.all_outcomes
+            isinstance(o.annual_total_savings_usd, (int, float)) for o in result.all_outcomes
         )
 
     def test_probability_calculations(self, sample_scenario, sample_strategy):
@@ -240,10 +235,7 @@ class TestRunMonteCarlo:
         assert 0 <= result.probability_break_even_within_2yr <= 1
 
         # P(break_even <= 1yr) <= P(break_even <= 2yr)
-        assert (
-            result.probability_break_even_within_1yr
-            <= result.probability_break_even_within_2yr
-        )
+        assert result.probability_break_even_within_1yr <= result.probability_break_even_within_2yr
 
 
 class TestROICalculatorMonteCarlo:
