@@ -11,7 +11,7 @@ Named after the Fate who cuts the thread, Atropos is built for practical deploym
 - How do pruning-only and pruning-plus-quantization compare?
 - Which deployment scenarios justify optimization work?
 
-Future: Atropos Pipeline will automate the full workflow—assess, prune, fine-tune, validate, and deploy—only when the math shows it's worth doing.
+**Atropos Pipeline** automates the full workflow—assess, prune, fine-tune, validate, and deploy—only when the math shows it's worth doing.
 
 ## What's included
 
@@ -20,8 +20,15 @@ Future: Atropos Pipeline will automate the full workflow—assess, prune, fine-t
 - pruning and quantization strategy composition
 - validation and error handling
 - comparison, batch, and sensitivity-analysis commands
+- Monte Carlo uncertainty analysis
 - CSV-to-markdown report generation
 - markdown / HTML / JSON reporting
+- **web dashboard** for interactive exploration
+- **telemetry collection** from vLLM/TGI/Triton inference servers
+- **model testing** suite for HuggingFace Hub compatibility
+- **pruning framework integrations** (LLM-Pruner, Wanda, SparseGPT)
+- **calibration** against real performance metrics
+- **Atropos Pipeline** for automated optimization
 - tests, CI workflows, pre-commit config, and Makefile
 
 ## Installation
@@ -82,6 +89,37 @@ Convert CSV results to markdown report:
 atropos csv-to-markdown results.csv --output report.md
 ```
 
+Launch the web dashboard:
+
+```bash
+atropos dashboard --port 8050
+```
+
+Collect telemetry from a running inference server:
+
+```bash
+atropos collect-telemetry --server-type vllm --url http://localhost:8000 \
+    --duration 60 --output telemetry.json --create-scenario
+```
+
+Test HuggingFace models for compatibility:
+
+```bash
+atropos test-models --device cuda --max-params 3.0 --catalog models.yaml
+```
+
+Validate projections against a real model:
+
+```bash
+atropos validate medium-coder --model gpt2 --device cuda
+```
+
+Run the automated optimization pipeline:
+
+```bash
+atropos pipeline medium-coder --config pipeline.yaml --strategy structured_pruning
+```
+
 ## Strategy model
 
 Built-in strategies intentionally stay conservative:
@@ -128,25 +166,49 @@ Atropos is a planning tool, not a training or pruning framework. It uses transpa
 
 The default hardware cost model assumes only part of memory reduction translates into hardware savings. That factor is configurable in `AtroposConfig`.
 
-## Pipeline extension (planned)
+## Atropos Pipeline
 
-Atropos Pipeline will automate the optimization workflow:
+The Pipeline automates the full optimization workflow:
 
 1. **Assessment** — Run Atropos analysis on your deployment scenario
 2. **Decision gate** — Automatically proceed only if projected savings exceed threshold
-3. **Pruning execution** — Trigger structured pruning via integration with pruning frameworks
+3. **Pruning execution** — Trigger structured pruning via integration with pruning frameworks (LLM-Pruner, Wanda, SparseGPT)
 4. **Fine-tuning** — Run recovery fine-tuning to restore quality
 5. **Validation** — Benchmark the optimized model and verify metrics match projections
 6. **Deployment** — Deploy if validation passes; rollback if not
 
 This closes the loop from estimation to automated execution, only applying optimizations when Atropos predicts they are worthwhile.
 
-## Roadmap highlights
+### Pipeline configuration
 
-- Monte Carlo uncertainty modeling
-- experiment-tracking integrations
-- notebook examples and dashboarding
-- region-specific carbon intensity presets
-- **Atropos Pipeline for automated pruning and tuning**
+```yaml
+pipeline:
+  name: my-optimization-pipeline
+  auto_execute: true
+  thresholds:
+    max_break_even_months: 12
+    min_annual_savings_usd: 10000
+    max_quality_risk: medium
+  pruning:
+    framework: llm-pruner
+    target_sparsity: 0.30
+  validation:
+    tolerance_percent: 10
+    quality_benchmark: humaneval
+```
 
-See `ROADMAP.md` for details.
+Run the pipeline:
+
+```bash
+atropos pipeline medium-coder --config pipeline.yaml
+```
+
+## Documentation
+
+- [CLI Reference](docs/cli-reference.md) - All commands and options
+- [Dashboard Guide](docs/dashboard-guide.md) - Web dashboard usage
+- [Telemetry Collection](docs/telemetry-collection-guide.md) - Measuring real inference performance
+- [Model Recommendations](docs/model-recommendations.md) - Selecting models for your scenario
+- [Model Testing Guide](docs/model-testing-guide.md) - Testing models for compatibility
+
+See `ROADMAP.md` for upcoming features and active experiments.

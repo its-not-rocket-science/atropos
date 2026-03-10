@@ -17,6 +17,11 @@ from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
 from .integrations import TRACKERS, get_tracker, run_to_scenario
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
+from .model_tester import (
+    generate_catalog,
+    get_recommended_test_models,
+    run_test_suite,
+)
 from .models import DeploymentScenario
 from .pipeline import PipelineConfig, run_pipeline
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
@@ -381,6 +386,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_parser.add_argument(
         "--output", "-o", type=Path, help="Output file path (default: stdout)"
+    )
+
+    # Test models command
+    test_models_parser = subparsers.add_parser(
+        "test-models",
+        help="Test HuggingFace models for Atropos compatibility.",
+    )
+    test_models_parser.add_argument(
+        "--models",
+        nargs="+",
+        help="Specific model IDs to test (default: recommended list)",
+    )
+    test_models_parser.add_argument(
+        "--device",
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help="Device to test on",
+    )
+    test_models_parser.add_argument(
+        "--max-params",
+        type=float,
+        default=3.0,
+        help="Maximum parameter count in billions (default: 3)",
+    )
+    test_models_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        default=Path("model-test-results.json"),
+        help="Output JSON file for test results",
+    )
+    test_models_parser.add_argument(
+        "--catalog",
+        "-c",
+        type=Path,
+        help="Generate YAML catalog file",
     )
 
     return parser
@@ -1139,6 +1180,29 @@ def main(argv: Sequence[str] | None = None) -> int:
             except Exception as e:
                 print(f"Validation failed: {e}", file=sys.stderr)
                 return 1
+
+        if args.command == "test-models":
+            # Get models to test
+            models = args.models or get_recommended_test_models()
+
+            # Run test suite
+            test_results = run_test_suite(
+                models=models,
+                device=args.device,
+                max_params_b=args.max_params,
+                output_path=args.output,
+            )
+
+            # Generate catalog if requested
+            if args.catalog:
+                generate_catalog(test_results, args.catalog)
+
+            # Return success if majority of tests passed
+            success_rate = (
+                test_results.successful / test_results.total_models
+                if test_results.total_models > 0 else 0
+            )
+            return 0 if success_rate >= 0.5 else 1
 
         parser.error(f"Unsupported command: {args.command}")
         return 2
