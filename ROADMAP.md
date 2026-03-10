@@ -104,7 +104,8 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 **Goal:** Execute actual pruning on real models and validate ROI projections.
 
 **Tasks:**
-- [ ] Select 3-5 candidate models (small to medium size)
+- [x] Select 3-5 candidate models (small to medium size)
+- [x] Download and cache candidate models
 - [ ] Run Atropos analysis to project savings
 - [ ] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
 - [ ] Measure actual performance of pruned models
@@ -113,8 +114,11 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [ ] Document break-even analysis with real data
 
 **Deliverables:**
-- Pruned models hosted on HuggingFace
-- Before/after performance comparison report
-- Quality benchmark results
-- Updated Atropos strategies based on real pruning outcomes
-- Case study write-up demonstrating ROI validation
+- ✅ `scripts/download_test_models.py` — Download script for 5 candidate models
+- ✅ `scripts/test_pruning_candidates.py` — Validation test runner
+- ✅ `test_data/` — Local cache of 36+ GB models (gpt2, gpt2-medium, gpt2-xl, opt-1.3b, pythia-2.8b)
+- [ ] Pruned models hosted on HuggingFace
+- [ ] Before/after performance comparison report
+- [ ] Quality benchmark results
+- [ ] Updated Atropos strategies based on real pruning outcomes
+- [ ] Case study write-up demonstrating ROI validation

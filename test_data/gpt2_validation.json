@@ -1,0 +1,36 @@
+{
+  "total_tests": 2,
+  "successful": 2,
+  "failed": 0,
+  "skipped": 0,
+  "duration_sec": 47.80021,
+  "device": "cpu",
+  "start_time": "2026-03-10T19:59:06.813855",
+  "end_time": "2026-03-10T19:59:54.614065",
+  "results": [
+    {
+      "model_id": "gpt2",
+      "preset": "edge-coder",
+      "strategy": "mild_pruning",
+      "status": "success",
+      "validation_time_sec": 22.1109356880188,
+      "memory_variance_pct": -88.55,
+      "throughput_variance_pct": 1121.41,
+      "savings_accuracy": 0.0,
+      "error_message": "",
+      "timestamp": "2026-03-10T19:59:06.813855"
+    },
+    {
+      "model_id": "gpt2",
+      "preset": "edge-coder",
+      "strategy": "structured_pruning",
+      "status": "success",
+      "validation_time_sec": 25.689274549484253,
+      "memory_variance_pct": -86.79,
+      "throughput_variance_pct": 1058.68,
+      "savings_accuracy": 0.0,
+      "error_message": "",
+      "timestamp": "2026-03-10T19:59:28.924791"
+    }
+  ]
+}
