@@ -56,7 +56,7 @@ class ModelValidator:
 
         try:
             return self._measure_real_model(model_name, optimized=False)
-        except ImportException:
+        except ImportErrorException:
             # Fall back to simulated measurements
             return self._simulate_baseline_measurement(model_name)
 
@@ -80,7 +80,7 @@ class ModelValidator:
             return self._measure_real_model(
                 model_name, optimized=True, pruning_method=pruning_method
             )
-        except ImportException:
+        except ImportErrorException:
             # Fall back to simulated measurements
             return self._simulate_optimized_measurement(model_name)
 
@@ -117,13 +117,13 @@ class ModelValidator:
             MeasuredMetrics from actual execution.
 
         Raises:
-            ImportException: If required packages not installed.
+            ImportErrorException: If required packages not installed.
         """
         try:
             import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer
         except ImportError as e:
-            raise ImportException(
+            raise ImportErrorException(
                 "PyTorch and transformers required for real model validation. "
                 "Install with: pip install torch transformers"
             ) from e
@@ -216,7 +216,7 @@ class ModelValidator:
 
         if method == "magnitude":
             # Apply magnitude-based pruning to linear layers
-            for name, module in model.named_modules():
+            for _name, module in model.named_modules():
                 if isinstance(module, torch.nn.Linear):
                     prune.l1_unstructured(  # type: ignore[no-untyped-call]
                         module, name="weight", amount=target_sparsity
@@ -419,7 +419,7 @@ class ModelValidator:
             )
 
 
-class ImportException(Exception):
+class ImportErrorException(Exception):  # noqa: N818
     """Exception raised when required packages not installed."""
 
     pass

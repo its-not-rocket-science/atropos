@@ -870,18 +870,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             scenario_name, scenario = _load_scenario_input(args.scenario)
 
             # Parse telemetry
-            parser = get_parser(args.parser) if args.parser else None
-            if parser:
-                telemetry = parser.parse(args.telemetry)
+            telemetry_parser = get_parser(args.parser) if args.parser else None
+            if telemetry_parser:
+                telemetry = telemetry_parser.parse(args.telemetry)
             else:
                 # Auto-detect parser from file extension
                 from .telemetry import PARSERS
 
                 suffix = args.telemetry.suffix.lower()
                 if suffix == ".json":
-                    telemetry = PARSERS["vllm"].parse(args.telemetry)
+                    telemetry = PARSERS["vllm"]().parse_file(args.telemetry)
                 elif suffix == ".csv":
-                    telemetry = PARSERS["csv"].parse(args.telemetry)
+                    telemetry = PARSERS["csv"]().parse_file(args.telemetry)
                 else:
                     print(
                         f"Error: Cannot auto-detect parser for {suffix} files. "
@@ -898,10 +898,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"  - {issue}", file=sys.stderr)
 
             # Run calibration
-            result = calibrate_scenario(scenario, telemetry, tolerance_pct=args.tolerance)
+            calibration_result = calibrate_scenario(
+                scenario, telemetry, tolerance_pct=args.tolerance
+            )
 
             # Generate report
-            report = generate_calibration_report(result, format=args.format)
+            report = generate_calibration_report(calibration_result, format=args.format)
 
             if args.output:
                 args.output.write_text(report)
@@ -914,11 +916,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "pipeline":
             # Load scenario and pipeline config
             scenario_name, scenario = _load_scenario_input(args.scenario)
-            config = PipelineConfig.from_yaml(args.config)
+            pipeline_config = PipelineConfig.from_yaml(args.config)
             strategy = STRATEGIES[args.strategy]
             grid_co2e = get_carbon_intensity(args.region) if args.region else 0.35
 
-            print(f"Running pipeline: {config.name}")
+            print(f"Running pipeline: {pipeline_config.name}")
             print(f"Scenario: {scenario_name}")
             print(f"Strategy: {args.strategy}")
             if args.dry_run:
@@ -926,8 +928,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             print()
 
             # Run pipeline
-            result = run_pipeline(
-                config=config,
+            pipeline_result = run_pipeline(
+                config=pipeline_config,
                 scenario=scenario,
                 strategy=strategy,
                 grid_co2e=grid_co2e,
@@ -935,8 +937,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
 
             # Print summary
-            print(f"Pipeline status: {result.final_status.name.lower()}")
-            duration = result.duration_seconds
+            print(f"Pipeline status: {pipeline_result.final_status.name.lower()}")
+            duration = pipeline_result.duration_seconds
             if duration:
                 print(f"Duration: {duration:.1f}s")
             else:
@@ -944,31 +946,43 @@ def main(argv: Sequence[str] | None = None) -> int:
             print()
 
             # Print stage results
-            for stage in result.stages:
+            for stage in pipeline_result.stages:
                 print(f"  {stage.stage.name.lower()}: {stage.status.name.lower()}")
                 if stage.message:
                     print(f"    {stage.message}")
 
             # Save results if output specified
             if args.output:
-                args.output.write_text(result.to_json())
+                args.output.write_text(pipeline_result.to_json())
                 print(f"\nResults saved to {args.output}")
 
-            return 0 if result.final_status.name.lower() == "success" else 1
+            return_code = 0 if pipeline_result.final_status.name.lower() == "success" else 1
+            return return_code
 
         if args.command == "validate-pipeline-config":
             try:
-                config = PipelineConfig.from_yaml(args.config)
-                print(f"Configuration valid: {config.name}")
-                print(f"  Auto-execute: {config.auto_execute}")
-                print(f"  Thresholds: {config.thresholds.max_break_even_months} months break-even, "
-                      f"${config.thresholds.min_annual_savings_usd:,.0f} min savings")
-                fw = config.pruning.framework
-                sparsity = config.pruning.target_sparsity
+                pipeline_cfg = PipelineConfig.from_yaml(args.config)
+                # Subconfigs are always set by __post_init__, but mypy doesn't know
+                assert pipeline_cfg.thresholds is not None
+                assert pipeline_cfg.pruning is not None
+                assert pipeline_cfg.recovery is not None
+                assert pipeline_cfg.validation is not None
+                assert pipeline_cfg.deployment is not None
+
+                print(f"Configuration valid: {pipeline_cfg.name}")
+                print(f"  Auto-execute: {pipeline_cfg.auto_execute}")
+                thresh = pipeline_cfg.thresholds
+                print(f"  Thresholds: {thresh.max_break_even_months} months break-even, "
+                      f"${thresh.min_annual_savings_usd:,.0f} min savings")
+                fw = pipeline_cfg.pruning.framework
+                sparsity = pipeline_cfg.pruning.target_sparsity
                 print(f"  Pruning: {fw} at {sparsity:.0%} sparsity")
-                print(f"  Recovery: {'enabled' if config.recovery.enabled else 'disabled'}")
-                print(f"  Validation: {config.validation.quality_benchmark} benchmark")
-                print(f"  Deployment: {'auto' if config.deployment.auto_deploy else 'manual'}")
+                recov = pipeline_cfg.recovery.enabled
+                val_bm = pipeline_cfg.validation.quality_benchmark
+                deploy = pipeline_cfg.deployment.auto_deploy
+                print(f"  Recovery: {'enabled' if recov else 'disabled'}")
+                print(f"  Validation: {val_bm} benchmark")
+                print(f"  Deployment: {'auto' if deploy else 'manual'}")
                 return 0
             except Exception as e:
                 print(f"Configuration error: {e}", file=sys.stderr)
@@ -988,7 +1002,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             # Run validation
             try:
-                result = run_validation(
+                validation_result = run_validation(
                     scenario=scenario,
                     strategy=strategy,
                     model_name=args.model,
@@ -999,9 +1013,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 # Generate report
                 if args.format == "json":
                     import json
-                    report = json.dumps(result.to_dict(), indent=2)
+                    report = json.dumps(validation_result.to_dict(), indent=2)
                 else:
-                    report = result.to_markdown()
+                    report = validation_result.to_markdown()
 
                 if args.output:
                     args.output.write_text(report)

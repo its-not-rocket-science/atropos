@@ -170,7 +170,7 @@ class TestCarbonPresetsData:
 
     def test_cloud_region_map_valid(self):
         """Test that all cloud region mappings point to valid presets or fallbacks."""
-        for cloud_region, country_code in CLOUD_REGION_MAP.items():
+        for cloud_region, _country_code in CLOUD_REGION_MAP.items():
             # Should be able to get intensity without error
             intensity = get_carbon_intensity(cloud_region)
             assert intensity > 0

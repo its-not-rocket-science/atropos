@@ -149,7 +149,7 @@ class WandbTracker(ExperimentTracker):
         """Get or create W&B API client."""
         if self._api is None:
             try:
-                import wandb  # type: ignore[import-not-found]
+                import wandb
 
                 if self.api_key:
                     wandb.login(key=self.api_key, host=self.host)
@@ -303,11 +303,11 @@ class MLflowTracker(ExperimentTracker):
         """Get or create MLflow client."""
         if self._client is None:
             try:
-                import mlflow  # type: ignore[import-not-found]
+                import mlflow
 
                 if self.tracking_uri:
                     mlflow.set_tracking_uri(self.tracking_uri)
-                from mlflow.tracking import MlflowClient  # type: ignore[import-not-found]
+                from mlflow.tracking import MlflowClient
 
                 self._client = MlflowClient()
             except ImportError as e:
