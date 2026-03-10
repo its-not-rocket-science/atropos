@@ -122,13 +122,13 @@ def test_model_loading(model_name: str, device: str = "cpu") -> ModelInfo:
     info = ModelInfo(name=model_name, params_b=estimate_params(model_name))
 
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
 
         print(f"  Loading {model_name}...", end=" ", flush=True)
 
         # Try to load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        _tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Try to load model
         model = AutoModelForCausalLM.from_pretrained(
@@ -169,7 +169,7 @@ def run_atropos_validation(
     model_name: str, scenario: str = "edge-coder", device: str = "cpu"
 ) -> dict[str, Any] | None:
     """Run Atropos validation against a model."""
-    print(f"  Running Atropos validation...", end=" ", flush=True)
+    print("  Running Atropos validation...", end=" ", flush=True)
 
     try:
         result = subprocess.run(
@@ -237,7 +237,7 @@ def validate_models(
     models: list[str], device: str = "cpu"
 ) -> dict[str, Any]:
     """Run Atropos validation on models."""
-    print(f"\nRunning Atropos validation...")
+    print("\nRunning Atropos validation...")
     print("=" * 60)
 
     results = {}
