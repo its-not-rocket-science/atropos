@@ -131,7 +131,7 @@ class ModelValidator:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         loaded_model = AutoModelForCausalLM.from_pretrained(model_name)
         model = cast(PreTrainedModel, loaded_model)
-        model = model.to(self.device)  # type: ignore[arg-type]
+        model = model.to(self.device)
         model.eval()
 
         # Count parameters

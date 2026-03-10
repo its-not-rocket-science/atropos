@@ -56,3 +56,62 @@ pipeline:
 - Training orchestration (Weights & Biases, MLflow)
 - Deployment platforms (vLLM, Triton, custom)
 - CI/CD pipelines (GitHub Actions, GitLab CI)
+
+---
+
+## Active Experiments
+
+Practical exercises to validate Atropos projections and demonstrate real-world value.
+
+### 1. Launching Metrics Analysis
+
+**Goal:** Collect real performance telemetry and compare against Atropos projections.
+
+**Tasks:**
+- [ ] Set up telemetry collection from vLLM/TGI inference servers
+- [ ] Capture memory, throughput, latency, power consumption for baseline models
+- [ ] Import telemetry into Atropos scenarios
+- [ ] Run calibration to validate projection accuracy
+- [ ] Document variance findings and update models if needed
+
+**Deliverables:**
+- Calibration report comparing projected vs actual metrics
+- Updated scenario presets based on real measurements
+- Documentation on telemetry best practices
+
+### 2. LLM Crawl and Analysis
+
+**Goal:** Discover and catalog available models for Atropos testing.
+
+**Tasks:**
+- [ ] Run model discovery crawler across HuggingFace Hub
+- [ ] Identify models by size tier (edge <1B, medium 1-7B, large >7B)
+- [ ] Test model loading on available hardware
+- [ ] Generate compatibility matrix
+- [ ] Create Atropos scenario files for working models
+- [ ] Document recommended test models per use case
+
+**Deliverables:**
+- `models-catalog.yaml` with tested, loadable models
+- Automated test suite for model validation
+- Model recommendation guide by deployment scenario
+
+### 3. Pruning Exercise
+
+**Goal:** Execute actual pruning on real models and validate ROI projections.
+
+**Tasks:**
+- [ ] Select 3-5 candidate models (small to medium size)
+- [ ] Run Atropos analysis to project savings
+- [ ] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
+- [ ] Measure actual performance of pruned models
+- [ ] Compare achieved sparsity vs target
+- [ ] Run quality benchmarks (HumanEval, etc.) to validate model quality
+- [ ] Document break-even analysis with real data
+
+**Deliverables:**
+- Pruned models hosted on HuggingFace
+- Before/after performance comparison report
+- Quality benchmark results
+- Updated Atropos strategies based on real pruning outcomes
+- Case study write-up demonstrating ROI validation
