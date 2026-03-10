@@ -18,6 +18,7 @@ from .core.uncertainty import ParameterDistribution
 from .integrations import TRACKERS, get_tracker, run_to_scenario
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
 from .models import DeploymentScenario
+from .pipeline import PipelineConfig, run_pipeline
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
 from .reporting import generate_comparison_json, generate_comparison_table
 from .telemetry import (
@@ -254,6 +255,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     calibrate_parser.add_argument(
         "--output", "-o", type=Path, help="Output file path (default: stdout)"
+    )
+
+    # Pipeline command
+    pipeline_parser = subparsers.add_parser(
+        "pipeline",
+        help="Run the Atropos optimization pipeline.",
+    )
+    pipeline_parser.add_argument(
+        "scenario", help="Scenario name (preset) or path to YAML file"
+    )
+    pipeline_parser.add_argument(
+        "--config", "-c", type=Path, required=True,
+        help="Pipeline configuration YAML file"
+    )
+    pipeline_parser.add_argument(
+        "--strategy", choices=sorted(STRATEGIES.keys()),
+        default="structured_pruning",
+        help="Optimization strategy to use"
+    )
+    pipeline_parser.add_argument(
+        "--region", help="Region for carbon intensity (ISO code or cloud region)"
+    )
+    pipeline_parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Simulate pipeline without actual execution"
+    )
+    pipeline_parser.add_argument(
+        "--output", "-o", type=Path,
+        help="Output JSON file for pipeline results"
+    )
+
+    # Pipeline config validation command
+    pipeline_config_parser = subparsers.add_parser(
+        "validate-pipeline-config",
+        help="Validate a pipeline configuration file.",
+    )
+    pipeline_config_parser.add_argument(
+        "config", type=Path, help="Pipeline configuration YAML file"
     )
 
     return parser
@@ -837,6 +876,69 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(report)
 
             return 0
+
+        if args.command == "pipeline":
+            # Load scenario and pipeline config
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+            config = PipelineConfig.from_yaml(args.config)
+            strategy = STRATEGIES[args.strategy]
+            grid_co2e = get_carbon_intensity(args.region) if args.region else 0.35
+
+            print(f"Running pipeline: {config.name}")
+            print(f"Scenario: {scenario_name}")
+            print(f"Strategy: {args.strategy}")
+            if args.dry_run:
+                print("Mode: DRY RUN (simulation only)")
+            print()
+
+            # Run pipeline
+            result = run_pipeline(
+                config=config,
+                scenario=scenario,
+                strategy=strategy,
+                grid_co2e=grid_co2e,
+                dry_run=args.dry_run,
+            )
+
+            # Print summary
+            print(f"Pipeline status: {result.final_status.name.lower()}")
+            duration = result.duration_seconds
+            if duration:
+                print(f"Duration: {duration:.1f}s")
+            else:
+                print("Duration: N/A")
+            print()
+
+            # Print stage results
+            for stage in result.stages:
+                print(f"  {stage.stage.name.lower()}: {stage.status.name.lower()}")
+                if stage.message:
+                    print(f"    {stage.message}")
+
+            # Save results if output specified
+            if args.output:
+                args.output.write_text(result.to_json())
+                print(f"\nResults saved to {args.output}")
+
+            return 0 if result.final_status.name.lower() == "success" else 1
+
+        if args.command == "validate-pipeline-config":
+            try:
+                config = PipelineConfig.from_yaml(args.config)
+                print(f"Configuration valid: {config.name}")
+                print(f"  Auto-execute: {config.auto_execute}")
+                print(f"  Thresholds: {config.thresholds.max_break_even_months} months break-even, "
+                      f"${config.thresholds.min_annual_savings_usd:,.0f} min savings")
+                fw = config.pruning.framework
+                sparsity = config.pruning.target_sparsity
+                print(f"  Pruning: {fw} at {sparsity:.0%} sparsity")
+                print(f"  Recovery: {'enabled' if config.recovery.enabled else 'disabled'}")
+                print(f"  Validation: {config.validation.quality_benchmark} benchmark")
+                print(f"  Deployment: {'auto' if config.deployment.auto_deploy else 'manual'}")
+                return 0
+            except Exception as e:
+                print(f"Configuration error: {e}", file=sys.stderr)
+                return 1
 
         parser.error(f"Unsupported command: {args.command}")
         return 2

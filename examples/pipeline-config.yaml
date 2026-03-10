@@ -1,0 +1,42 @@
+# Example Atropos Pipeline Configuration
+# This configuration automates pruning and tuning based on ROI assessments
+
+pipeline:
+  name: "medium-model-optimization"
+  auto_execute: false  # Set to true for fully automated execution
+
+  thresholds:
+    # Gate stage thresholds - all must pass to proceed with optimization
+    max_break_even_months: 12
+    min_annual_savings_usd: 10000
+    max_quality_risk: medium
+
+  pruning:
+    # Pruning stage configuration
+    framework: llm-pruner  # Options: llm-pruner, wanda, sparsegpt, custom
+    target_sparsity: 0.30
+    structured: true
+    # custom_command: "python -m llm_pruner --model path/to/model --sparsity 0.3"
+    # output_path: ./pruned-model
+
+  recovery:
+    # Recovery/fine-tuning stage
+    enabled: true
+    epochs: 3
+    learning_rate: 5.0e-5
+    batch_size: 32
+    # custom_command: "python train.py --model ./pruned-model --epochs 3"
+
+  validation:
+    # Validation stage
+    tolerance_percent: 10.0  # Acceptable variance from projections
+    quality_benchmark: humaneval  # Benchmark for quality validation
+    # min_quality_score: 0.85  # Minimum acceptable quality score
+    # benchmark_command: "python benchmark.py --model ./recovered-model"
+
+  deployment:
+    # Deployment stage
+    auto_deploy: false  # Set to true for automatic deployment after validation
+    canary_percent: 10.0  # Percentage of traffic for canary deployment
+    # deployment_command: "kubectl apply -f deployment.yaml"
+    # rollback_command: "kubectl rollout undo deployment/model"

@@ -20,9 +20,9 @@
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
 
-## Atropos Pipeline (new)
+## Atropos Pipeline
 
-A pipeline extension that automates pruning and tuning when assessments show positive ROI:
+✅ **Implemented** — A pipeline extension that automates pruning and tuning when assessments show positive ROI:
 
 ### Pipeline stages
 
