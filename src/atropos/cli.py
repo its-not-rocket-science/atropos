@@ -27,6 +27,7 @@ from .telemetry import (
     telemetry_to_scenario,
     validate_telemetry,
 )
+from .validation import run_validation
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -293,6 +294,39 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pipeline_config_parser.add_argument(
         "config", type=Path, help="Pipeline configuration YAML file"
+    )
+
+    # Validation command (test against real models)
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate Atropos projections against real neural networks.",
+    )
+    validate_parser.add_argument(
+        "scenario", help="Scenario name (preset) or path to YAML file"
+    )
+    validate_parser.add_argument(
+        "--strategy", choices=sorted(STRATEGIES.keys()),
+        default="structured_pruning",
+        help="Optimization strategy to test"
+    )
+    validate_parser.add_argument(
+        "--model", help="HuggingFace model name to test (auto-selected if not provided)"
+    )
+    validate_parser.add_argument(
+        "--device", choices=["cpu", "cuda"], default="cpu",
+        help="Device to run validation on"
+    )
+    validate_parser.add_argument(
+        "--pruning-method", default="magnitude",
+        choices=["magnitude", "random", "structured"],
+        help="Pruning method to apply"
+    )
+    validate_parser.add_argument(
+        "--format", choices=["markdown", "json"], default="markdown",
+        help="Output format"
+    )
+    validate_parser.add_argument(
+        "--output", "-o", type=Path, help="Output file path (default: stdout)"
     )
 
     return parser
@@ -938,6 +972,46 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
             except Exception as e:
                 print(f"Configuration error: {e}", file=sys.stderr)
+                return 1
+
+        if args.command == "validate":
+            # Load scenario and strategy
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+            strategy = STRATEGIES[args.strategy]
+
+            print(f"Validating Atropos projections for: {scenario_name}")
+            print(f"Strategy: {args.strategy}")
+            print(f"Device: {args.device}")
+            if args.model:
+                print(f"Model: {args.model}")
+            print()
+
+            # Run validation
+            try:
+                result = run_validation(
+                    scenario=scenario,
+                    strategy=strategy,
+                    model_name=args.model,
+                    device=args.device,
+                    pruning_method=args.pruning_method,
+                )
+
+                # Generate report
+                if args.format == "json":
+                    import json
+                    report = json.dumps(result.to_dict(), indent=2)
+                else:
+                    report = result.to_markdown()
+
+                if args.output:
+                    args.output.write_text(report)
+                    print(f"Validation report saved to {args.output}")
+                else:
+                    print(report)
+
+                return 0
+            except Exception as e:
+                print(f"Validation failed: {e}", file=sys.stderr)
                 return 1
 
         parser.error(f"Unsupported command: {args.command}")
