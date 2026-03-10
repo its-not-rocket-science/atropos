@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import random
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
+
+import torch
+from torch.nn.utils import prune
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
+
+from ..calculations import estimate_outcome
+from .models import ComparisonMetric, MeasuredMetrics, ValidationResult
 
 if TYPE_CHECKING:
     from ..models import DeploymentScenario, OptimizationStrategy
 
-from ..calculations import estimate_outcome
-from .models import ComparisonMetric, MeasuredMetrics, ValidationResult
 
 
 def _compute_variance(projected: float, measured: float) -> float:
@@ -119,20 +125,13 @@ class ModelValidator:
         Raises:
             ImportErrorException: If required packages not installed.
         """
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-        except ImportError as e:
-            raise ImportErrorException(
-                "PyTorch and transformers required for real model validation. "
-                "Install with: pip install torch transformers"
-            ) from e
-
+        
         # Load model and tokenizer
         print(f"Loading model: {model_name}")
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-        model = model.to(self.device)
+        loaded_model = AutoModelForCausalLM.from_pretrained(model_name)
+        model = cast(PreTrainedModel, loaded_model)
+        model = model.to(self.device)  # type: ignore[arg-type]
         model.eval()
 
         # Count parameters
@@ -206,11 +205,6 @@ class ModelValidator:
         Returns:
             Pruned model.
         """
-        try:
-            import torch
-            import torch.nn.utils.prune as prune
-        except ImportError:
-            return model
 
         target_sparsity = self.strategy.parameter_reduction_fraction
 
@@ -256,7 +250,6 @@ class ModelValidator:
 
     def _simulate_optimized_measurement(self, model_name: str) -> MeasuredMetrics:
         """Simulate optimized measurement when real model unavailable."""
-        import random
 
         def variance(x: float, pct: float) -> float:
             return x * (1 + random.uniform(-pct, pct))
@@ -312,7 +305,7 @@ class ModelValidator:
         optimized = self.measure_optimized(model_name, pruning_method)
 
         # Build comparisons
-        comparisons = self._build_comparisons(baseline, optimized)
+        comparisons = self._build_comparisons(optimized)
 
         # Calculate savings
         atropos_savings = (
@@ -343,7 +336,7 @@ class ModelValidator:
         )
 
     def _build_comparisons(
-        self, baseline: MeasuredMetrics, optimized: MeasuredMetrics
+        self, optimized: MeasuredMetrics
     ) -> list[ComparisonMetric]:
         """Build comparison metrics between Atropos and measured."""
         comparisons = []
@@ -421,8 +414,6 @@ class ModelValidator:
 
 class ImportErrorException(Exception):  # noqa: N818
     """Exception raised when required packages not installed."""
-
-    pass
 
 
 def run_validation(

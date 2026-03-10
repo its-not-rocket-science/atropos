@@ -19,13 +19,14 @@ import json
 import os
 import re
 import sys
+import urllib.parse
+import urllib.request
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from huggingface_hub import HfApi
 
 
 @dataclass
@@ -62,7 +63,8 @@ class PruningImplementation:
     stars: int | None = None
     language: str = ""
     last_updated: str = ""
-    atropos_integration_status: str = "not_integrated"  # integrated, planned, not_integrated
+    # integrated, planned, not_integrated
+    atropos_integration_status: str = "not_integrated"
 
 
 def estimate_params_from_name(model_id: str) -> float | None:
@@ -164,20 +166,13 @@ def search_huggingface(
     Returns:
         List of discovered models
     """
-    try:
-        from huggingface_hub import HfApi, ModelFilter
-    except ImportError:
-        print("Error: huggingface_hub not installed. Run: pip install huggingface-hub")
-        sys.exit(1)
 
     print(f"Searching HuggingFace Hub for {task} models...")
 
     api = HfApi()
     models = api.list_models(
-        filter=ModelFilter(
-            task=task,
-            library=library,
-        ),
+        task=task,
+        library=library,
         sort="downloads",
         direction=-1,
         limit=limit * 2,  # Fetch more to filter
@@ -220,13 +215,16 @@ def search_huggingface(
                 name=model_id,
                 source="huggingface",
                 params_b=params_b,
-                description=model.cardData.get("description", "") if model.cardData else "",
+                description=model.cardData.get(
+                    "description", "") if model.cardData else "",
                 url=f"https://huggingface.co/{model_id}",
                 tags=list(tags),
                 downloads=model.downloads,
                 likes=model.likes,
-                last_updated=model.lastModified.strftime("%Y-%m-%d") if model.lastModified else "",
-                license=model.cardData.get("license", "") if model.cardData else "",
+                last_updated=model.lastModified.strftime(
+                    "%Y-%m-%d") if model.lastModified else "",
+                license=model.cardData.get(
+                    "license", "") if model.cardData else "",
                 task=task,
                 atropos_compatible=compatible,
                 estimated_memory_gb=memory_gb,
@@ -258,8 +256,6 @@ def search_github(
     Returns:
         List of pruning implementations
     """
-    import urllib.request
-    import urllib.parse
 
     print(f"Searching GitHub for: {query}...")
 
@@ -317,17 +313,15 @@ def search_github(
 
 def search_pypi_pruning_tools() -> list[PruningImplementation]:
     """Search PyPI for pruning-related packages."""
-    import urllib.request
 
     print("Searching PyPI for pruning packages...")
 
-    queries = ["pruning", "sparse", "quantization", "model-optimization"]
-    results = []
+    # queries = ["pruning", "sparse", "quantization", "model-optimization"]
 
-    for query in queries:
-        url = f"https://pypi.org/search/?q={query}"
-        # Note: PyPI doesn't have a simple JSON API for search
-        # This is a placeholder for actual implementation
+    # for query in queries:
+    #     url = f"https://pypi.org/search/?q={query}"
+    #     # Note: PyPI doesn't have a simple JSON API for search
+    #     # This is a placeholder for actual implementation
 
     # Known packages
     known_packages = [
@@ -383,7 +377,8 @@ def generate_report(
             params_str = f"{m.params_b:.2f}B" if m.params_b else "?"
             mem_str = f"{m.estimated_memory_gb:.1f}GB" if m.estimated_memory_gb else "?"
             dl_str = f"{m.downloads:,}" if m.downloads else "?"
-            lines.append(f"| [{m.name}]({m.url}) | {params_str} | {mem_str} | {dl_str} | HF |")
+            lines.append(
+                f"| [{m.name}]({m.url}) | {params_str} | {mem_str} | {dl_str} | HF |")
 
     lines.extend(["", "## All Discovered Models", ""])
 
@@ -398,7 +393,8 @@ def generate_report(
         if size_range == "<= 1":
             filtered = [m for m in models if m.params_b and m.params_b <= 1]
         elif size_range == "1-7":
-            filtered = [m for m in models if m.params_b and 1 < m.params_b <= 7]
+            filtered = [
+                m for m in models if m.params_b and 1 < m.params_b <= 7]
         else:
             filtered = [m for m in models if m.params_b and m.params_b > 7]
 
@@ -408,7 +404,8 @@ def generate_report(
             for m in sorted(filtered, key=lambda x: x.downloads or 0, reverse=True)[:10]:
                 params = f"{m.params_b:.2f}B" if m.params_b else "?"
                 pruning = "✅" if m.pruning_applicable else "❌"
-                lines.append(f"| [{m.name}]({m.url}) | {params} | {m.task} | {pruning} |")
+                lines.append(
+                    f"| [{m.name}]({m.url}) | {params} | {m.task} | {pruning} |")
         else:
             lines.append("_No models found in this range_")
 
