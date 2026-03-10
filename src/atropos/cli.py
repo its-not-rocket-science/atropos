@@ -27,6 +27,10 @@ from .telemetry import (
     telemetry_to_scenario,
     validate_telemetry,
 )
+from .telemetry_collector import (
+    CollectionConfig,
+    collect_and_save,
+)
 from .validation import run_validation
 
 
@@ -172,6 +176,56 @@ def build_parser() -> argparse.ArgumentParser:
     telemetry_parser.add_argument("--output", "-o", type=Path, help="Output YAML file path")
     telemetry_parser.add_argument(
         "--preview", action="store_true", help="Preview scenario params without saving"
+    )
+
+    collect_parser = subparsers.add_parser(
+        "collect-telemetry",
+        help="Collect telemetry from a running inference server.",
+    )
+    collect_parser.add_argument(
+        "--server-type",
+        choices=["vllm", "tgi", "triton"],
+        required=True,
+        help="Type of inference server",
+    )
+    collect_parser.add_argument(
+        "--url",
+        default="http://localhost:8000",
+        help="Server URL (default: http://localhost:8000)",
+    )
+    collect_parser.add_argument(
+        "--duration",
+        type=float,
+        default=60.0,
+        help="Collection duration in seconds (default: 60)",
+    )
+    collect_parser.add_argument(
+        "--interval",
+        type=float,
+        default=5.0,
+        help="Sampling interval in seconds (default: 5)",
+    )
+    collect_parser.add_argument(
+        "--warmup",
+        type=int,
+        default=10,
+        help="Number of warmup requests (default: 10)",
+    )
+    collect_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        required=True,
+        help="Output JSON file for telemetry",
+    )
+    collect_parser.add_argument(
+        "--name",
+        help="Scenario name for importing after collection",
+    )
+    collect_parser.add_argument(
+        "--create-scenario",
+        action="store_true",
+        help="Create Atropos scenario from collected telemetry",
     )
 
     exp_parser = subparsers.add_parser(
@@ -680,6 +734,64 @@ def main(argv: Sequence[str] | None = None) -> int:
                 with open(args.output, "w", encoding="utf-8") as f:
                     yaml.dump(scenario_dict, f, default_flow_style=False, sort_keys=False)
                 print(f"\nSaved scenario to {args.output}")
+            return 0
+
+        if args.command == "collect-telemetry":
+            # Configure collection
+            collection_config = CollectionConfig(
+                collection_duration_sec=args.duration,
+                sampling_interval_sec=args.interval,
+                warmup_requests=args.warmup,
+            )
+
+            print(f"Collecting telemetry from {args.server_type} at {args.url}")
+            print(f"Duration: {args.duration}s, Interval: {args.interval}s")
+
+            # Collect telemetry
+            collection_result = collect_and_save(
+                server_type=args.server_type,
+                base_url=args.url,
+                output_path=args.output,
+                config=collection_config,
+            )
+
+            if not collection_result.success:
+                print(f"Error: {collection_result.error_message}", file=sys.stderr)
+                return 1
+
+            print("\nCollection complete!")
+            if collection_result.aggregated:
+                agg = collection_result.aggregated
+                print(f"Throughput: {agg.throughput_toks_per_sec:.1f} tok/s")
+                print(f"Latency: {agg.latency_ms_per_request:.1f} ms")
+                print(f"Memory: {agg.memory_gb:.1f} GB")
+
+            # Optionally create scenario
+            if args.create_scenario and collection_result.aggregated:
+                scenario = telemetry_to_scenario(
+                    collection_result.aggregated,
+                    name=args.name or f"{args.server_type}-collected",
+                )
+
+                scenario_path = args.output.with_suffix(".yaml")
+                import yaml
+
+                scenario_dict = {
+                    "name": scenario.name,
+                    "parameters_b": scenario.parameters_b,
+                    "memory_gb": scenario.memory_gb,
+                    "throughput_toks_per_sec": scenario.throughput_toks_per_sec,
+                    "power_watts": scenario.power_watts,
+                    "requests_per_day": scenario.requests_per_day,
+                    "tokens_per_request": scenario.tokens_per_request,
+                    "electricity_cost_per_kwh": scenario.electricity_cost_per_kwh,
+                    "annual_hardware_cost_usd": scenario.annual_hardware_cost_usd,
+                    "one_time_project_cost_usd": scenario.one_time_project_cost_usd,
+                }
+                with open(scenario_path, "w", encoding="utf-8") as f:
+                    yaml.dump(scenario_dict, f, default_flow_style=False, sort_keys=False)
+                print(f"\nScenario saved to: {scenario_path}")
+
             return 0
 
         if args.command == "import-experiment":
