@@ -109,7 +109,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] Run Atropos analysis to project savings
 - [x] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
 - [x] Measure actual performance of pruned models
-- [ ] Compare achieved sparsity vs target
+- [x] Compare achieved sparsity vs target
 - [ ] Run quality benchmarks (HumanEval, etc.) to validate model quality
 - [ ] Document break-even analysis with real data
 
@@ -124,7 +124,8 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `test_data/pruned_models/` — 8 pruned model variants (4 models × 2 strategies)
 - ✅ `test_data/pruning_report.json` — Pruning operation results
 - [ ] Pruned models hosted on HuggingFace
-- [ ] Before/after performance comparison report
-- [ ] Quality benchmark results
+- ✅ `test_data/comparison_report.json` — Projected vs actual comparison
+- ✅ `test_data/comparison_report.md` — Human-readable comparison analysis
+- [ ] Quality benchmark results (HumanEval)
 - [ ] Updated Atropos strategies based on real pruning outcomes
 - [ ] Case study write-up demonstrating ROI validation

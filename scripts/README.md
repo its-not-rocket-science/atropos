@@ -67,7 +67,23 @@ python scripts/prune_models.py --strategies mild_pruning
 python scripts/prune_models.py --output-dir ./my_pruned_models
 ```
 
-### 4. test_pruning_candidates.py
+### 4. compare_projections.py
+
+Compares Atropos projected savings vs actual pruning results.
+
+```bash
+# Generate comparison report
+python scripts/compare_projections.py
+
+# Custom paths
+python scripts/compare_projections.py \
+    --projections results/projections.json \
+    --pruning results/pruning_report.json \
+    --output results/comparison.json \
+    --markdown results/comparison.md
+```
+
+### 5. test_pruning_candidates.py
 
 Runs Atropos validation on downloaded models.
 
@@ -122,13 +138,20 @@ python scripts/discover-models.py --full
    python scripts/test_pruning_candidates.py
    ```
 
-5. **Review results** in `test_data/`:
+5. **Compare results**:
+   ```bash
+   python scripts/compare_projections.py
+   ```
+
+6. **Review results** in `test_data/`:
    - `download_report.json` — Model download status
    - `projections.json` — Baseline projections
    - `projections.md` — Human-readable projection report
    - `pruning_report.json` — Actual pruning results
    - `pruning_results.md` — Human-readable pruning report
    - `pruned_models/` — Directory of pruned model files
+   - `comparison_report.json` — Projected vs actual comparison
+   - `comparison_report.md` — Human-readable comparison analysis
    - `validation_results.json` — Post-pruning validation results
 
 ## Expected Results

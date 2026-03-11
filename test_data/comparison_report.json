@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-03-11T01:56:39.263909",
+  "summary": {
+    "total_comparisons": 8,
+    "successful_pruning": 8,
+    "avg_projected_memory_reduction_pct": 16.0,
+    "avg_achieved_memory_reduction_pct": 3.01,
+    "avg_variance_pct": -81.21,
+    "accuracy_assessment": "poor"
+  },
+  "comparisons": [
+    {
+      "model_id": "gpt2",
+      "strategy": "mild_pruning",
+      "projected_memory_reduction_pct": 10.000000000000004,
+      "projected_throughput_improvement_pct": 8.0,
+      "projected_annual_savings": 413.7276246998654,
+      "projected_break_even_months": 348.0550763427107,
+      "achieved_sparsity_pct": 3.1016907387063752,
+      "achieved_memory_reduction_pct": 1.5508453693531876,
+      "memory_variance_pct": -84.49154630646814,
+      "savings_variance_pct": -84.49154630646814
+    },
+    {
+      "model_id": "gpt2",
+      "strategy": "structured_pruning",
+      "projected_memory_reduction_pct": 21.999999999999993,
+      "projected_throughput_improvement_pct": 20.0,
+      "projected_annual_savings": 909.8967797011337,
+      "projected_break_even_months": 158.2597094664941,
+      "achieved_sparsity_pct": 6.8237191429932125,
+      "achieved_memory_reduction_pct": 3.4118595714966062,
+      "memory_variance_pct": -84.49154740228815,
+      "savings_variance_pct": -84.49154740228815
+    },
+    {
+      "model_id": "gpt2-medium",
+      "strategy": "mild_pruning",
+      "projected_memory_reduction_pct": 10.000000000000004,
+      "projected_throughput_improvement_pct": 8.0,
+      "projected_annual_savings": 413.7276246998654,
+      "projected_break_even_months": 348.0550763427107,
+      "achieved_sparsity_pct": 1.450389225993265,
+      "achieved_memory_reduction_pct": 0.7251946129966325,
+      "memory_variance_pct": -92.74805387003367,
+      "savings_variance_pct": -92.74805387003367
+    },
+    {
+      "model_id": "gpt2-medium",
+      "strategy": "structured_pruning",
+      "projected_memory_reduction_pct": 21.999999999999993,
+      "projected_throughput_improvement_pct": 20.0,
+      "projected_annual_savings": 909.8967797011337,
+      "projected_break_even_months": 158.2597094664941,
+      "achieved_sparsity_pct": 3.1908561844529837,
+      "achieved_memory_reduction_pct": 1.5954280922264918,
+      "memory_variance_pct": -92.74805412624322,
+      "savings_variance_pct": -92.74805412624322
+    },
+    {
+      "model_id": "gpt2-xl",
+      "strategy": "mild_pruning",
+      "projected_memory_reduction_pct": 10.000000000000002,
+      "projected_throughput_improvement_pct": 8.000000000000012,
+      "projected_annual_savings": 1707.4196921204712,
+      "projected_break_even_months": 189.76002297221916,
+      "achieved_sparsity_pct": 0.5162469299142214,
+      "achieved_memory_reduction_pct": 0.2581234649571107,
+      "memory_variance_pct": -97.4187653504289,
+      "savings_variance_pct": -97.4187653504289
+    },
+    {
+      "model_id": "gpt2-xl",
+      "strategy": "structured_pruning",
+      "projected_memory_reduction_pct": 22.0,
+      "projected_throughput_improvement_pct": 19.999999999999986,
+      "projected_annual_savings": 3751.9544699204544,
+      "projected_break_even_months": 86.35499247059604,
+      "achieved_sparsity_pct": 1.1357432458112826,
+      "achieved_memory_reduction_pct": 0.5678716229056413,
+      "memory_variance_pct": -97.4187653504289,
+      "savings_variance_pct": -97.4187653504289
+    },
+    {
+      "model_id": "facebook/opt-1.3b",
+      "strategy": "mild_pruning",
+      "projected_memory_reduction_pct": 10.000000000000002,
+      "projected_throughput_improvement_pct": 8.000000000000012,
+      "projected_annual_savings": 1707.4196921204712,
+      "projected_break_even_months": 189.76002297221916,
+      "achieved_sparsity_pct": 9.963360741816608,
+      "achieved_memory_reduction_pct": 4.981680370908304,
+      "memory_variance_pct": -50.18319629091697,
+      "savings_variance_pct": -50.18319629091697
+    },
+    {
+      "model_id": "facebook/opt-1.3b",
+      "strategy": "structured_pruning",
+      "projected_memory_reduction_pct": 22.0,
+      "projected_throughput_improvement_pct": 19.999999999999986,
+      "projected_annual_savings": 3751.9544699204544,
+      "projected_break_even_months": 86.35499247059604,
+      "achieved_sparsity_pct": 21.91920546670707,
+      "achieved_memory_reduction_pct": 10.959602733353535,
+      "memory_variance_pct": -50.183623939302116,
+      "savings_variance_pct": -50.183623939302116
+    }
+  ]
+}
