@@ -24,13 +24,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# Model to preset mapping
+# Model to preset mapping (available presets: edge-coder, medium-coder, frontier-assistant)
 MODEL_PRESETS = {
     "gpt2": "edge-coder",
-    "gpt2-medium": "small-coder",
+    "gpt2-medium": "edge-coder",  # Use edge-coder for small models
     "gpt2-xl": "medium-coder",
     "facebook/opt-1.3b": "medium-coder",
-    "EleutherAI/pythia-2.8b": "large-coder",
+    "EleutherAI/pythia-2.8b": "medium-coder",  # Use medium-coder for 2.8B
 }
 
 # Available pruning strategies to test

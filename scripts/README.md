@@ -34,7 +34,22 @@ python scripts/download_test_models.py --models gpt2 gpt2-medium
 python scripts/download_test_models.py --device cuda
 ```
 
-### 2. test_pruning_candidates.py
+### 2. project_savings.py
+
+Generates Atropos baseline projections for all models and strategies.
+
+```bash
+# Generate projections for all models
+python scripts/project_savings.py
+
+# Include quantization bonus
+python scripts/project_savings.py --with-quantization
+
+# Custom output paths
+python scripts/project_savings.py --output results/projections.json --markdown results/projections.md
+```
+
+### 3. test_pruning_candidates.py
 
 Runs Atropos validation on downloaded models.
 
@@ -52,7 +67,7 @@ python scripts/test_pruning_candidates.py --models gpt2 gpt2-medium
 python scripts/test_pruning_candidates.py --output results/my_results.json
 ```
 
-### 3. discover-models.py (existing)
+### 4. discover-models.py (existing)
 
 Lists and tests available models from HuggingFace.
 
@@ -74,12 +89,21 @@ python scripts/discover-models.py --full
    python scripts/download_test_models.py
    ```
 
-2. **Run validation tests**:
+2. **Generate baseline projections**:
+   ```bash
+   python scripts/project_savings.py
+   ```
+
+3. **Run validation tests** (after pruning):
    ```bash
    python scripts/test_pruning_candidates.py
    ```
 
-3. **Review results** in `test_data/download_report.json` and `test_data/validation_results.json`
+4. **Review results** in `test_data/`:
+   - `download_report.json` — Model download status
+   - `projections.json` — Baseline projections
+   - `projections.md` — Human-readable projection report
+   - `validation_results.json` — Post-pruning validation results
 
 ## Expected Results
 

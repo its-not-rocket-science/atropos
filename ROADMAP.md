@@ -106,7 +106,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 **Tasks:**
 - [x] Select 3-5 candidate models (small to medium size)
 - [x] Download and cache candidate models
-- [ ] Run Atropos analysis to project savings
+- [x] Run Atropos analysis to project savings
 - [ ] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
 - [ ] Measure actual performance of pruned models
 - [ ] Compare achieved sparsity vs target
@@ -116,7 +116,10 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 **Deliverables:**
 - ✅ `scripts/download_test_models.py` — Download script for 5 candidate models
 - ✅ `scripts/test_pruning_candidates.py` — Validation test runner
+- ✅ `scripts/project_savings.py` — Generate baseline projections
 - ✅ `test_data/` — Local cache of 36+ GB models (gpt2, gpt2-medium, gpt2-xl, opt-1.3b, pythia-2.8b)
+- ✅ `test_data/projections.json` — Baseline projections for all models/strategies
+- ✅ `test_data/projections.md` — Human-readable projection report
 - [ ] Pruned models hosted on HuggingFace
 - [ ] Before/after performance comparison report
 - [ ] Quality benchmark results
