@@ -49,7 +49,25 @@ python scripts/project_savings.py --with-quantization
 python scripts/project_savings.py --output results/projections.json --markdown results/projections.md
 ```
 
-### 3. test_pruning_candidates.py
+### 3. prune_models.py
+
+Applies magnitude-based pruning to candidate models using PyTorch.
+
+```bash
+# Prune all models with all strategies
+python scripts/prune_models.py
+
+# Prune specific models
+python scripts/prune_models.py --models gpt2 gpt2-medium
+
+# Specific strategies only
+python scripts/prune_models.py --strategies mild_pruning
+
+# Custom output directory
+python scripts/prune_models.py --output-dir ./my_pruned_models
+```
+
+### 4. test_pruning_candidates.py
 
 Runs Atropos validation on downloaded models.
 
@@ -67,7 +85,7 @@ python scripts/test_pruning_candidates.py --models gpt2 gpt2-medium
 python scripts/test_pruning_candidates.py --output results/my_results.json
 ```
 
-### 4. discover-models.py (existing)
+### 5. discover-models.py (existing)
 
 Lists and tests available models from HuggingFace.
 
@@ -94,15 +112,23 @@ python scripts/discover-models.py --full
    python scripts/project_savings.py
    ```
 
-3. **Run validation tests** (after pruning):
+3. **Prune models**:
+   ```bash
+   python scripts/prune_models.py
+   ```
+
+4. **Run validation tests** (after pruning):
    ```bash
    python scripts/test_pruning_candidates.py
    ```
 
-4. **Review results** in `test_data/`:
+5. **Review results** in `test_data/`:
    - `download_report.json` — Model download status
    - `projections.json` — Baseline projections
    - `projections.md` — Human-readable projection report
+   - `pruning_report.json` — Actual pruning results
+   - `pruning_results.md` — Human-readable pruning report
+   - `pruned_models/` — Directory of pruned model files
    - `validation_results.json` — Post-pruning validation results
 
 ## Expected Results
