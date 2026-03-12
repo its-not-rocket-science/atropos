@@ -1,0 +1,451 @@
+{
+  "total_models": 9,
+  "successful": 9,
+  "failed": 0,
+  "duration_sec": 512.564898,
+  "start_time": "2026-03-11T10:29:28.934923",
+  "end_time": "2026-03-11T10:38:01.499821",
+  "results": [
+    {
+      "model_id": "gpt2",
+      "model_path": "gpt2",
+      "is_pruned": false,
+      "strategy": "baseline",
+      "status": "success",
+      "avg_perplexity": 105.63886505701608,
+      "completion_score": 0.4166666666666667,
+      "inference_time_ms": 1920.0368404388428,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 104.68553191672217,
+          "completion": "\n\nimport json\n\nimport numpy as np\n\nfrom django.db import _db\n\nfrom datetime import datetime\n\nfrom ti",
+          "keyword_score": 0.0,
+          "inference_time_ms": 1834.0845108032227
+        },
+        {
+          "name": "add_function",
+          "perplexity": 71.64741861023128,
+          "completion": " import datetime as datetime\n\ndatetime.setTime(time.now() - time.now() + 60)\n\ndatetime.setDate(10.0 ",
+          "keyword_score": 0.3333333333333333,
+          "inference_time_ms": 1931.4188957214355
+        },
+        {
+          "name": "factorial",
+          "perplexity": 59.278788790328335,
+          "completion": "  _ is a variable that can be assigned to a variable\n\n|   | x: i + y: c | y: u | x: v |\n\n| | | | |\n\n",
+          "keyword_score": 0.5,
+          "inference_time_ms": 1912.255048751831
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 268.6267189217176,
+          "completion": "1,2,3,4,5,6,7], [2,3,4,5,6], [3,5,7,8,9], [4,10,11,12], [5,13,",
+          "keyword_score": 0.25,
+          "inference_time_ms": 2012.4475955963135
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 23.95586704608095,
+          "completion": " __main__ = self.__main__\n\nself.args.setAll( self.args.get())\n\nself.args.setNumber( self.args.get())",
+          "keyword_score": 1.0,
+          "inference_time_ms": 1909.9781513214111
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:29:28.934923"
+    },
+    {
+      "model_id": "gpt2",
+      "model_path": "test_data\\pruned_models\\gpt2_mild_pruning",
+      "is_pruned": true,
+      "strategy": "mild_pruning",
+      "status": "success",
+      "avg_perplexity": 105.23533021338453,
+      "completion_score": 0.6833333333333333,
+      "inference_time_ms": 1936.8271350860596,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 106.17707337258162,
+          "completion": "       __init__ ( self , self )\n\ndef __del__ ( self , self ):\n\nreturn self . __name__ . __str__\n\ndef",
+          "keyword_score": 0.0,
+          "inference_time_ms": 1920.8455085754395
+        },
+        {
+          "name": "add_function",
+          "perplexity": 71.38204585344961,
+          "completion": "\n\nif b:\n\n# If the number of elements in b is greater than or equal to the number of elements in b\n\n#",
+          "keyword_score": 0.6666666666666666,
+          "inference_time_ms": 1952.498197555542
+        },
+        {
+          "name": "factorial",
+          "perplexity": 58.76833287179503,
+          "completion": "  __input *factorial(n, length): \"\"\" *Factorials to calculate \"\"\"\n\nif length == 0 :\n\nreturn (n - len",
+          "keyword_score": 1.0,
+          "inference_time_ms": 1870.5124855041504
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 266.19103042212623,
+          "completion": " 2, 3, 6 , 6 ] for x in range ( len ( squares )) : return squares [ x ] if len ( squares [ 0 ] ) > 1",
+          "keyword_score": 0.75,
+          "inference_time_ms": 1855.4165363311768
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 23.658168546970145,
+          "completion": " self.calculate = self.calculate.calculate\n\ndef __repr__(self, s):\n\nreturn self.s.split( '.' )\n\ndef ",
+          "keyword_score": 1.0,
+          "inference_time_ms": 2084.8629474639893
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:29:40.885313"
+    },
+    {
+      "model_id": "gpt2",
+      "model_path": "test_data\\pruned_models\\gpt2_structured_pruning",
+      "is_pruned": true,
+      "strategy": "structured_pruning",
+      "status": "success",
+      "avg_perplexity": 105.67455019821136,
+      "completion_score": 0.8,
+      "inference_time_ms": 1897.9693412780762,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 100.45551421676663,
+          "completion": " @echo__ ( \"hello world\" ) # prints a Hello World message\n\n# >>> \ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6\ud835\udcc6",
+          "keyword_score": 1.0,
+          "inference_time_ms": 1916.9073104858398
+        },
+        {
+          "name": "add_function",
+          "perplexity": 69.94727187080427,
+          "completion": "  \n\nfor i in range(1, len(a))\n\nreturn abs(i) + abs(b) + abs(e + 1 ) + abs(f + 1 ) + abs(g + 1 ) + ab",
+          "keyword_score": 1.0,
+          "inference_time_ms": 1869.049072265625
+        },
+        {
+          "name": "factorial",
+          "perplexity": 53.686966948871586,
+          "completion": " \n\ndef factorials(x: Int):\n\n\\ t * x = x\n\ndef factorials(x2: Int):\n\n\\ t * x = x2\n\ndef factorials(x3",
+          "keyword_score": 0.5,
+          "inference_time_ms": 1903.8112163543701
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 281.1760162212683,
+          "completion": "grid,3]\nYou can also use these to create your own grid:\ngrid = [grid,3] squares = [grid,2] squares.p",
+          "keyword_score": 0.5,
+          "inference_time_ms": 1868.218183517456
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 23.106981733345997,
+          "completion": " __init__(self)\n\ndef __call__(self):\n\ndef __doc__(self):\n\n\"\"\" Provide the current location of the cu",
+          "keyword_score": 1.0,
+          "inference_time_ms": 1931.8609237670898
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:29:51.472542"
+    },
+    {
+      "model_id": "gpt2-medium",
+      "model_path": "gpt2-medium",
+      "is_pruned": false,
+      "strategy": "baseline",
+      "status": "success",
+      "avg_perplexity": 95.13591113991644,
+      "completion_score": 0.5,
+      "inference_time_ms": 4978.323793411255,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 67.531395061938,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 5152.206897735596
+        },
+        {
+          "name": "add_function",
+          "perplexity": 39.20596737768763,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4715.350151062012
+        },
+        {
+          "name": "factorial",
+          "perplexity": 33.97309752325505,
+          "completion": "\u00a0fact = factorial(n)\nreturn fact\ndef factorial(n):\n \"\"\"Calculate factorial\"\"\"\n   \u00a0fact = factorial(n",
+          "keyword_score": 1.0,
+          "inference_time_ms": 4873.110771179199
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 315.4248799180222,
+          "completion": "Square(x,y,z) for x,y,z in enumerate(c.squares)]\nSquares.add(x,y,z)\nsquares.append(x)\nsquares.append",
+          "keyword_score": 0.5,
+          "inference_time_ms": 4928.956508636475
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 19.544215818679362,
+          "completion": " self.__name = 'calculator'\n        self.__value = ''\n       self.__num = 1\n       self.__add =",
+          "keyword_score": 1.0,
+          "inference_time_ms": 5221.994638442993
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:30:01.887349"
+    },
+    {
+      "model_id": "gpt2-medium",
+      "model_path": "test_data\\pruned_models\\gpt2-medium_mild_pruning",
+      "is_pruned": true,
+      "strategy": "mild_pruning",
+      "status": "success",
+      "avg_perplexity": 93.52746717588352,
+      "completion_score": 0.25,
+      "inference_time_ms": 4815.69676399231,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 67.39933728085786,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4781.484842300415
+        },
+        {
+          "name": "add_function",
+          "perplexity": 38.50247418067978,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4682.729244232178
+        },
+        {
+          "name": "factorial",
+          "perplexity": 33.45282132200235,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4883.278846740723
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 308.8526739548535,
+          "completion": " 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ]\nNow we'll just need to do something with the list .\nFor each sq",
+          "keyword_score": 0.25,
+          "inference_time_ms": 4835.052490234375
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 19.430029141024033,
+          "completion": " __name__ = \"The Simple Calculator\"\n        self.name = \"The Simple Calculator\"\n       self.calculat",
+          "keyword_score": 1.0,
+          "inference_time_ms": 4895.938396453857
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:30:35.824371"
+    },
+    {
+      "model_id": "gpt2-medium",
+      "model_path": "test_data\\pruned_models\\gpt2-medium_structured_pruning",
+      "is_pruned": true,
+      "strategy": "structured_pruning",
+      "status": "success",
+      "avg_perplexity": 96.40793525025855,
+      "completion_score": 0.06666666666666667,
+      "inference_time_ms": 4883.322429656982,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 72.90205729775049,
+          "completion": "       http://www.python.org/doc/3.2/lambda/lambda_module.html \"\"\"\n            http://www.python.org",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4869.014501571655
+        },
+        {
+          "name": "add_function",
+          "perplexity": 39.47849043468016,
+          "completion": "\"\"\"Add two numbers\" \"\"\"\n   \"\"\"Add two numbers\"\"\"\n     \"\"\"Add two numbers\"\"\"\n 1 2 3 4 5 6 7 8 9 10 11",
+          "keyword_score": 0.3333333333333333,
+          "inference_time_ms": 4824.436664581299
+        },
+        {
+          "name": "factorial",
+          "perplexity": 34.03700842568141,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4970.996141433716
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 316.3666231850753,
+          "completion": "]( square : A ) -> Square { square : square , square : square }\nsquares print ( sqrt ( square ), sqr",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4781.9976806640625
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 19.255496908105375,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 4970.16716003418
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:31:08.852457"
+    },
+    {
+      "model_id": "facebook/opt-1.3b",
+      "model_path": "facebook/opt-1.3b",
+      "is_pruned": false,
+      "strategy": "baseline",
+      "status": "success",
+      "avg_perplexity": 76.73624090509881,
+      "completion_score": 0.0,
+      "inference_time_ms": 17246.32773399353,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 46.999557529907044,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 15816.154956817627
+        },
+        {
+          "name": "add_function",
+          "perplexity": 29.0612521734928,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 22163.57135772705
+        },
+        {
+          "name": "factorial",
+          "perplexity": 34.394047792708946,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 19605.14760017395
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 264.2696809240349,
+          "completion": "\n{\n\"name\": \"Square 1\",\n\"type\": \"square\",\n\"col\": \"1\",\n\"width\": \"1\",\n\"height\": \"1\",\n\"color\": \"white\",\n",
+          "keyword_score": 0.0,
+          "inference_time_ms": 13941.29228591919
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 8.956666105350346,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 14705.472469329834
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:31:45.486570"
+    },
+    {
+      "model_id": "facebook/opt-1.3b",
+      "model_path": "test_data\\pruned_models\\facebook--opt-1.3b_mild_pruning",
+      "is_pruned": true,
+      "strategy": "mild_pruning",
+      "status": "success",
+      "avg_perplexity": 83.38540078900088,
+      "completion_score": 0.35,
+      "inference_time_ms": 18541.30220413208,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 56.37147952307568,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 21095.030307769775
+        },
+        {
+          "name": "add_function",
+          "perplexity": 34.3586576355078,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 17227.073669433594
+        },
+        {
+          "name": "factorial",
+          "perplexity": 38.69689385091183,
+          "completion": "                    \"n\"\n                        = 1\n ",
+          "keyword_score": 0.5,
+          "inference_time_ms": 19459.09833908081
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 278.0055843334517,
+          "completion": "\n[\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<?xml version=\"1.0\"",
+          "keyword_score": 0.25,
+          "inference_time_ms": 19888.893842697144
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 9.494388602057429,
+          "completion": "       self.calculation = self\n                return self\n                   ",
+          "keyword_score": 1.0,
+          "inference_time_ms": 15036.414861679077
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:33:33.677719"
+    },
+    {
+      "model_id": "facebook/opt-1.3b",
+      "model_path": "test_data\\pruned_models\\facebook--opt-1.3b_structured_pruning",
+      "is_pruned": true,
+      "strategy": "structured_pruning",
+      "status": "success",
+      "avg_perplexity": 99.15439421740423,
+      "completion_score": 0.05,
+      "inference_time_ms": 15631.36830329895,
+      "prompt_results": [
+        {
+          "name": "hello_function",
+          "perplexity": 76.14106353165364,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 18005.106687545776
+        },
+        {
+          "name": "add_function",
+          "perplexity": 66.33577392080618,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 14243.12162399292
+        },
+        {
+          "name": "factorial",
+          "perplexity": 56.9436014002342,
+          "completion": "                                  x                ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 16202.800273895264
+        },
+        {
+          "name": "list_comprehension",
+          "perplexity": 283.02304247387514,
+          "completion": "{name: \"squares\", label: \"squares\", number: 1}, {name: \"square-1\", label: \"square-1\", number: 2}, {n",
+          "keyword_score": 0.25,
+          "inference_time_ms": 14262.911558151245
+        },
+        {
+          "name": "class_definition",
+          "perplexity": 13.328489760451978,
+          "completion": "                                                  ",
+          "keyword_score": 0.0,
+          "inference_time_ms": 15442.901372909546
+        }
+      ],
+      "error_message": "",
+      "timestamp": "2026-03-11T10:35:57.771168"
+    }
+  ]
+}

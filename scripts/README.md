@@ -143,15 +143,18 @@ python scripts/discover-models.py --full
    python scripts/compare_projections.py
    ```
 
-6. **Review results** in `test_data/`:
+6. **Run quality benchmarks**:
+   ```bash
+   python scripts/benchmark_quality.py
+   ```
+
+7. **Review results** in `test_data/`:
    - `download_report.json` — Model download status
-   - `projections.json` — Baseline projections
-   - `projections.md` — Human-readable projection report
-   - `pruning_report.json` — Actual pruning results
-   - `pruning_results.md` — Human-readable pruning report
+   - `projections.json/md` — Baseline projections
+   - `pruning_report.json/md` — Actual pruning results
    - `pruned_models/` — Directory of pruned model files
-   - `comparison_report.json` — Projected vs actual comparison
-   - `comparison_report.md` — Human-readable comparison analysis
+   - `comparison_report.json/md` — Projected vs actual comparison
+   - `benchmark_report.json/md` — Quality benchmark results
    - `validation_results.json` — Post-pruning validation results
 
 ## Expected Results

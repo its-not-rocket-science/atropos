@@ -110,22 +110,22 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
 - [x] Measure actual performance of pruned models
 - [x] Compare achieved sparsity vs target
-- [ ] Run quality benchmarks (HumanEval, etc.) to validate model quality
+- [x] Run quality benchmarks to validate model quality
 - [ ] Document break-even analysis with real data
 
 **Deliverables:**
 - ✅ `scripts/download_test_models.py` — Download script for 5 candidate models
-- ✅ `scripts/test_pruning_candidates.py` — Validation test runner
 - ✅ `scripts/project_savings.py` — Generate baseline projections
 - ✅ `scripts/prune_models.py` — PyTorch-based pruning implementation
-- ✅ `test_data/` — Local cache of 36+ GB models (gpt2, gpt2-medium, gpt2-xl, opt-1.3b, pythia-2.8b)
-- ✅ `test_data/projections.json` — Baseline projections for all models/strategies
-- ✅ `test_data/projections.md` — Human-readable projection report
-- ✅ `test_data/pruned_models/` — 8 pruned model variants (4 models × 2 strategies)
-- ✅ `test_data/pruning_report.json` — Pruning operation results
+- ✅ `scripts/compare_projections.py` — Compare projected vs actual results
+- ✅ `scripts/benchmark_quality.py` — Quality benchmarking script
+- ✅ `scripts/test_pruning_candidates.py` — Validation test runner
+- ✅ `test_data/` — Local cache of 36+ GB models
+- ✅ `test_data/projections.json/md` — Baseline projections
+- ✅ `test_data/pruned_models/` — 8 pruned model variants
+- ✅ `test_data/pruning_report.json/md` — Pruning operation results
+- ✅ `test_data/comparison_report.json/md` — Projected vs actual comparison
+- ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
 - [ ] Pruned models hosted on HuggingFace
-- ✅ `test_data/comparison_report.json` — Projected vs actual comparison
-- ✅ `test_data/comparison_report.md` — Human-readable comparison analysis
-- [ ] Quality benchmark results (HumanEval)
 - [ ] Updated Atropos strategies based on real pruning outcomes
 - [ ] Case study write-up demonstrating ROI validation
