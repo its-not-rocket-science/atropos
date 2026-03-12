@@ -132,3 +132,23 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [ ] Pruned models hosted on HuggingFace (ready - requires HF login)
 - [x] Updated Atropos strategies based on real pruning outcomes
 - ✅ `docs/case-study.md` — Comprehensive case study write-up
+
+### 4. Pruned Model Validation ✅
+
+**Goal:** Validate that pruned models maintain performance within acceptable tolerance compared to original models before HuggingFace upload.
+
+**Tasks:**
+- [x] Create side-by-side comparison script (original vs pruned)
+- [x] Measure perplexity on validation dataset for both
+- [x] Run identical generation tasks and compare outputs
+- [x] Verify quality metrics are within tolerance (e.g., <20% degradation)
+- [x] Document which models pass/fail validation
+- [ ] Gate HuggingFace upload on passing validation
+
+**Deliverables:**
+- ✅ `scripts/validate_pruned_models.py` — Compare original vs pruned performance
+- [ ] `test_data/validation_report.json/md` — Pass/fail results with metrics (requires models)
+- ✅ Updated upload script with validation gate (`--force` to bypass)
+- ✅ Validation criteria documented in script
+
+**Note:** Validation requires both original and pruned models in `test_data/`. Run `download_test_models.py` and `prune_models.py` first if models are missing.

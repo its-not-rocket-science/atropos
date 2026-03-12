@@ -99,6 +99,51 @@ def check_hf_cli() -> bool:
         return False
 
 
+def check_validation_report(test_data_dir: Path, force: bool = False) -> tuple[bool, list[str]]:
+    """Check if models have passed validation.
+
+    Args:
+        test_data_dir: Path to test_data directory
+        force: If True, skip validation check
+
+    Returns:
+        Tuple of (passed, list of failed models)
+    """
+    if force:
+        return True, []
+
+    validation_path = test_data_dir / "validation_report.json"
+
+    if not validation_path.exists():
+        print("[WARNING] Validation report not found.")
+        print("          Run: python scripts/validate_pruned_models.py")
+        print("          Use --force to upload without validation")
+        return False, []
+
+    try:
+        with open(validation_path, encoding="utf-8") as f:
+            report = json.load(f)
+
+        failed_models = []
+        for result in report.get("results", []):
+            if not result.get("passed", False):
+                failed_models.append(f"{result['model']} ({result['strategy']})")
+
+        if failed_models:
+            print(f"[WARNING] {len(failed_models)} model(s) failed validation:")
+            for m in failed_models:
+                print(f"          - {m}")
+            print("          Use --force to upload anyway")
+            return False, failed_models
+
+        print(f"[OK] All {len(report.get('results', []))} models passed validation")
+        return True, []
+
+    except Exception as e:
+        print(f"[WARNING] Could not read validation report: {e}")
+        return False, []
+
+
 def upload_model(
     local_path: Path,
     model_id: str,
@@ -347,11 +392,23 @@ def main() -> None:
         default=Path("test_data/upload_report.json"),
         help="Output report path (default: test_data/upload_report.json)",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Upload without validation (use with caution)",
+    )
 
     args = parser.parse_args()
 
     # Check HF CLI is available
     if not check_hf_cli():
+        sys.exit(1)
+
+    # Check validation status
+    test_data_dir = args.pruned_dir.parent
+    validated, failed = check_validation_report(test_data_dir, args.force)
+    if not validated and not args.force:
+        print("\n[FAIL] Validation check failed. Use --force to upload anyway.")
         sys.exit(1)
 
     # Check pruned directory exists

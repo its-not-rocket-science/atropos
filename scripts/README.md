@@ -118,7 +118,36 @@ python scripts/generate_case_study.py \
     --markdown results/case_study.md
 ```
 
-### 7. upload_to_huggingface.py
+### 7. validate_pruned_models.py
+
+Validates that pruned models maintain performance vs original models.
+
+**Prerequisites:** Both original and pruned models must exist in `test_data/`.
+
+```bash
+# Validate all pruned models
+python scripts/validate_pruned_models.py
+
+# Custom test data directory
+python scripts/validate_pruned_models.py --test-data-dir ./my_models
+
+# Specific models only
+python scripts/validate_pruned_models.py --models gpt2 opt-1.3b
+
+# Use GPU for faster validation
+python scripts/validate_pruned_models.py --device cuda
+```
+
+**Validation Criteria:**
+- Perplexity increase ≤ 20%
+- Generation similarity ≥ 70%
+- Perplexity stays below 50 (for small models)
+
+**Output:**
+- `test_data/validation_report.json` — Detailed metrics per model
+- `test_data/validation_report.md` — Human-readable pass/fail report
+
+### 8. upload_to_huggingface.py
 
 Uploads pruned models to HuggingFace Hub.
 
@@ -202,7 +231,12 @@ python scripts/discover-models.py --full
    python scripts/generate_case_study.py
    ```
 
-8. **Review results** in `test_data/`:
+8. **Validate pruned models** (before upload):
+   ```bash
+   python scripts/validate_pruned_models.py
+   ```
+
+9. **Review results** in `test_data/`:
    - `download_report.json` — Model download status
    - `projections.json/md` — Baseline projections
    - `pruning_report.json/md` — Actual pruning results
@@ -210,6 +244,7 @@ python scripts/discover-models.py --full
    - `comparison_report.json/md` — Projected vs actual comparison
    - `benchmark_report.json/md` — Quality benchmark results
    - `case_study.json/md` — Complete case study with break-even analysis
+   - `validation_report.json/md` — Pruned model validation results
    - `validation_results.json` — Post-pruning validation results
 
 ## Actual Results Summary
