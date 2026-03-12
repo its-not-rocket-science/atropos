@@ -130,5 +130,5 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
 - ✅ `test_data/case_study.json/md` — Complete case study with break-even analysis
 - [ ] Pruned models hosted on HuggingFace (ready - requires HF login)
-- [ ] Updated Atropos strategies based on real pruning outcomes
+- [x] Updated Atropos strategies based on real pruning outcomes
 - [ ] Case study write-up demonstrating ROI validation

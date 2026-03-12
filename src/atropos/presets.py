@@ -56,6 +56,8 @@ SCENARIOS: dict[str, DeploymentScenario] = {
 }
 
 STRATEGIES: dict[str, OptimizationStrategy] = {
+    # Structured pruning (LLM-Pruner, Wanda with channel removal)
+    # These achieve actual memory savings by removing parameters
     "mild_pruning": OptimizationStrategy(
         name="mild_pruning",
         parameter_reduction_fraction=0.15,
@@ -78,6 +80,33 @@ STRATEGIES: dict[str, OptimizationStrategy] = {
         memory_reduction_fraction=0.25,
         throughput_improvement_fraction=0.30,
         power_reduction_fraction=0.18,
+        quality_risk="medium",
+    ),
+    # Unstructured pruning (PyTorch magnitude-based)
+    # Limited memory savings without sparse inference support
+    "unstructured_mild": OptimizationStrategy(
+        name="unstructured_mild",
+        parameter_reduction_fraction=0.10,
+        memory_reduction_fraction=0.03,  # ~3% actual from gpt2 testing
+        throughput_improvement_fraction=0.02,
+        power_reduction_fraction=0.01,
+        quality_risk="low",
+    ),
+    "unstructured_moderate": OptimizationStrategy(
+        name="unstructured_moderate",
+        parameter_reduction_fraction=0.22,
+        memory_reduction_fraction=0.07,  # ~7% actual from gpt2 testing
+        throughput_improvement_fraction=0.04,
+        power_reduction_fraction=0.02,
+        quality_risk="medium",
+    ),
+    # Architecture-specific strategies (based on pruning exercise results)
+    "opt_magnitude_pruning": OptimizationStrategy(
+        name="opt_magnitude_pruning",
+        parameter_reduction_fraction=0.22,
+        memory_reduction_fraction=0.11,  # OPT achieved ~11% memory reduction
+        throughput_improvement_fraction=0.08,
+        power_reduction_fraction=0.05,
         quality_risk="medium",
     ),
 }
