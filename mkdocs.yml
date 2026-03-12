@@ -8,6 +8,7 @@ nav:
   - CLI Usage: cli.md
   - Python API: api.md
   - Examples: examples.md
+  - Case Study: case-study.md
 
 markdown_extensions:
   - codehilite
