@@ -120,6 +120,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `scripts/compare_projections.py` — Compare projected vs actual results
 - ✅ `scripts/benchmark_quality.py` — Quality benchmarking script
 - ✅ `scripts/generate_case_study.py` — Generate comprehensive case study report
+- ✅ `scripts/upload_to_huggingface.py` — Upload pruned models to HF Hub
 - ✅ `scripts/test_pruning_candidates.py` — Validation test runner
 - ✅ `test_data/` — Local cache of 36+ GB models
 - ✅ `test_data/projections.json/md` — Baseline projections
@@ -128,6 +129,6 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `test_data/comparison_report.json/md` — Projected vs actual comparison
 - ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
 - ✅ `test_data/case_study.json/md` — Complete case study with break-even analysis
-- [ ] Pruned models hosted on HuggingFace
+- [ ] Pruned models hosted on HuggingFace (ready - requires HF login)
 - [ ] Updated Atropos strategies based on real pruning outcomes
 - [ ] Case study write-up demonstrating ROI validation

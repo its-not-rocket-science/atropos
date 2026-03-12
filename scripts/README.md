@@ -118,7 +118,39 @@ python scripts/generate_case_study.py \
     --markdown results/case_study.md
 ```
 
-### 7. discover-models.py (existing)
+### 7. upload_to_huggingface.py
+
+Uploads pruned models to HuggingFace Hub.
+
+**Prerequisites:**
+1. Create a HuggingFace account at https://huggingface.co/join
+2. Get an access token at https://huggingface.co/settings/tokens
+3. Login via CLI or set environment variable
+
+```bash
+# Install dependencies
+pip install huggingface-hub
+
+# Login to HuggingFace (interactive)
+huggingface-cli login
+
+# Or set token as environment variable
+export HF_TOKEN=your_token_here
+
+# Upload to personal account
+python scripts/upload_to_huggingface.py
+
+# Upload to organization
+python scripts/upload_to_huggingface.py --org your-org-name
+
+# Upload as private repositories
+python scripts/upload_to_huggingface.py --private
+```
+
+**Note:** Total upload size is ~25 GB (8 pruned models). Ensure you have
+disk space and bandwidth for the upload.
+
+### 8. discover-models.py (existing)
 
 Lists and tests available models from HuggingFace.
 
