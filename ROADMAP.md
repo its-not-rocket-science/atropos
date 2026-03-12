@@ -111,7 +111,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] Measure actual performance of pruned models
 - [x] Compare achieved sparsity vs target
 - [x] Run quality benchmarks to validate model quality
-- [ ] Document break-even analysis with real data
+- [x] Document break-even analysis with real data
 
 **Deliverables:**
 - ✅ `scripts/download_test_models.py` — Download script for 5 candidate models
@@ -119,6 +119,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `scripts/prune_models.py` — PyTorch-based pruning implementation
 - ✅ `scripts/compare_projections.py` — Compare projected vs actual results
 - ✅ `scripts/benchmark_quality.py` — Quality benchmarking script
+- ✅ `scripts/generate_case_study.py` — Generate comprehensive case study report
 - ✅ `scripts/test_pruning_candidates.py` — Validation test runner
 - ✅ `test_data/` — Local cache of 36+ GB models
 - ✅ `test_data/projections.json/md` — Baseline projections
@@ -126,6 +127,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `test_data/pruning_report.json/md` — Pruning operation results
 - ✅ `test_data/comparison_report.json/md` — Projected vs actual comparison
 - ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
+- ✅ `test_data/case_study.json/md` — Complete case study with break-even analysis
 - [ ] Pruned models hosted on HuggingFace
 - [ ] Updated Atropos strategies based on real pruning outcomes
 - [ ] Case study write-up demonstrating ROI validation
