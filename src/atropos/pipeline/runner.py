@@ -154,8 +154,7 @@ class PipelineRunner:
                 savings = outcome.annual_total_savings_usd
                 be_years = outcome.break_even_years
                 result.message = (
-                    f"ROI complete: ${savings:,.0f}/year savings, "
-                    f"{be_years:.1f} year break-even"
+                    f"ROI complete: ${savings:,.0f}/year savings, {be_years:.1f} year break-even"
                 )
             else:
                 result.message = "ROI complete: no break-even projected"
@@ -214,9 +213,7 @@ class PipelineRunner:
         risk = outcome.quality_risk
         max_risk = thresholds.max_quality_risk
         if _risk_rank(risk) > _risk_rank(max_risk):
-            failures.append(
-                f"Quality risk ({risk}) exceeds threshold ({max_risk})"
-            )
+            failures.append(f"Quality risk ({risk}) exceeds threshold ({max_risk})")
 
         if failures:
             result.status = StageStatus.SKIPPED

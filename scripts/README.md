@@ -147,7 +147,96 @@ python scripts/validate_pruned_models.py --device cuda
 - `test_data/validation_report.json` — Detailed metrics per model
 - `test_data/validation_report.md` — Human-readable pass/fail report
 
-### 8. upload_to_huggingface.py
+### 8. prune_wanda.py
+
+Prunes models using **Wanda** (Pruning by Weights AND Activations).
+
+Wanda considers both weight magnitudes and input activation norms for per-output pruning decisions. This often achieves better quality than magnitude-based pruning alone.
+
+Reference: [A Simple and Effective Pruning Approach for Large Language Models](https://arxiv.org/abs/2306.11695)
+
+**Setup:**
+```bash
+# Clone Wanda repo (if not already done)
+git clone --depth 1 https://github.com/locuslab/wanda.git external/wanda
+```
+
+**Usage:**
+```bash
+# Prune gpt2 with 30% sparsity
+python scripts/prune_wanda.py --model gpt2 --sparsity 0.3
+
+# Prune with custom settings
+python scripts/prune_wanda.py \
+    --model gpt2-medium \
+    --sparsity 0.5 \
+    --device cuda \
+    --nsamples 256
+```
+
+**Output:**
+- `test_data/pruned_models/{model}_wanda/` — Pruned model
+- `test_data/wanda_report.json` — Pruning results
+
+### 9. prune_sparsegpt.py
+
+Prunes models using **SparseGPT** method.
+
+SparseGPT is a layer-wise pruning method with reconstruction that maintains model quality better than simple magnitude pruning, especially for GPT models.
+
+Reference: [SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot](https://arxiv.org/abs/2301.00774)
+
+**Setup:**
+```bash
+# Clone Wanda repo (includes SparseGPT)
+git clone --depth 1 https://github.com/locuslab/wanda.git external/wanda
+```
+
+**Usage:**
+```bash
+# Prune gpt2 with 30% sparsity
+python scripts/prune_sparsegpt.py --model gpt2 --sparsity 0.3
+
+# Prune with custom settings
+python scripts/prune_sparsegpt.py \
+    --model gpt2-medium \
+    --sparsity 0.5 \
+    --device cuda \
+    --nsamples 256
+```
+
+**Output:**
+- `test_data/pruned_models/{model}_sparsegpt/` — Pruned model
+- `test_data/sparsegpt_report.json` — Pruning results
+
+### 10. prune_advanced_frameworks.py
+
+Batch pruning script that runs both Wanda and SparseGPT on multiple models.
+
+**Usage:**
+```bash
+# Run all methods on default models (gpt2, gpt2-medium)
+python scripts/prune_advanced_frameworks.py
+
+# Custom models
+python scripts/prune_advanced_frameworks.py --models gpt2 gpt2-xl
+
+# Specific sparsity levels
+python scripts/prune_advanced_frameworks.py --sparsity-levels 0.3 0.5 0.7
+
+# Only Wanda
+python scripts/prune_advanced_frameworks.py --methods wanda
+
+# Only SparseGPT
+python scripts/prune_advanced_frameworks.py --methods sparsegpt
+```
+
+**Output:**
+- `test_data/advanced_pruning_report.json` — Complete comparison results
+- `test_data/pruned_models/{model}_wanda/` — Wanda pruned models
+- `test_data/pruned_models/{model}_sparsegpt/` — SparseGPT pruned models
+
+### 11. upload_to_huggingface.py
 
 Uploads pruned models to HuggingFace Hub.
 
@@ -246,6 +335,37 @@ python scripts/discover-models.py --full
    - `case_study.json/md` — Complete case study with break-even analysis
    - `validation_report.json/md` — Pruned model validation results
    - `validation_results.json` — Post-pruning validation results
+   - `test_data/wanda_report.json` — Wanda pruning results
+   - `test_data/sparsegpt_report.json` — SparseGPT pruning results
+   - `test_data/advanced_pruning_report.json` — Framework comparison results
+
+## Advanced Pruning Frameworks
+
+The repository now includes integration with state-of-the-art pruning frameworks:
+
+### Wanda
+Pruning by **W**eights **and** Activations — considers both weight magnitudes and input activation norms for per-output pruning decisions.
+
+### SparseGPT
+Layer-wise pruning with reconstruction for GPT models — maintains better quality than magnitude pruning through weight updates.
+
+### Setup
+```bash
+# Clone the Wanda repo (includes SparseGPT)
+git clone --depth 1 https://github.com/locuslab/wanda.git external/wanda
+```
+
+### Usage
+```bash
+# Run Wanda on a model
+python scripts/prune_wanda.py --model gpt2 --sparsity 0.3
+
+# Run SparseGPT on a model
+python scripts/prune_sparsegpt.py --model gpt2 --sparsity 0.3
+
+# Run batch comparison of both methods
+python scripts/prune_advanced_frameworks.py
+```
 
 ## Actual Results Summary
 

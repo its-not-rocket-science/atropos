@@ -6,6 +6,10 @@
 - ✅ add CSV-to-markdown report generation
 - ✅ expand comparison and sensitivity CLI output
 - ✅ publish documentation pages
+- [ ] integrate Wanda pruning framework
+- [ ] add SparseGPT pruning support
+- [ ] optimize validation script for GPU acceleration
+- [ ] add pruning result visualizations (charts, graphs)
 
 ## Medium term
 
@@ -13,12 +17,20 @@
 - ✅ telemetry import from benchmark runs
 - ✅ experiment-tracker integration
 - ✅ region-specific grid carbon presets
+- [ ] multi-GPU benchmarking support
+- [ ] distributed pruning experiments
+- [ ] quantization + pruning combination analysis
+- [ ] automated hyperparameter tuning for pruning targets
 
 ## Long term
 
 - ✅ lightweight web dashboard
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
+- [ ] production deployment automation
+- [ ] A/B testing framework for model variants
+- [ ] continuous optimization pipeline
+- [ ] PyPI package release
 
 ## Atropos Pipeline
 
@@ -129,7 +141,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - ✅ `test_data/comparison_report.json/md` — Projected vs actual comparison
 - ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
 - ✅ `test_data/case_study.json/md` — Complete case study with break-even analysis
-- ✅ Pruned models hosted on HuggingFace (upload in progress - 4 validated models)
+- ✅ Pruned models hosted on HuggingFace (4 validated models uploaded to https://huggingface.co/arsegarp)
 - [x] Updated Atropos strategies based on real pruning outcomes
 - ✅ `docs/case-study.md` — Comprehensive case study write-up
 
@@ -143,12 +155,46 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] Run identical generation tasks and compare outputs
 - [x] Verify quality metrics are within tolerance (e.g., <20% degradation)
 - [x] Document which models pass/fail validation
-- [ ] Gate HuggingFace upload on passing validation
+- [x] Gate HuggingFace upload on passing validation
 
 **Deliverables:**
 - ✅ `scripts/validate_pruned_models.py` — Compare original vs pruned performance
-- [ ] `test_data/validation_report.json/md` — Pass/fail results with metrics (requires models)
+- [x] `test_data/validation_report.json/md` — Pass/fail results with metrics (requires models)
 - ✅ Updated upload script with validation gate (`--force` to bypass)
 - ✅ Validation criteria documented in script
 
 **Note:** Validation requires both original and pruned models in `test_data/`. Run `download_test_models.py` and `prune_models.py` first if models are missing.
+
+### 5. Advanced Pruning Frameworks ⏳
+
+**Goal:** Integrate and compare state-of-the-art pruning frameworks (Wanda, SparseGPT) against our PyTorch magnitude-based approach.
+
+**Tasks:**
+- [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility issues with non-LLaMA models
+- [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility issues with non-LLaMA models
+- [ ] Run comparison: magnitude vs Wanda vs SparseGPT
+- [ ] Measure quality/speed trade-offs
+- [ ] Update Atropos strategies with framework-specific recommendations
+
+**Deliverables:**
+- [x] `scripts/wanda_pruning.py` — Wanda integration (created, needs debugging for non-LLaMA models)
+- [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, needs debugging for non-LLaMA models)
+- [ ] `docs/framework-comparison.md` — Comparison report
+- [ ] Updated presets with framework-specific values
+
+---
+
+### 6. Quantization + Pruning Study ⏳
+
+**Goal:** Evaluate combined quantization and pruning optimizations.
+
+**Tasks:**
+- [ ] Implement INT8 quantization pipeline
+- [ ] Test pruning + quantization combinations
+- [ ] Measure cumulative savings and quality impact
+- [ ] Document best practices for combined optimization
+
+**Deliverables:**
+- [ ] `scripts/quantize_models.py` — Quantization pipeline
+- [ ] `scripts/combined_optimization.py` — Pruning + quantization
+- [ ] Comparison report showing combined ROI

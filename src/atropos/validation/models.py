@@ -106,9 +106,7 @@ class ValidationResult:
         if self.atropos_savings_pct == 0:
             return 0.0
         return (
-            1
-            - abs(self.atropos_savings_pct - self.measured_savings_pct)
-            / self.atropos_savings_pct
+            1 - abs(self.atropos_savings_pct - self.measured_savings_pct) / self.atropos_savings_pct
         ) * 100
 
     def to_dict(self) -> dict[str, Any]:
@@ -162,15 +160,17 @@ class ValidationResult:
                 f"{comp.measured:.2f} {comp.unit} | {variance_str} |"
             )
 
-        lines.extend([
-            "",
-            "## Savings Analysis",
-            f"- Atropos projected savings: {self.atropos_savings_pct:.1f}%",
-            f"- Measured actual savings: {self.measured_savings_pct:.1f}%",
-            f"- Projection accuracy: {self.savings_accuracy:.1f}%",
-            "",
-            "## Assessment",
-            self.overall_assessment,
-        ])
+        lines.extend(
+            [
+                "",
+                "## Savings Analysis",
+                f"- Atropos projected savings: {self.atropos_savings_pct:.1f}%",
+                f"- Measured actual savings: {self.measured_savings_pct:.1f}%",
+                f"- Projection accuracy: {self.savings_accuracy:.1f}%",
+                "",
+                "## Assessment",
+                self.overall_assessment,
+            ]
+        )
 
         return "\n".join(lines)

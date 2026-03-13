@@ -64,9 +64,7 @@ class GPUTier:
             Annual cost in USD.
         """
         cost_per_hour = (
-            self.cloud_cost_per_hour
-            if pricing_model == "cloud"
-            else self.reserved_cost_per_hour
+            self.cloud_cost_per_hour if pricing_model == "cloud" else self.reserved_cost_per_hour
         )
         hours_per_year = 365 * 24
         return cost_per_hour * gpu_count * hours_per_year * utilization

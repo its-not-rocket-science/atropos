@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -93,7 +92,7 @@ def check_hf_cli() -> str | None:
         api = HfApi()
         user = api.whoami()
         print(f"[OK] Logged in as: {user['name']}")
-        return user['name']
+        return user["name"]
     except ImportError:
         print("[FAIL] huggingface-hub not installed")
         print("Install with: pip install huggingface-hub")
@@ -175,6 +174,7 @@ def upload_model(
         UploadResult with operation details
     """
     import os
+
     from huggingface_hub import HfApi
 
     # Get token from environment
@@ -220,7 +220,7 @@ def upload_model(
         card_path.write_text(card_content)
 
         # Upload model files using API
-        print(f"  Uploading files...", end=" ", flush=True)
+        print("  Uploading files...", end=" ", flush=True)
         api.upload_folder(
             folder_path=str(local_path),
             repo_id=result.repo_id,
@@ -417,9 +417,7 @@ def print_report(report: UploadReport) -> None:
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Upload pruned models to HuggingFace Hub"
-    )
+    parser = argparse.ArgumentParser(description="Upload pruned models to HuggingFace Hub")
     parser.add_argument(
         "--pruned-dir",
         type=Path,

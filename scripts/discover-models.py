@@ -233,9 +233,7 @@ def test_models(models: list[str], device: str = "cpu") -> list[ModelInfo]:
     return results
 
 
-def validate_models(
-    models: list[str], device: str = "cpu"
-) -> dict[str, Any]:
+def validate_models(models: list[str], device: str = "cpu") -> dict[str, Any]:
     """Run Atropos validation on models."""
     print("\nRunning Atropos validation...")
     print("=" * 60)
@@ -328,21 +326,11 @@ def generate_report(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Discover and test models for Atropos validation"
-    )
-    parser.add_argument(
-        "--list", action="store_true", help="List recommended models"
-    )
-    parser.add_argument(
-        "--test", action="store_true", help="Test model loading"
-    )
-    parser.add_argument(
-        "--validate", action="store_true", help="Run Atropos validation"
-    )
-    parser.add_argument(
-        "--full", action="store_true", help="Run complete workflow"
-    )
+    parser = argparse.ArgumentParser(description="Discover and test models for Atropos validation")
+    parser.add_argument("--list", action="store_true", help="List recommended models")
+    parser.add_argument("--test", action="store_true", help="Test model loading")
+    parser.add_argument("--validate", action="store_true", help="Run Atropos validation")
+    parser.add_argument("--full", action="store_true", help="Run complete workflow")
     parser.add_argument(
         "--models",
         nargs="+",

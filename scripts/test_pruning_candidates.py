@@ -95,6 +95,7 @@ class TestReport:
 def check_atropos() -> bool:
     """Check if Atropos CLI is available."""
     import shutil
+
     if shutil.which("atropos"):
         print("[OK] Atropos CLI found")
         return True
@@ -174,9 +175,7 @@ def run_atropos_validation(
                 # Extract metrics from comparisons
                 comparisons = {c["name"]: c for c in data.get("comparisons", [])}
 
-                result.memory_variance_pct = comparisons.get("Memory", {}).get(
-                    "variance_pct"
-                )
+                result.memory_variance_pct = comparisons.get("Memory", {}).get("variance_pct")
                 result.throughput_variance_pct = comparisons.get("Throughput", {}).get(
                     "variance_pct"
                 )
@@ -185,9 +184,7 @@ def run_atropos_validation(
 
                 print(f"    [OK] Success ({validation_time:.1f}s)")
                 if result.memory_variance_pct is not None:
-                    print(
-                        f"      Memory variance: {result.memory_variance_pct:+.1f}%"
-                    )
+                    print(f"      Memory variance: {result.memory_variance_pct:+.1f}%")
                 if result.savings_accuracy is not None:
                     print(f"      Accuracy: {result.savings_accuracy:.1f}%")
 
@@ -201,7 +198,7 @@ def run_atropos_validation(
     except subprocess.TimeoutExpired:
         result.error_message = f"Timeout after {timeout_sec}s"
         result.validation_time_sec = time.time() - start_time
-        print(f"    [FAIL] Timeout")
+        print("    [FAIL] Timeout")
     except Exception as e:
         result.error_message = str(e)
         result.validation_time_sec = time.time() - start_time
@@ -300,7 +297,9 @@ def print_summary(report: TestReport) -> None:
     for model_id, results in by_model.items():
         print(f"\n{model_id}:")
         for r in results:
-            icon = "[OK]" if r.status == "success" else "[FAIL]" if r.status == "failed" else "[SKIP]"
+            icon = (
+                "[OK]" if r.status == "success" else "[FAIL]" if r.status == "failed" else "[SKIP]"
+            )
             print(f"  {icon} {r.strategy:20s} ({r.validation_time_sec:.1f}s)")
             if r.memory_variance_pct is not None:
                 print(f"      Memory var: {r.memory_variance_pct:+.1f}%")
@@ -330,9 +329,7 @@ def print_summary(report: TestReport) -> None:
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Test candidate models with Atropos validation"
-    )
+    parser = argparse.ArgumentParser(description="Test candidate models with Atropos validation")
     parser.add_argument(
         "--device",
         choices=["cpu", "cuda"],

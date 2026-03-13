@@ -91,7 +91,7 @@ def check_dependencies() -> bool:
     """Check if required dependencies are installed."""
     try:
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: F401
 
         print(f"[OK] PyTorch {torch.__version__}")
         print(f"  CUDA available: {torch.cuda.is_available()}")

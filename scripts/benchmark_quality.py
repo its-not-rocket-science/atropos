@@ -30,17 +30,17 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 EVAL_PROMPTS = [
     {
         "name": "hello_function",
-        "prompt": "def hello_world():\n    \"\"\"Print hello world\"\"\"\n    ",
+        "prompt": 'def hello_world():\n    """Print hello world"""\n    ',
         "expected_keywords": ["print", "hello"],
     },
     {
         "name": "add_function",
-        "prompt": "def add(a, b):\n    \"\"\"Add two numbers\"\"\"\n    ",
+        "prompt": 'def add(a, b):\n    """Add two numbers"""\n    ',
         "expected_keywords": ["return", "a", "b"],
     },
     {
         "name": "factorial",
-        "prompt": "def factorial(n):\n    \"\"\"Calculate factorial\"\"\"\n    ",
+        "prompt": 'def factorial(n):\n    """Calculate factorial"""\n    ',
         "expected_keywords": ["return", "n"],
     },
     {
@@ -50,7 +50,10 @@ EVAL_PROMPTS = [
     },
     {
         "name": "class_definition",
-        "prompt": "class Calculator:\n    \"\"\"Simple calculator\"\"\"\n    \n    def __init__(self):\n        ",
+        "prompt": (
+            'class Calculator:\n    """Simple calculator"""\n    \n'
+            "    def __init__(self):\n        "
+        ),
         "expected_keywords": ["self"],
     },
 ]
@@ -156,7 +159,7 @@ def evaluate_completion(
     inference_time = (time.time() - start) * 1000  # ms
 
     completion = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    generated = completion[len(prompt):]
+    generated = completion[len(prompt) :]
 
     # Check for expected keywords
     keyword_hits = sum(1 for kw in expected_keywords if kw in generated)
@@ -187,7 +190,7 @@ def benchmark_model(
     )
 
     try:
-        print(f"  Loading model...", end=" ", flush=True)
+        print("  Loading model...", end=" ", flush=True)
 
         # Load model
         load_kwargs = {"torch_dtype": torch.float32}
@@ -234,11 +237,13 @@ def benchmark_model(
             completion_scores.append(comp_result["keyword_score"])
             inference_times.append(comp_result["inference_time_ms"])
 
-            result.prompt_results.append({
-                "name": prompt_data["name"],
-                "perplexity": ppl,
-                **comp_result,
-            })
+            result.prompt_results.append(
+                {
+                    "name": prompt_data["name"],
+                    "perplexity": ppl,
+                    **comp_result,
+                }
+            )
 
             print(f"ppl={ppl:.1f}, score={comp_result['keyword_score']:.1f}")
 
@@ -254,6 +259,7 @@ def benchmark_model(
         # Cleanup
         del model
         import gc
+
         gc.collect()
 
     except Exception as e:
@@ -279,23 +285,27 @@ def run_benchmarks(
         model_id = model_info["model_id"]
 
         # Add baseline
-        benchmark_configs.append({
-            "path": model_id,
-            "id": model_id,
-            "is_pruned": False,
-            "strategy": "baseline",
-        })
+        benchmark_configs.append(
+            {
+                "path": model_id,
+                "id": model_id,
+                "is_pruned": False,
+                "strategy": "baseline",
+            }
+        )
 
         # Add pruned variants if they exist
         for strategy in ["mild_pruning", "structured_pruning"]:
             pruned_path = pruned_dir / f"{model_id.replace('/', '--')}_{strategy}"
             if pruned_path.exists():
-                benchmark_configs.append({
-                    "path": str(pruned_path),
-                    "id": model_id,
-                    "is_pruned": True,
-                    "strategy": strategy,
-                })
+                benchmark_configs.append(
+                    {
+                        "path": str(pruned_path),
+                        "id": model_id,
+                        "is_pruned": True,
+                        "strategy": strategy,
+                    }
+                )
 
     report = BenchmarkReport(
         total_models=len(benchmark_configs),
@@ -358,7 +368,7 @@ def print_report(report: BenchmarkReport) -> None:
             status = "OK" if r.status == "success" else "FAIL"
             ppl = f"{r.avg_perplexity:.1f}" if r.avg_perplexity else "N/A"
             score = f"{r.completion_score:.2f}" if r.completion_score else "N/A"
-            print(f"{r.model_id:<30} {r.strategy:<15} {ppl:<12} {score:<8} {status}")
+            print(f"{model_id:<30} {r.strategy:<15} {ppl:<12} {score:<8} {status}")
 
 
 def generate_markdown_report(report: BenchmarkReport, output_path: Path) -> None:
@@ -389,20 +399,20 @@ def generate_markdown_report(report: BenchmarkReport, output_path: Path) -> None
         score = f"{r.completion_score:.2f}" if r.completion_score else "N/A"
         time = f"{r.inference_time_ms:.1f}" if r.inference_time_ms else "N/A"
 
-        lines.append(
-            f"| {r.model_id} | {r.strategy} | {ppl} | {score} | {time} | OK |"
-        )
+        lines.append(f"| {r.model_id} | {r.strategy} | {ppl} | {score} | {time} | OK |")
 
     # Quality degradation analysis
-    lines.extend([
-        "",
-        "## Quality Degradation Analysis",
-        "",
-        "Comparison of pruned models vs baseline:",
-        "",
-        "| Model | Strategy | Perplexity Change | Score Change |",
-        "|-------|----------|-------------------|--------------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Quality Degradation Analysis",
+            "",
+            "Comparison of pruned models vs baseline:",
+            "",
+            "| Model | Strategy | Perplexity Change | Score Change |",
+            "|-------|----------|-------------------|--------------|",
+        ]
+    )
 
     # Group by model and compare
     by_model: dict[str, list[BenchmarkResult]] = {}
@@ -418,8 +428,9 @@ def generate_markdown_report(report: BenchmarkReport, output_path: Path) -> None
             if r.strategy == "baseline" or not r.avg_perplexity:
                 continue
 
-            ppl_change = ((r.avg_perplexity - baseline.avg_perplexity)
-                         / baseline.avg_perplexity * 100)
+            ppl_change = (
+                (r.avg_perplexity - baseline.avg_perplexity) / baseline.avg_perplexity * 100
+            )
 
             if baseline.completion_score and r.completion_score:
                 score_change = (r.completion_score - baseline.completion_score) * 100
@@ -430,15 +441,17 @@ def generate_markdown_report(report: BenchmarkReport, output_path: Path) -> None
                 f"| {model_id} | {r.strategy} | {ppl_change:+.1f}% | {score_change:+.1f}% |"
             )
 
-    lines.extend([
-        "",
-        "## Notes",
-        "",
-        "- Lower perplexity is better (model is more confident)",
-        "- Completion score measures keyword presence in generated code",
-        "- < 10% perplexity increase and < 5% score drop considered acceptable",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "- Lower perplexity is better (model is more confident)",
+            "- Completion score measures keyword presence in generated code",
+            "- < 10% perplexity increase and < 5% score drop considered acceptable",
+            "",
+        ]
+    )
 
     output_path.write_text("\n".join(lines))
     print(f"\nMarkdown report saved to: {output_path}")
@@ -446,9 +459,7 @@ def generate_markdown_report(report: BenchmarkReport, output_path: Path) -> None
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Benchmark quality of pruned models"
-    )
+    parser = argparse.ArgumentParser(description="Benchmark quality of pruned models")
     parser.add_argument(
         "--pruned-dir",
         type=Path,

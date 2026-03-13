@@ -71,7 +71,7 @@ def _compute_batching_throughput_multiplier(
     """
     if batch_size <= 1:
         return 1.0
-    result: float = batch_size ** efficiency
+    result: float = batch_size**efficiency
     return result
 
 

@@ -199,10 +199,7 @@ def search_huggingface(
         tags = model.tags or []
 
         # Check if it's a generative model suitable for pruning
-        applicable = any(
-            t in tags
-            for t in ["text-generation", "causal-lm", "llm", "transformers"]
-        )
+        applicable = any(t in tags for t in ["text-generation", "causal-lm", "llm", "transformers"])
 
         # Estimate memory
         memory_gb = estimate_memory_gb(params_b)
@@ -215,16 +212,13 @@ def search_huggingface(
                 name=model_id,
                 source="huggingface",
                 params_b=params_b,
-                description=model.cardData.get(
-                    "description", "") if model.cardData else "",
+                description=model.cardData.get("description", "") if model.cardData else "",
                 url=f"https://huggingface.co/{model_id}",
                 tags=list(tags),
                 downloads=model.downloads,
                 likes=model.likes,
-                last_updated=model.lastModified.strftime(
-                    "%Y-%m-%d") if model.lastModified else "",
-                license=model.cardData.get(
-                    "license", "") if model.cardData else "",
+                last_updated=model.lastModified.strftime("%Y-%m-%d") if model.lastModified else "",
+                license=model.cardData.get("license", "") if model.cardData else "",
                 task=task,
                 atropos_compatible=compatible,
                 estimated_memory_gb=memory_gb,
@@ -290,9 +284,11 @@ def search_github(
             "wanda",
             "sparsegpt",
         ]
-        status = "integrated" if any(
-            ir in repo["full_name"].lower() for ir in integrated_repos
-        ) else "not_integrated"
+        status = (
+            "integrated"
+            if any(ir in repo["full_name"].lower() for ir in integrated_repos)
+            else "not_integrated"
+        )
 
         results.append(
             PruningImplementation(
@@ -377,8 +373,7 @@ def generate_report(
             params_str = f"{m.params_b:.2f}B" if m.params_b else "?"
             mem_str = f"{m.estimated_memory_gb:.1f}GB" if m.estimated_memory_gb else "?"
             dl_str = f"{m.downloads:,}" if m.downloads else "?"
-            lines.append(
-                f"| [{m.name}]({m.url}) | {params_str} | {mem_str} | {dl_str} | HF |")
+            lines.append(f"| [{m.name}]({m.url}) | {params_str} | {mem_str} | {dl_str} | HF |")
 
     lines.extend(["", "## All Discovered Models", ""])
 
@@ -393,8 +388,7 @@ def generate_report(
         if size_range == "<= 1":
             filtered = [m for m in models if m.params_b and m.params_b <= 1]
         elif size_range == "1-7":
-            filtered = [
-                m for m in models if m.params_b and 1 < m.params_b <= 7]
+            filtered = [m for m in models if m.params_b and 1 < m.params_b <= 7]
         else:
             filtered = [m for m in models if m.params_b and m.params_b > 7]
 
@@ -404,8 +398,7 @@ def generate_report(
             for m in sorted(filtered, key=lambda x: x.downloads or 0, reverse=True)[:10]:
                 params = f"{m.params_b:.2f}B" if m.params_b else "?"
                 pruning = "✅" if m.pruning_applicable else "❌"
-                lines.append(
-                    f"| [{m.name}]({m.url}) | {params} | {m.task} | {pruning} |")
+                lines.append(f"| [{m.name}]({m.url}) | {params} | {m.task} | {pruning} |")
         else:
             lines.append("_No models found in this range_")
 
@@ -424,9 +417,7 @@ def generate_report(
                 "planned": "📝",
                 "not_integrated": "⬜",
             }.get(impl.atropos_integration_status, "?")
-            lines.append(
-                f"| [{impl.name}]({impl.url}) | {stars} | {impl.language} | {status} |"
-            )
+            lines.append(f"| [{impl.name}]({impl.url}) | {stars} | {impl.language} | {status} |")
 
     lines.extend(["", "## Atropos Scenarios", ""])
     lines.append("You can use these models with Atropos:")
@@ -480,9 +471,7 @@ def export_to_yaml(models: list[DiscoveredModel], output_path: Path) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Discover LLM models and pruning implementations"
-    )
+    parser = argparse.ArgumentParser(description="Discover LLM models and pruning implementations")
     parser.add_argument(
         "--source",
         choices=["huggingface", "github", "all"],

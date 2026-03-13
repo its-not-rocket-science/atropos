@@ -50,3 +50,6 @@ run-claude.cmd
 
 # Project specific
 *.log
+
+test_data/models/
+test_data/pruned_models/

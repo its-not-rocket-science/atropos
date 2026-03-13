@@ -1,0 +1,101 @@
+[
+  {
+    "model_id": "gpt2",
+    "method": "wanda",
+    "sparsity_target": 0.3,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "'GPT2LMHeadModel' object has no attribute 'seqlen'",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_wanda",
+    "timestamp": "2026-03-13T14:02:15.642577"
+  },
+  {
+    "model_id": "facebook/opt-1.3b",
+    "method": "wanda",
+    "sparsity_target": 0.3,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "'OPTForCausalLM' object has no attribute 'seqlen'",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_wanda",
+    "timestamp": "2026-03-13T14:03:07.502870"
+  },
+  {
+    "model_id": "facebook/opt-1.3b",
+    "method": "wanda",
+    "sparsity_target": 0.3,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "BuilderConfig 'allenai--c4' not found. Available: ['en', 'en.noblocklist', 'en.noclean', 'realnewslike', 'multilingual', 'af', 'am', 'ar', 'az', 'be', 'bg', 'bg-Latn', 'bn', 'ca', 'ceb', 'co', 'cs', 'cy', 'da', 'de', 'el', 'el-Latn', 'en-multi', 'eo', 'es', 'et', 'eu', 'fa', 'fi', 'fil', 'fr', 'fy', 'ga', 'gd', 'gl', 'gu', 'ha', 'haw', 'hi', 'hi-Latn', 'hmn', 'ht', 'hu', 'hy', 'id', 'ig', 'is', 'it', 'iw', 'ja', 'ja-Latn', 'jv', 'ka', 'kk', 'km', 'kn', 'ko', 'ku', 'ky', 'la', 'lb', 'lo', 'lt', 'lv', 'mg', 'mi', 'mk', 'ml', 'mn', 'mr', 'ms', 'mt', 'my', 'ne', 'nl', 'no', 'ny', 'pa', 'pl', 'ps', 'pt', 'ro', 'ru', 'ru-Latn', 'sd', 'si', 'sk', 'sl', 'sm', 'sn', 'so', 'sq', 'sr', 'st', 'su', 'sv', 'sw', 'ta', 'te', 'tg', 'th', 'tr', 'uk', 'und', 'ur', 'uz', 'vi', 'xh', 'yi', 'yo', 'zh', 'zh-Latn', 'zu']",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_wanda",
+    "timestamp": "2026-03-13T14:07:52.893106"
+  },
+  {
+    "model_id": "facebook/opt-1.3b",
+    "method": "wanda",
+    "sparsity_target": 0.3,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "{'validation'}",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_wanda",
+    "timestamp": "2026-03-13T14:12:41.163588"
+  },
+  {
+    "model_id": "facebook/opt-1.3b",
+    "method": "wanda",
+    "sparsity_target": 0.3,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "'OPTForCausalLM' object has no attribute 'hf_device_map'",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_wanda",
+    "timestamp": "2026-03-13T14:18:53.872418"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "wanda",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "GPT2Block.forward() got an unexpected keyword argument 'position_ids'",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_wanda",
+    "timestamp": "2026-03-13T15:07:26.827703"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "wanda",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "float division by zero",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_wanda",
+    "timestamp": "2026-03-13T15:16:52.907391"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "wanda",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "float division by zero",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_wanda",
+    "timestamp": "2026-03-13T15:39:21.186730"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "wanda",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "The size of tensor a (2304) must match the size of tensor b (768) at non-singleton dimension 1",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_wanda",
+    "timestamp": "2026-03-13T15:52:35.199079"
+  }
+]

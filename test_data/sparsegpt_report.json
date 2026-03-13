@@ -1,0 +1,46 @@
+[
+  {
+    "model_id": "gpt2",
+    "method": "sparsegpt",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "'position_ids'",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_sparsegpt",
+    "timestamp": "2026-03-13T18:52:10.935793"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "sparsegpt",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_sparsegpt",
+    "timestamp": "2026-03-13T18:59:12.803511"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "sparsegpt",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.0,
+    "status": "failed",
+    "error": "Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx",
+    "duration_sec": 0.0,
+    "output_path": "test_data\\pruned_models\\gpt2_sparsegpt",
+    "timestamp": "2026-03-13T19:03:58.246627"
+  },
+  {
+    "model_id": "gpt2",
+    "method": "sparsegpt",
+    "sparsity_target": 0.1,
+    "sparsity_actual": 0.10000357215787158,
+    "status": "success",
+    "error": "",
+    "duration_sec": 133.053765,
+    "output_path": "test_data\\pruned_models\\gpt2_sparsegpt",
+    "timestamp": "2026-03-13T19:07:30.600605"
+  }
+]

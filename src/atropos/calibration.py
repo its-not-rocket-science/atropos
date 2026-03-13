@@ -175,9 +175,7 @@ def calibrate_scenario(
         )
 
     # Tokens per request calibration
-    token_variance = _compute_variance(
-        scenario.tokens_per_request, telemetry.tokens_per_request
-    )
+    token_variance = _compute_variance(scenario.tokens_per_request, telemetry.tokens_per_request)
     metrics.append(
         CalibrationMetric(
             name="tokens_per_request",
@@ -213,9 +211,7 @@ def calibrate_scenario(
     )
 
 
-def _generate_recommendations(
-    metrics: list[CalibrationMetric], tolerance_pct: float
-) -> list[str]:
+def _generate_recommendations(metrics: list[CalibrationMetric], tolerance_pct: float) -> list[str]:
     """Generate calibration recommendations based on metric variances.
 
     Args:
@@ -228,13 +224,9 @@ def _generate_recommendations(
     recommendations: list[str] = []
 
     # Identify significantly miscalibrated metrics
-    high_variance_metrics = [
-        m for m in metrics if abs(m.variance_pct) > tolerance_pct * 2
-    ]
+    high_variance_metrics = [m for m in metrics if abs(m.variance_pct) > tolerance_pct * 2]
     medium_variance_metrics = [
-        m
-        for m in metrics
-        if tolerance_pct < abs(m.variance_pct) <= tolerance_pct * 2
+        m for m in metrics if tolerance_pct < abs(m.variance_pct) <= tolerance_pct * 2
     ]
 
     # Overall assessment
@@ -262,9 +254,7 @@ def _generate_recommendations(
         )
 
     # Calibration advice based on patterns
-    throughput_metric = next(
-        (m for m in metrics if m.name == "throughput"), None
-    )
+    throughput_metric = next((m for m in metrics if m.name == "throughput"), None)
     memory_metric = next((m for m in metrics if m.name == "memory"), None)
 
     if throughput_metric and memory_metric:
@@ -282,9 +272,7 @@ def _generate_recommendations(
     return recommendations
 
 
-def generate_calibration_report(
-    result: CalibrationResult, format: str = "markdown"
-) -> str:
+def generate_calibration_report(result: CalibrationResult, format: str = "markdown") -> str:
     """Generate a calibration report in the specified format.
 
     Args:
@@ -321,11 +309,13 @@ def generate_calibration_report(
             f"{metric.confidence.upper()} |"
         )
 
-    lines.extend([
-        "",
-        "## Recommendations",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Recommendations",
+            "",
+        ]
+    )
 
     if result.recommendations:
         for rec in result.recommendations:

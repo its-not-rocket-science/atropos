@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from ..models import DeploymentScenario, OptimizationStrategy
 
 
-
 def _compute_variance(projected: float, measured: float) -> float:
     """Compute percentage variance between projected and measured."""
     if projected == 0:
@@ -125,13 +124,13 @@ class ModelValidator:
         Raises:
             ImportErrorException: If required packages not installed.
         """
-        
+
         # Load model and tokenizer
         print(f"Loading model: {model_name}")
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         loaded_model = AutoModelForCausalLM.from_pretrained(model_name)
         model = cast(PreTrainedModel, loaded_model)
-        model = model.to(self.device)
+        model = model.to(self.device)  # type: ignore[arg-type]
         model.eval()
 
         # Count parameters
@@ -235,13 +234,9 @@ class ModelValidator:
             model_name=f"{model_name} (simulated)",
             parameters_b=self.scenario.parameters_b,
             memory_gb=variance(self.scenario.memory_gb, 0.05),
-            throughput_toks_per_sec=variance(
-                self.scenario.throughput_toks_per_sec, 0.10
-            ),
+            throughput_toks_per_sec=variance(self.scenario.throughput_toks_per_sec, 0.10),
             latency_ms_per_request=variance(
-                self.scenario.tokens_per_request
-                / self.scenario.throughput_toks_per_sec
-                * 1000,
+                self.scenario.tokens_per_request / self.scenario.throughput_toks_per_sec * 1000,
                 0.10,
             ),
             batch_size=self.scenario.batch_size,
@@ -261,9 +256,7 @@ class ModelValidator:
         # Parameter reduction affects memory
         optimized_memory = self.scenario.memory_gb * (1 - mem_reduction)
         # Throughput improvement
-        optimized_throughput = self.scenario.throughput_toks_per_sec * (
-            1 + throughput_improvement
-        )
+        optimized_throughput = self.scenario.throughput_toks_per_sec * (1 + throughput_improvement)
 
         # Parameter count after pruning
         param_reduction = self.strategy.parameter_reduction_fraction
@@ -278,8 +271,7 @@ class ModelValidator:
                 self.scenario.tokens_per_request / optimized_throughput * 1000, 0.12
             ),
             batch_size=self.scenario.batch_size,
-            power_watts=self.scenario.power_watts
-            * (1 - self.strategy.power_reduction_fraction),
+            power_watts=self.scenario.power_watts * (1 - self.strategy.power_reduction_fraction),
         )
 
     def run_validation(
@@ -309,16 +301,18 @@ class ModelValidator:
 
         # Calculate savings
         atropos_savings = (
-            self._atropos_outcome.baseline_annual_total_cost_usd
-            - self._atropos_outcome.optimized_annual_total_cost_usd
-        ) / self._atropos_outcome.baseline_annual_total_cost_usd * 100
+            (
+                self._atropos_outcome.baseline_annual_total_cost_usd
+                - self._atropos_outcome.optimized_annual_total_cost_usd
+            )
+            / self._atropos_outcome.baseline_annual_total_cost_usd
+            * 100
+        )
 
         measured_cost_baseline = baseline.memory_gb  # Proxy for cost
         measured_cost_optimized = optimized.memory_gb
         measured_savings = (
-            (measured_cost_baseline - measured_cost_optimized)
-            / measured_cost_baseline
-            * 100
+            (measured_cost_baseline - measured_cost_optimized) / measured_cost_baseline * 100
         )
 
         # Generate assessment
@@ -335,9 +329,7 @@ class ModelValidator:
             overall_assessment=assessment,
         )
 
-    def _build_comparisons(
-        self, optimized: MeasuredMetrics
-    ) -> list[ComparisonMetric]:
+    def _build_comparisons(self, optimized: MeasuredMetrics) -> list[ComparisonMetric]:
         """Build comparison metrics between Atropos and measured."""
         comparisons = []
 
@@ -355,9 +347,7 @@ class ModelValidator:
         )
 
         # Throughput comparison
-        projected_throughput = (
-            self._atropos_outcome.optimized_throughput_toks_per_sec
-        )
+        projected_throughput = self._atropos_outcome.optimized_throughput_toks_per_sec
         measured_throughput = optimized.throughput_toks_per_sec
         comparisons.append(
             ComparisonMetric(
@@ -365,9 +355,7 @@ class ModelValidator:
                 projected=projected_throughput,
                 measured=measured_throughput,
                 unit="tok/s",
-                variance_pct=_compute_variance(
-                    projected_throughput, measured_throughput
-                ),
+                variance_pct=_compute_variance(projected_throughput, measured_throughput),
             )
         )
 

@@ -286,8 +286,7 @@ def create_region_section() -> html.Div:
     """Create the region selection section."""
     regions = list_regions()
     region_options = [
-        {"label": f"{code} - {CARBON_PRESETS[code].region_name}", "value": code}
-        for code in regions
+        {"label": f"{code} - {CARBON_PRESETS[code].region_name}", "value": code} for code in regions
     ]
 
     return html.Div(

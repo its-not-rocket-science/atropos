@@ -164,15 +164,14 @@ def validate_model(
         if original_ppl > 0:
             ppl_increase = (pruned_ppl - original_ppl) / original_ppl
         else:
-            ppl_increase = float('inf')
+            ppl_increase = float("inf")
 
         result["metrics"]["original_perplexity"] = round(original_ppl, 2)
         result["metrics"]["pruned_perplexity"] = round(pruned_ppl, 2)
         result["metrics"]["perplexity_increase_pct"] = round(ppl_increase * 100, 1)
 
         ppl_passed = (
-            ppl_increase <= PERPLEXITY_TOLERANCE
-            and pruned_ppl <= MAX_ACCEPTABLE_PERPLEXITY
+            ppl_increase <= PERPLEXITY_TOLERANCE and pruned_ppl <= MAX_ACCEPTABLE_PERPLEXITY
         )
 
         status = "[PASS]" if ppl_passed else "[FAIL]"
@@ -191,7 +190,7 @@ def validate_model(
             similarities.append(sim)
 
             status = "[PASS]" if sim >= GENERATION_SIMILARITY_THRESHOLD else "[WARN]"
-            print(f"    {status} Prompt {i+1}: {sim*100:.1f}% similarity")
+            print(f"    {status} Prompt {i + 1}: {sim * 100:.1f}% similarity")
 
         avg_similarity = sum(similarities) / len(similarities) if similarities else 0.0
         result["metrics"]["generation_similarities"] = [round(s, 3) for s in similarities]
@@ -233,9 +232,9 @@ def generate_markdown_report(results: list[dict], output_path: Path) -> None:
         "",
         "## Validation Criteria",
         "",
-        f"- **Perplexity increase tolerance:** {PERPLEXITY_TOLERANCE*100:.0f}%",
+        f"- **Perplexity increase tolerance:** {PERPLEXITY_TOLERANCE * 100:.0f}%",
         f"- **Max acceptable perplexity:** {MAX_ACCEPTABLE_PERPLEXITY}",
-        f"- **Generation similarity threshold:** {GENERATION_SIMILARITY_THRESHOLD*100:.0f}%",
+        f"- **Generation similarity threshold:** {GENERATION_SIMILARITY_THRESHOLD * 100:.0f}%",
         "",
         "## Results Summary",
         "",
@@ -251,43 +250,49 @@ def generate_markdown_report(results: list[dict], output_path: Path) -> None:
         gen_sim = m.get("avg_generation_similarity", "N/A")
 
         if isinstance(gen_sim, (int, float)):
-            gen_sim = f"{gen_sim*100:.1f}%"
+            gen_sim = f"{gen_sim * 100:.1f}%"
         if isinstance(ppl_change, (int, float)):
             ppl_change = f"{ppl_change:+.1f}%"
 
         lines.append(
-            f"| {r['model']} | {r['strategy']} | {ppl} | {ppl_change} | "
-            f"{gen_sim} | {status} |"
+            f"| {r['model']} | {r['strategy']} | {ppl} | {ppl_change} | {gen_sim} | {status} |"
         )
 
-    lines.extend([
-        "",
-        "## Detailed Results",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Detailed Results",
+            "",
+        ]
+    )
 
     for r in results:
         status = "✅ PASSED" if r.get("passed") else "❌ FAILED"
-        lines.extend([
-            f"### {r['model']} - {r['strategy']}",
-            "",
-            f"**Status:** {status}",
-            "",
-            "**Metrics:**",
-            f"- Original perplexity: {r.get('metrics', {}).get('original_perplexity', 'N/A')}",
-            f"- Pruned perplexity: {r.get('metrics', {}).get('pruned_perplexity', 'N/A')}",
-            f"- Perplexity increase: {r.get('metrics', {}).get('perplexity_increase_pct', 'N/A')}%",
-            "- Avg generation similarity: "
-            f"{r.get('metrics', {}).get('avg_generation_similarity', 'N/A')}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"### {r['model']} - {r['strategy']}",
+                "",
+                f"**Status:** {status}",
+                "",
+                "**Metrics:**",
+                f"- Original perplexity: {r.get('metrics', {}).get('original_perplexity', 'N/A')}",
+                f"- Pruned perplexity: {r.get('metrics', {}).get('pruned_perplexity', 'N/A')}",
+                f"- Perplexity increase: "
+                f"{r.get('metrics', {}).get('perplexity_increase_pct', 'N/A')}%",
+                "- Avg generation similarity: "
+                f"{r.get('metrics', {}).get('avg_generation_similarity', 'N/A')}",
+                "",
+            ]
+        )
 
         if r.get("errors"):
-            lines.extend([
-                "**Errors:**",
-                *[f"- {e}" for e in r["errors"]],
-                "",
-            ])
+            lines.extend(
+                [
+                    "**Errors:**",
+                    *[f"- {e}" for e in r["errors"]],
+                    "",
+                ]
+            )
 
     output_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"\n[OK] Markdown report written to: {output_path}")
@@ -295,9 +300,7 @@ def generate_markdown_report(results: list[dict], output_path: Path) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Validate pruned models against originals"
-    )
+    parser = argparse.ArgumentParser(description="Validate pruned models against originals")
     parser.add_argument(
         "--test-data-dir",
         type=Path,
@@ -384,19 +387,23 @@ def main() -> int:
     # Save JSON report
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:
-        json.dump({
-            "summary": {
-                "total": len(all_results),
-                "passed": sum(1 for r in all_results if r.get("passed")),
-                "failed": sum(1 for r in all_results if not r.get("passed")),
+        json.dump(
+            {
+                "summary": {
+                    "total": len(all_results),
+                    "passed": sum(1 for r in all_results if r.get("passed")),
+                    "failed": sum(1 for r in all_results if not r.get("passed")),
+                },
+                "criteria": {
+                    "perplexity_tolerance_pct": PERPLEXITY_TOLERANCE * 100,
+                    "max_perplexity": MAX_ACCEPTABLE_PERPLEXITY,
+                    "generation_similarity_threshold": GENERATION_SIMILARITY_THRESHOLD,
+                },
+                "results": all_results,
             },
-            "criteria": {
-                "perplexity_tolerance_pct": PERPLEXITY_TOLERANCE * 100,
-                "max_perplexity": MAX_ACCEPTABLE_PERPLEXITY,
-                "generation_similarity_threshold": GENERATION_SIMILARITY_THRESHOLD,
-            },
-            "results": all_results,
-        }, f, indent=2)
+            f,
+            indent=2,
+        )
 
     print(f"\n[OK] JSON report written to: {args.output}")
 
@@ -406,9 +413,9 @@ def main() -> int:
     # Summary
     passed = sum(1 for r in all_results if r.get("passed"))
     total = len(all_results)
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"Validation complete: {passed}/{total} passed")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
 
     return 0 if passed == total else 1
 

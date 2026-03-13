@@ -18,29 +18,23 @@ if TYPE_CHECKING:
 def create_results_display(outcome: OptimizationOutcome) -> html.Div:
     """Create the main results display."""
     break_even_text = (
-        f"{outcome.break_even_years:.1f} years"
-        if outcome.break_even_years
-        else "Never"
+        f"{outcome.break_even_years:.1f} years" if outcome.break_even_years else "Never"
     )
 
     # Calculate percentage changes
     mem_pct = (
         (outcome.baseline_memory_gb - outcome.optimized_memory_gb)
-        / outcome.baseline_memory_gb * 100
+        / outcome.baseline_memory_gb
+        * 100
     )
-    thr_diff = (
-        outcome.optimized_throughput_toks_per_sec
-        - outcome.baseline_throughput_toks_per_sec
-    )
+    thr_diff = outcome.optimized_throughput_toks_per_sec - outcome.baseline_throughput_toks_per_sec
     thr_pct = thr_diff / outcome.baseline_throughput_toks_per_sec * 100
     pwr_pct = (
         (outcome.baseline_power_watts - outcome.optimized_power_watts)
-        / outcome.baseline_power_watts * 100
+        / outcome.baseline_power_watts
+        * 100
     )
-    nrg_diff = (
-        outcome.baseline_energy_wh_per_request
-        - outcome.optimized_energy_wh_per_request
-    )
+    nrg_diff = outcome.baseline_energy_wh_per_request - outcome.optimized_energy_wh_per_request
     nrg_pct = nrg_diff / outcome.baseline_energy_wh_per_request * 100
 
     # Quality risk color mapping
@@ -178,9 +172,7 @@ def create_metric_card(title: str, value: str, color: str) -> html.Div:
     )
 
 
-def create_metric_row(
-    label: str, baseline: str, optimized: str, change: str
-) -> html.Div:
+def create_metric_row(label: str, baseline: str, optimized: str, change: str) -> html.Div:
     """Create a metric comparison row."""
     return html.Div(
         [

@@ -185,11 +185,15 @@ class VLLMCollector(TelemetryCollector):
         """Send warmup requests to stabilize the server."""
         for _ in range(self.config.warmup_requests):
             try:
-                self._make_request("/v1/completions", method="POST", data={
-                    "model": "default",
-                    "prompt": self.config.benchmark_prompt,
-                    "max_tokens": 10,
-                })
+                self._make_request(
+                    "/v1/completions",
+                    method="POST",
+                    data={
+                        "model": "default",
+                        "prompt": self.config.benchmark_prompt,
+                        "max_tokens": 10,
+                    },
+                )
             except Exception:
                 pass  # Warmup failures are ok
 
@@ -254,11 +258,15 @@ class VLLMCollector(TelemetryCollector):
         start_time = time.time()
 
         try:
-            response = self._make_request("/v1/completions", method="POST", data={
-                "model": "default",
-                "prompt": self.config.benchmark_prompt,
-                "max_tokens": self.config.max_tokens,
-            })
+            response = self._make_request(
+                "/v1/completions",
+                method="POST",
+                data={
+                    "model": "default",
+                    "prompt": self.config.benchmark_prompt,
+                    "max_tokens": self.config.max_tokens,
+                },
+            )
 
             elapsed_ms = (time.time() - start_time) * 1000
             tokens_generated = response.get("usage", {}).get("completion_tokens", 0)

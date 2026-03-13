@@ -188,9 +188,7 @@ def run_atropos_preset(
                 baseline_pwr = data.get("baseline_power_watts", 0)
                 optimized_pwr = data.get("optimized_power_watts", 0)
                 if baseline_pwr > 0:
-                    result.power_reduction_pct = (
-                        (baseline_pwr - optimized_pwr) / baseline_pwr * 100
-                    )
+                    result.power_reduction_pct = (baseline_pwr - optimized_pwr) / baseline_pwr * 100
 
                 # Financials
                 baseline_cost = data.get("baseline_annual_total_cost_usd", 0)
@@ -326,12 +324,10 @@ def print_summary(report: ProjectionReport) -> None:
         successful = [r for r in results if r.status == "success"]
         if successful:
             avg_mem = sum(
-                r.memory_reduction_pct for r in successful
-                if r.memory_reduction_pct is not None
+                r.memory_reduction_pct for r in successful if r.memory_reduction_pct is not None
             ) / len(successful)
             avg_savings = sum(
-                r.annual_savings_usd for r in successful
-                if r.annual_savings_usd is not None
+                r.annual_savings_usd for r in successful if r.annual_savings_usd is not None
             ) / len(successful)
 
             print(f"\n{strategy}:")
@@ -365,11 +361,7 @@ def generate_markdown_report(report: ProjectionReport, output_path: Path) -> Non
             continue
 
         mem = f"{r.memory_reduction_pct:.1f}%" if r.memory_reduction_pct else "N/A"
-        thr = (
-            f"+{r.throughput_improvement_pct:.1f}%"
-            if r.throughput_improvement_pct
-            else "N/A"
-        )
+        thr = f"+{r.throughput_improvement_pct:.1f}%" if r.throughput_improvement_pct else "N/A"
         savings = f"${r.annual_savings_usd:,.0f}" if r.annual_savings_usd else "N/A"
         be = f"{r.break_even_months:.1f}mo" if r.break_even_months else "N/A"
 
@@ -377,14 +369,16 @@ def generate_markdown_report(report: ProjectionReport, output_path: Path) -> Non
             f"| {r.model_id} | {r.params_b}B | {r.strategy} | {mem} | {thr} | {savings} | {be} |"
         )
 
-    lines.extend([
-        "",
-        "## Notes",
-        "",
-        "These are *projected* savings before actual pruning is applied.",
-        "Actual results will be compared against these projections.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "These are *projected* savings before actual pruning is applied.",
+            "Actual results will be compared against these projections.",
+            "",
+        ]
+    )
 
     output_path.write_text("\n".join(lines))
     print(f"\nMarkdown report saved to: {output_path}")
@@ -392,9 +386,7 @@ def generate_markdown_report(report: ProjectionReport, output_path: Path) -> Non
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Run Atropos projections for pruning exercise"
-    )
+    parser = argparse.ArgumentParser(description="Run Atropos projections for pruning exercise")
     parser.add_argument(
         "--with-quantization",
         action="store_true",

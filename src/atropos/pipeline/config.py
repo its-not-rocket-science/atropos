@@ -229,9 +229,7 @@ class PipelineConfig:
     def __post_init__(self) -> None:
         """Set default configs if not provided."""
         # This is a workaround for frozen dataclass with mutable defaults
-        object.__setattr__(
-            self, "thresholds", self.thresholds or ThresholdConfig()
-        )
+        object.__setattr__(self, "thresholds", self.thresholds or ThresholdConfig())
         object.__setattr__(self, "pruning", self.pruning or PruningConfig())
         object.__setattr__(self, "recovery", self.recovery or RecoveryConfig())
         object.__setattr__(self, "validation", self.validation or ValidationConfig())

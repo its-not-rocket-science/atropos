@@ -254,10 +254,14 @@ class WandaFramework(PruningFramework):
         cmd = [
             sys.executable,
             str(wanda_path / "main.py"),
-            "--model", model_name,
-            "--prune_method", "wanda",
-            "--sparsity", str(target_sparsity),
-            "--save", str(output_path),
+            "--model",
+            model_name,
+            "--prune_method",
+            "wanda",
+            "--sparsity",
+            str(target_sparsity),
+            "--save",
+            str(output_path),
         ]
 
         # Add optional args
@@ -430,9 +434,12 @@ class SparseGPTFramework(PruningFramework):
         cmd = [
             sys.executable,
             str(sparsegpt_path / "sparsegpt.py"),
-            "--model", model_name,
-            "--sparsity", str(target_sparsity),
-            "--save", str(output_path),
+            "--model",
+            model_name,
+            "--sparsity",
+            str(target_sparsity),
+            "--save",
+            str(output_path),
         ]
 
         try:

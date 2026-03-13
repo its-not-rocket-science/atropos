@@ -258,6 +258,7 @@ def prune_model(
         # Cleanup
         del model
         import gc
+
         gc.collect()
 
     except Exception as e:
@@ -290,10 +291,7 @@ def prune_all_models(
     strategies = strategies or ["mild_pruning", "structured_pruning"]
 
     # Calculate total operations
-    total = sum(
-        len([s for s in c["strategies"].keys() if s in strategies])
-        for c in configs
-    )
+    total = sum(len([s for s in c["strategies"].keys() if s in strategies]) for c in configs)
 
     report = PruningReport(
         total_models=total,
@@ -404,14 +402,16 @@ def generate_markdown_report(report: PruningReport, output_path: Path) -> None:
             f"{r.actual_sparsity:.1%} | {orig} | {pruned} | {time_str} |"
         )
 
-    lines.extend([
-        "",
-        "## Comparison with Projections",
-        "",
-        "Compare these actual results with `test_data/projections.md`",
-        "to validate Atropos projection accuracy.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Comparison with Projections",
+            "",
+            "Compare these actual results with `test_data/projections.md`",
+            "to validate Atropos projection accuracy.",
+            "",
+        ]
+    )
 
     output_path.write_text("\n".join(lines))
     print(f"\nMarkdown report saved to: {output_path}")
@@ -419,9 +419,7 @@ def generate_markdown_report(report: PruningReport, output_path: Path) -> None:
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Prune candidate models for Atropos validation"
-    )
+    parser = argparse.ArgumentParser(description="Prune candidate models for Atropos validation")
     parser.add_argument(
         "--output-dir",
         type=Path,

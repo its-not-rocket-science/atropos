@@ -274,9 +274,7 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser.add_argument(
         "--port", type=int, default=8050, help="Port to run the dashboard server"
     )
-    dashboard_parser.add_argument(
-        "--debug", action="store_true", help="Run in debug mode"
-    )
+    dashboard_parser.add_argument("--debug", action="store_true", help="Run in debug mode")
 
     carbon_parser = subparsers.add_parser(
         "list-carbon-presets", help="List available carbon intensity presets."
@@ -292,9 +290,7 @@ def build_parser() -> argparse.ArgumentParser:
         "calibrate",
         help="Calibrate scenario parameters against real telemetry data.",
     )
-    calibrate_parser.add_argument(
-        "scenario", help="Scenario name (preset) or path to YAML file"
-    )
+    calibrate_parser.add_argument("scenario", help="Scenario name (preset) or path to YAML file")
     calibrate_parser.add_argument(
         "telemetry", type=Path, help="Path to telemetry file (JSON, CSV, or log)"
     )
@@ -322,28 +318,24 @@ def build_parser() -> argparse.ArgumentParser:
         "pipeline",
         help="Run the Atropos optimization pipeline.",
     )
+    pipeline_parser.add_argument("scenario", help="Scenario name (preset) or path to YAML file")
     pipeline_parser.add_argument(
-        "scenario", help="Scenario name (preset) or path to YAML file"
+        "--config", "-c", type=Path, required=True, help="Pipeline configuration YAML file"
     )
     pipeline_parser.add_argument(
-        "--config", "-c", type=Path, required=True,
-        help="Pipeline configuration YAML file"
-    )
-    pipeline_parser.add_argument(
-        "--strategy", choices=sorted(STRATEGIES.keys()),
+        "--strategy",
+        choices=sorted(STRATEGIES.keys()),
         default="structured_pruning",
-        help="Optimization strategy to use"
+        help="Optimization strategy to use",
     )
     pipeline_parser.add_argument(
         "--region", help="Region for carbon intensity (ISO code or cloud region)"
     )
     pipeline_parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Simulate pipeline without actual execution"
+        "--dry-run", action="store_true", help="Simulate pipeline without actual execution"
     )
     pipeline_parser.add_argument(
-        "--output", "-o", type=Path,
-        help="Output JSON file for pipeline results"
+        "--output", "-o", type=Path, help="Output JSON file for pipeline results"
     )
 
     # Pipeline config validation command
@@ -360,29 +352,27 @@ def build_parser() -> argparse.ArgumentParser:
         "validate",
         help="Validate Atropos projections against real neural networks.",
     )
+    validate_parser.add_argument("scenario", help="Scenario name (preset) or path to YAML file")
     validate_parser.add_argument(
-        "scenario", help="Scenario name (preset) or path to YAML file"
-    )
-    validate_parser.add_argument(
-        "--strategy", choices=sorted(STRATEGIES.keys()),
+        "--strategy",
+        choices=sorted(STRATEGIES.keys()),
         default="structured_pruning",
-        help="Optimization strategy to test"
+        help="Optimization strategy to test",
     )
     validate_parser.add_argument(
         "--model", help="HuggingFace model name to test (auto-selected if not provided)"
     )
     validate_parser.add_argument(
-        "--device", choices=["cpu", "cuda"], default="cpu",
-        help="Device to run validation on"
+        "--device", choices=["cpu", "cuda"], default="cpu", help="Device to run validation on"
     )
     validate_parser.add_argument(
-        "--pruning-method", default="magnitude",
+        "--pruning-method",
+        default="magnitude",
         choices=["magnitude", "random", "structured"],
-        help="Pruning method to apply"
+        help="Pruning method to apply",
     )
     validate_parser.add_argument(
-        "--format", choices=["markdown", "json"], default="markdown",
-        help="Output format"
+        "--format", choices=["markdown", "json"], default="markdown", help="Output format"
     )
     validate_parser.add_argument(
         "--output", "-o", type=Path, help="Output file path (default: stdout)"
@@ -1037,8 +1027,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     telemetry = PARSERS["csv"]().parse_file(args.telemetry)
                 else:
                     print(
-                        f"Error: Cannot auto-detect parser for {suffix} files. "
-                        "Use --parser.",
+                        f"Error: Cannot auto-detect parser for {suffix} files. Use --parser.",
                         file=sys.stderr,
                     )
                     return 1
@@ -1125,8 +1114,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"Configuration valid: {pipeline_cfg.name}")
                 print(f"  Auto-execute: {pipeline_cfg.auto_execute}")
                 thresh = pipeline_cfg.thresholds
-                print(f"  Thresholds: {thresh.max_break_even_months} months break-even, "
-                      f"${thresh.min_annual_savings_usd:,.0f} min savings")
+                print(
+                    f"  Thresholds: {thresh.max_break_even_months} months break-even, "
+                    f"${thresh.min_annual_savings_usd:,.0f} min savings"
+                )
                 fw = pipeline_cfg.pruning.framework
                 sparsity = pipeline_cfg.pruning.target_sparsity
                 print(f"  Pruning: {fw} at {sparsity:.0%} sparsity")
@@ -1166,6 +1157,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 # Generate report
                 if args.format == "json":
                     import json
+
                     report = json.dumps(validation_result.to_dict(), indent=2)
                 else:
                     report = validation_result.to_markdown()
@@ -1200,7 +1192,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Return success if majority of tests passed
             success_rate = (
                 test_results.successful / test_results.total_models
-                if test_results.total_models > 0 else 0
+                if test_results.total_models > 0
+                else 0
             )
             return 0 if success_rate >= 0.5 else 1
 

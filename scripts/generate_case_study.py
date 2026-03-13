@@ -221,9 +221,7 @@ def generate_case_study(
             )
 
         # Calculate actual break-even
-        result.actual_break_even_months = calculate_break_even(
-            result.actual_annual_savings or 0
-        )
+        result.actual_break_even_months = calculate_break_even(result.actual_annual_savings or 0)
 
         # Calculate variances
         if result.projected_annual_savings and result.actual_annual_savings is not None:
@@ -233,10 +231,7 @@ def generate_case_study(
                 * 100
             )
 
-        if (
-            result.projected_break_even_months
-            and result.actual_break_even_months is not None
-        ):
+        if result.projected_break_even_months and result.actual_break_even_months is not None:
             result.break_even_variance_pct = (
                 (result.actual_break_even_months - result.projected_break_even_months)
                 / result.projected_break_even_months
@@ -256,12 +251,10 @@ def generate_case_study(
     successful = [r for r in report.results if r.actual_annual_savings is not None]
 
     if successful:
-        avg_projected_savings = sum(
-            r.projected_annual_savings or 0 for r in successful
-        ) / len(successful)
-        avg_actual_savings = sum(
-            r.actual_annual_savings or 0 for r in successful
-        ) / len(successful)
+        avg_projected_savings = sum(r.projected_annual_savings or 0 for r in successful) / len(
+            successful
+        )
+        avg_actual_savings = sum(r.actual_annual_savings or 0 for r in successful) / len(successful)
 
         viable = sum(1 for r in successful if "Recommended" in r.recommendation)
         not_viable = sum(1 for r in successful if "Not recommended" in r.recommendation)
@@ -271,9 +264,7 @@ def generate_case_study(
             "avg_projected_annual_savings": round(avg_projected_savings, 2),
             "avg_actual_annual_savings": round(avg_actual_savings, 2),
             "savings_variance_pct": round(
-                (avg_actual_savings - avg_projected_savings)
-                / avg_projected_savings
-                * 100,
+                (avg_actual_savings - avg_projected_savings) / avg_projected_savings * 100,
                 1,
             ),
             "viable_pruning_scenarios": viable,
@@ -329,7 +320,9 @@ def print_report(report: CaseStudyReport) -> None:
         actual_save = f"${r.actual_annual_savings:,.0f}" if r.actual_annual_savings else "N/A"
         be = f"{r.actual_break_even_months:.0f}mo" if r.actual_break_even_months else "N/A"
 
-        print(f"{r.model_id:<25} {r.strategy:<18} {proj_save:<12} {actual_save:<12} {be:<12} {r.recommendation}")
+        print(
+            f"{r.model_id:<25} {r.strategy:<18} {proj_save:<12} {actual_save:<12} {be:<12} {r.recommendation}"
+        )
 
     print()
     print("Key Findings:")
@@ -365,13 +358,15 @@ def generate_markdown_report(report: CaseStudyReport, output_path: Path) -> None
         readable_key = key.replace("_", " ").title()
         lines.append(f"- **{readable_key}:** {value}")
 
-    lines.extend([
-        "",
-        "## Detailed Analysis",
-        "",
-        "| Model | Strategy | Proj Savings | Actual Savings | Variance | Break-even | Quality Impact | Recommendation |",
-        "|-------|----------|--------------|----------------|----------|------------|----------------|----------------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Detailed Analysis",
+            "",
+            "| Model | Strategy | Proj Savings | Actual Savings | Variance | Break-even | Quality Impact | Recommendation |",
+            "|-------|----------|--------------|----------------|----------|------------|----------------|----------------|",
+        ]
+    )
 
     for r in report.results:
         proj_save = f"${r.projected_annual_savings:,.0f}" if r.projected_annual_savings else "N/A"
@@ -385,57 +380,63 @@ def generate_markdown_report(report: CaseStudyReport, output_path: Path) -> None
             f"{variance} | {be} | {quality} | {r.recommendation} |"
         )
 
-    lines.extend([
-        "",
-        "## Key Findings",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Key Findings",
+            "",
+        ]
+    )
 
     for finding in report.key_findings:
         lines.append(f"1. {finding}")
 
-    lines.extend([
-        "",
-        "## Recommendations",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Recommendations",
+            "",
+        ]
+    )
 
     for rec in report.recommendations:
         lines.append(f"1. {rec}")
 
-    lines.extend([
-        "",
-        "## Methodology",
-        "",
-        "### Models Tested",
-        "- gpt2 (124M parameters)",
-        "- gpt2-medium (355M parameters)",
-        "- gpt2-xl (1.5B parameters)",
-        "- facebook/opt-1.3b (1.3B parameters)",
-        "",
-        "### Pruning Strategy",
-        "- Method: PyTorch magnitude-based unstructured pruning",
-        "- Target sparsity: 10% (mild) and 22% (structured)",
-        "- Quality evaluation: Perplexity + code completion score",
-        "",
-        "### ROI Calculation",
-        "- Savings proportional to achieved sparsity vs target",
-        "- One-time project cost assumption: $5,000",
-        "- Break-even = (Project Cost / Annual Savings) x 12 months",
-        "",
-        "## Conclusion",
-        "",
-        "The pruning exercise reveals significant variance between Atropos projections",
-        "and actual results when using unstructured magnitude pruning:",
-        "",
-        f"- **Savings variance:** {report.summary.get('savings_variance_pct', 0):+.1f}%",
-        "- **Root cause:** Unstructured pruning doesn't reduce memory without sparse inference",
-        "- **Recommendation:** Use structured pruning (LLM-Pruner) for production deployments",
-        "",
-        "This validates the importance of testing actual pruning methods against projections",
-        "before making deployment decisions.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Methodology",
+            "",
+            "### Models Tested",
+            "- gpt2 (124M parameters)",
+            "- gpt2-medium (355M parameters)",
+            "- gpt2-xl (1.5B parameters)",
+            "- facebook/opt-1.3b (1.3B parameters)",
+            "",
+            "### Pruning Strategy",
+            "- Method: PyTorch magnitude-based unstructured pruning",
+            "- Target sparsity: 10% (mild) and 22% (structured)",
+            "- Quality evaluation: Perplexity + code completion score",
+            "",
+            "### ROI Calculation",
+            "- Savings proportional to achieved sparsity vs target",
+            "- One-time project cost assumption: $5,000",
+            "- Break-even = (Project Cost / Annual Savings) x 12 months",
+            "",
+            "## Conclusion",
+            "",
+            "The pruning exercise reveals significant variance between Atropos projections",
+            "and actual results when using unstructured magnitude pruning:",
+            "",
+            f"- **Savings variance:** {report.summary.get('savings_variance_pct', 0):+.1f}%",
+            "- **Root cause:** Unstructured pruning doesn't reduce memory without sparse inference",
+            "- **Recommendation:** Use structured pruning (LLM-Pruner) for production deployments",
+            "",
+            "This validates the importance of testing actual pruning methods against projections",
+            "before making deployment decisions.",
+            "",
+        ]
+    )
 
     output_path.write_text("\n".join(lines))
     print(f"\nCase study saved to: {output_path}")
@@ -443,9 +444,7 @@ def generate_markdown_report(report: CaseStudyReport, output_path: Path) -> None
 
 def main() -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Generate case study report for pruning exercise"
-    )
+    parser = argparse.ArgumentParser(description="Generate case study report for pruning exercise")
     parser.add_argument(
         "--projections",
         type=Path,

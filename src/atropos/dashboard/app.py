@@ -88,9 +88,7 @@ def register_callbacks(app: dash.Dash) -> None:
             grid_co2e = get_carbon_intensity(region) if region else 0.35
 
             # Calculate outcome
-            outcome = estimate_outcome(
-                scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e
-            )
+            outcome = estimate_outcome(scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e)
 
             # Create results display
             results = components.create_results_display(outcome)
@@ -240,9 +238,7 @@ def create_monte_carlo_distribution(
         ]
 
         def estimator(scen: DeploymentScenario, strat: OptimizationStrategy) -> Any:
-            return estimate_outcome(
-                scen, strat, grid_co2e_kg_per_kwh=grid_co2e
-            )
+            return estimate_outcome(scen, strat, grid_co2e_kg_per_kwh=grid_co2e)
 
         result = run_monte_carlo(
             scenario, strategy, distributions, estimator, num_simulations, seed=42

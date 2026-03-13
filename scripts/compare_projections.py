@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -102,8 +103,12 @@ def calculate_comparison(
     pruning_result: dict[str, Any] | None,
 ) -> ComparisonResult:
     """Calculate comparison between projection and actual result."""
-    model_id = projection.get("model_id") if projection else pruning_result.get("model_id", "unknown")
-    strategy = projection.get("strategy") if projection else pruning_result.get("strategy", "unknown")
+    model_id = (
+        projection.get("model_id") if projection else pruning_result.get("model_id", "unknown")
+    )
+    strategy = (
+        projection.get("strategy") if projection else pruning_result.get("strategy", "unknown")
+    )
 
     comp = ComparisonResult(
         model_id=model_id,
@@ -176,7 +181,11 @@ def generate_comparison(
             c.achieved_memory_reduction_pct or 0 for c in successful_comparisons
         ) / len(successful_comparisons)
 
-        variances = [c.memory_variance_pct for c in successful_comparisons if c.memory_variance_pct is not None]
+        variances = [
+            c.memory_variance_pct
+            for c in successful_comparisons
+            if c.memory_variance_pct is not None
+        ]
         avg_variance = sum(variances) / len(variances) if variances else 0
 
         report.summary = {
@@ -211,13 +220,22 @@ def print_report(report: ComparisonReport) -> None:
     print("Detailed Comparisons:")
     print("-" * 80)
     print(
-        f"{'Model':<25} {'Strategy':<20} {'Proj Mem':<10} {'Ach Mem':<10} {'Variance':<12} {'Status'}"
+        f"{'Model':<25} {'Strategy':<20} {'Proj Mem':<10} "
+        f"{'Ach Mem':<10} {'Variance':<12} {'Status'}"
     )
     print("-" * 80)
 
     for comp in report.comparisons:
-        proj_mem = f"{comp.projected_memory_reduction_pct:.1f}%" if comp.projected_memory_reduction_pct else "N/A"
-        ach_mem = f"{comp.achieved_memory_reduction_pct:.1f}%" if comp.achieved_memory_reduction_pct else "N/A"
+        proj_mem = (
+            f"{comp.projected_memory_reduction_pct:.1f}%"
+            if comp.projected_memory_reduction_pct
+            else "N/A"
+        )
+        ach_mem = (
+            f"{comp.achieved_memory_reduction_pct:.1f}%"
+            if comp.achieved_memory_reduction_pct
+            else "N/A"
+        )
 
         if comp.memory_variance_pct is not None:
             variance = f"{comp.memory_variance_pct:+.1f}%"
@@ -227,7 +245,8 @@ def print_report(report: ComparisonReport) -> None:
             status = "UNK"
 
         print(
-            f"{comp.model_id:<25} {comp.strategy:<20} {proj_mem:<10} {ach_mem:<10} {variance:<12} {status}"
+            f"{comp.model_id:<25} {comp.strategy:<20} {proj_mem:<10} "
+            f"{ach_mem:<10} {variance:<12} {status}"
         )
 
     print()
@@ -251,17 +270,29 @@ def generate_markdown_report(report: ComparisonReport, output_path: Path) -> Non
         lines.append("")
 
     # Comparison table
-    lines.extend([
-        "## Detailed Comparison",
-        "",
-        "| Model | Strategy | Projected Mem Red. | Achieved Sparsity | Est. Mem Red. | Variance | Status |",
-        "|-------|----------|-------------------|-------------------|---------------|----------|--------|",
-    ])
+    lines.extend(
+        [
+            "## Detailed Comparison",
+            "",
+            "| Model | Strategy | Projected Mem Red. | Achieved Sparsity | "
+            "Est. Mem Red. | Variance | Status |",
+            "|-------|----------|-------------------|-------------------|"
+            "---------------|----------|--------|",
+        ]
+    )
 
     for comp in report.comparisons:
-        proj_mem = f"{comp.projected_memory_reduction_pct:.1f}%" if comp.projected_memory_reduction_pct else "N/A"
+        proj_mem = (
+            f"{comp.projected_memory_reduction_pct:.1f}%"
+            if comp.projected_memory_reduction_pct
+            else "N/A"
+        )
         ach_sparsity = f"{comp.achieved_sparsity_pct:.1f}%" if comp.achieved_sparsity_pct else "N/A"
-        ach_mem = f"{comp.achieved_memory_reduction_pct:.1f}%" if comp.achieved_memory_reduction_pct else "N/A"
+        ach_mem = (
+            f"{comp.achieved_memory_reduction_pct:.1f}%"
+            if comp.achieved_memory_reduction_pct
+            else "N/A"
+        )
 
         if comp.memory_variance_pct is not None:
             variance = f"{comp.memory_variance_pct:+.1f}%"
@@ -271,35 +302,38 @@ def generate_markdown_report(report: ComparisonReport, output_path: Path) -> Non
             status = "UNK"
 
         lines.append(
-            f"| {comp.model_id} | {comp.strategy} | {proj_mem} | {ach_sparsity} | {ach_mem} | {variance} | {status} |"
+            f"| {comp.model_id} | {comp.strategy} | {proj_mem} | {ach_sparsity} | "
+            f"{ach_mem} | {variance} | {status} |"
         )
 
-    lines.extend([
-        "",
-        "## Analysis",
-        "",
-        "### Key Findings",
-        "",
-        "1. **Sparsity vs Memory Reduction**: Unstructured pruning achieves sparsity but",
-        "   does not reduce memory footprint unless sparse tensor formats are used.",
-        "   Atropos assumes structured pruning which removes entire channels/heads.",
-        "",
-        "2. **Model Architecture Matters**: OPT models achieved target sparsity better",
-        "   than GPT models, likely due to different layer structures.",
-        "",
-        "3. **Projection Accuracy**: Memory variance indicates Atropos projections",
-        "   assume structured pruning with actual parameter removal.",
-        "",
-        "## Recommendations",
-        "",
-        "1. Update Atropos strategies to distinguish between:",
-        "   - Structured pruning (actual memory savings)",
-        "   - Unstructured pruning (sparsity only, needs sparse inference)",
-        "",
-        "2. For actual memory savings, use structured pruning frameworks like LLM-Pruner",
-        "   or magnitude pruning with channel removal.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "### Key Findings",
+            "",
+            "1. **Sparsity vs Memory Reduction**: Unstructured pruning achieves sparsity but",
+            "   does not reduce memory footprint unless sparse tensor formats are used.",
+            "   Atropos assumes structured pruning which removes entire channels/heads.",
+            "",
+            "2. **Model Architecture Matters**: OPT models achieved target sparsity better",
+            "   than GPT models, likely due to different layer structures.",
+            "",
+            "3. **Projection Accuracy**: Memory variance indicates Atropos projections",
+            "   assume structured pruning with actual parameter removal.",
+            "",
+            "## Recommendations",
+            "",
+            "1. Update Atropos strategies to distinguish between:",
+            "   - Structured pruning (actual memory savings)",
+            "   - Unstructured pruning (sparsity only, needs sparse inference)",
+            "",
+            "2. For actual memory savings, use structured pruning frameworks like LLM-Pruner",
+            "   or magnitude pruning with channel removal.",
+            "",
+        ]
+    )
 
     output_path.write_text("\n".join(lines))
     print(f"\nMarkdown report saved to: {output_path}")
