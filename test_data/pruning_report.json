@@ -2,10 +2,10 @@
   "total_models": 10,
   "successful": 8,
   "failed": 2,
-  "duration_sec": 2544.380148,
+  "duration_sec": 1772.098682,
   "output_dir": "test_data\\pruned_models",
-  "start_time": "2026-03-11T00:43:02.474989",
-  "end_time": "2026-03-11T01:25:26.855137",
+  "start_time": "2026-03-12T23:41:09.374497",
+  "end_time": "2026-03-13T00:10:41.473179",
   "results": [
     {
       "model_id": "gpt2",
@@ -15,10 +15,10 @@
       "pruned_params": 120580070,
       "target_sparsity": 0.1,
       "actual_sparsity": 0.031016907387063752,
-      "pruning_time_sec": 5.4430530071258545,
+      "pruning_time_sec": 5.388671159744263,
       "output_path": "test_data\\pruned_models\\gpt2_mild_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:43:02.474989"
+      "timestamp": "2026-03-12T23:41:09.374497"
     },
     {
       "model_id": "gpt2",
@@ -28,10 +28,10 @@
       "pruned_params": 115948385,
       "target_sparsity": 0.22,
       "actual_sparsity": 0.06823719142993212,
-      "pruning_time_sec": 8.272060871124268,
+      "pruning_time_sec": 8.268035888671875,
       "output_path": "test_data\\pruned_models\\gpt2_structured_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:43:16.017521"
+      "timestamp": "2026-03-12T23:41:19.546932"
     },
     {
       "model_id": "gpt2-medium",
@@ -41,10 +41,10 @@
       "pruned_params": 349676851,
       "target_sparsity": 0.1,
       "actual_sparsity": 0.01450389225993265,
-      "pruning_time_sec": 8.502953052520752,
+      "pruning_time_sec": 6.568829774856567,
       "output_path": "test_data\\pruned_models\\gpt2-medium_mild_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:43:29.252113"
+      "timestamp": "2026-03-12T23:41:30.143457"
     },
     {
       "model_id": "gpt2-medium",
@@ -54,10 +54,10 @@
       "pruned_params": 343501271,
       "target_sparsity": 0.22,
       "actual_sparsity": 0.03190856184452984,
-      "pruning_time_sec": 11.278475522994995,
+      "pruning_time_sec": 10.448648691177368,
       "output_path": "test_data\\pruned_models\\gpt2-medium_structured_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:43:53.582089"
+      "timestamp": "2026-03-12T23:41:46.180312"
     },
     {
       "model_id": "gpt2-xl",
@@ -67,10 +67,10 @@
       "pruned_params": 1549570080,
       "target_sparsity": 0.1,
       "actual_sparsity": 0.005162469299142214,
-      "pruning_time_sec": 19.850859880447388,
+      "pruning_time_sec": 11.01188325881958,
       "output_path": "test_data\\pruned_models\\gpt2-xl_mild_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:44:14.270145"
+      "timestamp": "2026-03-12T23:42:00.959062"
     },
     {
       "model_id": "gpt2-xl",
@@ -80,10 +80,10 @@
       "pruned_params": 1539920736,
       "target_sparsity": 0.22,
       "actual_sparsity": 0.011357432458112826,
-      "pruning_time_sec": 17.513139724731445,
+      "pruning_time_sec": 16.25949501991272,
       "output_path": "test_data\\pruned_models\\gpt2-xl_structured_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:46:39.669951"
+      "timestamp": "2026-03-12T23:42:52.743020"
     },
     {
       "model_id": "facebook/opt-1.3b",
@@ -93,10 +93,10 @@
       "pruned_params": 1184664356,
       "target_sparsity": 0.1,
       "actual_sparsity": 0.09963360741816607,
-      "pruning_time_sec": 598.5377614498138,
+      "pruning_time_sec": 487.44301104545593,
       "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_mild_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:47:56.687263"
+      "timestamp": "2026-03-12T23:43:34.348852"
     },
     {
       "model_id": "facebook/opt-1.3b",
@@ -106,10 +106,10 @@
       "pruned_params": 1027354363,
       "target_sparsity": 0.22,
       "actual_sparsity": 0.2191920546670707,
-      "pruning_time_sec": 362.93672704696655,
+      "pruning_time_sec": 346.60771465301514,
       "output_path": "test_data\\pruned_models\\facebook--opt-1.3b_structured_pruning",
       "error_message": "",
-      "timestamp": "2026-03-11T00:58:36.632980"
+      "timestamp": "2026-03-12T23:52:23.320709"
     },
     {
       "model_id": "EleutherAI/pythia-2.8b",
@@ -122,7 +122,7 @@
       "pruning_time_sec": 0.0,
       "output_path": "",
       "error_message": "bad allocation",
-      "timestamp": "2026-03-11T01:05:23.095316"
+      "timestamp": "2026-03-12T23:58:53.796947"
     },
     {
       "model_id": "EleutherAI/pythia-2.8b",
@@ -135,7 +135,7 @@
       "pruning_time_sec": 0.0,
       "output_path": "",
       "error_message": "bad allocation",
-      "timestamp": "2026-03-11T01:12:42.987758"
+      "timestamp": "2026-03-13T00:05:18.780660"
     }
   ]
 }

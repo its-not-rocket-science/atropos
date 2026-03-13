@@ -83,6 +83,26 @@ def token_similarity(text1: str, text2: str) -> float:
     return intersection / union if union > 0 else 0.0
 
 
+def find_model_path(test_data_dir: Path, model_name: str) -> Path | None:
+    """Find model path handling HF cache structure."""
+    # Direct path
+    direct_path = test_data_dir / "models" / model_name.replace("/", "--")
+    if direct_path.exists() and (direct_path / "config.json").exists():
+        return direct_path
+
+    # HF cache structure
+    cache_path = test_data_dir / "models" / f"models--{model_name.replace('/', '--')}"
+    if cache_path.exists():
+        # Find snapshot directory
+        snapshots = cache_path / "snapshots"
+        if snapshots.exists():
+            for snapshot in snapshots.iterdir():
+                if snapshot.is_dir():
+                    return snapshot
+
+    return None
+
+
 def validate_model(
     model_name: str,
     strategy: str,
@@ -92,7 +112,7 @@ def validate_model(
     """Validate a single pruned model against its original."""
     print(f"\n[VALIDATING] {model_name} - {strategy}")
 
-    original_path = test_data_dir / "models" / model_name.replace("/", "--")
+    original_path = find_model_path(test_data_dir, model_name)
     pruned_path = test_data_dir / "pruned_models" / f"{model_name.replace('/', '--')}_{strategy}"
 
     result = {

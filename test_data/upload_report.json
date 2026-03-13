@@ -1,0 +1,51 @@
+{
+  "total_models": 4,
+  "successful": 0,
+  "failed": 4,
+  "duration_sec": 43.496412,
+  "org_name": "personal",
+  "start_time": "2026-03-13T01:04:59.801178",
+  "end_time": "2026-03-13T01:05:43.297590",
+  "results": [
+    {
+      "model_id": "gpt2-medium",
+      "strategy": "mild_pruning",
+      "local_path": "test_data\\pruned_models\\gpt2-medium_mild_pruning",
+      "repo_id": "gpt2-medium-mild_pruning",
+      "status": "failed",
+      "url": "",
+      "error_message": "404 Client Error. (Request ID: Root=1-69b362c0-7469ce6e6b269d947a4b1c0f;3e0d42ed-6234-41a0-a549-fd921c4cd08c)\n\nRepository Not Found for url: https://huggingface.co/api/models/gpt2-medium-mild_pruning/preupload/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated.\nNote: Creating a commit assumes that the repo already exists on the Huggingface Hub. Please use `create_repo` if it's not the case.",
+      "timestamp": "2026-03-13T01:04:59.801178"
+    },
+    {
+      "model_id": "gpt2-xl",
+      "strategy": "mild_pruning",
+      "local_path": "test_data\\pruned_models\\gpt2-xl_mild_pruning",
+      "repo_id": "gpt2-xl-mild_pruning",
+      "status": "failed",
+      "url": "",
+      "error_message": "404 Client Error. (Request ID: Root=1-69b362d2-1d39e25800ace930200844ea;f8f55b46-29fe-485d-81e6-7893af3c69fd)\n\nRepository Not Found for url: https://huggingface.co/api/models/gpt2-xl-mild_pruning/preupload/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated.\nNote: Creating a commit assumes that the repo already exists on the Huggingface Hub. Please use `create_repo` if it's not the case.",
+      "timestamp": "2026-03-13T01:05:04.293402"
+    },
+    {
+      "model_id": "gpt2-xl",
+      "strategy": "structured_pruning",
+      "local_path": "test_data\\pruned_models\\gpt2-xl_structured_pruning",
+      "repo_id": "gpt2-xl-structured_pruning",
+      "status": "failed",
+      "url": "",
+      "error_message": "404 Client Error. (Request ID: Root=1-69b362e5-57d65ed350c53eea54496095;e0304bf7-e97d-4cca-8875-303b7de1d5cc)\n\nRepository Not Found for url: https://huggingface.co/api/models/gpt2-xl-structured_pruning/preupload/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated.\nNote: Creating a commit assumes that the repo already exists on the Huggingface Hub. Please use `create_repo` if it's not the case.",
+      "timestamp": "2026-03-13T01:05:22.526007"
+    },
+    {
+      "model_id": "gpt2",
+      "strategy": "mild_pruning",
+      "local_path": "test_data\\pruned_models\\gpt2_mild_pruning",
+      "repo_id": "gpt2-mild_pruning",
+      "status": "failed",
+      "url": "",
+      "error_message": "404 Client Error. (Request ID: Root=1-69b362e7-762d529f2557570e3627002e;550189be-5124-4879-b6f1-63f59d1efb3e)\n\nRepository Not Found for url: https://huggingface.co/api/models/gpt2-mild_pruning/preupload/main.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated.\nNote: Creating a commit assumes that the repo already exists on the Huggingface Hub. Please use `create_repo` if it's not the case.",
+      "timestamp": "2026-03-13T01:05:41.293261"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "summary": {
+    "total": 8,
+    "passed": 4,
+    "failed": 4
+  },
+  "criteria": {
+    "perplexity_tolerance_pct": 20.0,
+    "max_perplexity": 50.0,
+    "generation_similarity_threshold": 0.7
+  },
+  "results": [
+    {
+      "model": "facebook/opt-1.3b",
+      "strategy": "mild_pruning",
+      "original_path": "test_data\\models\\models--facebook--opt-1.3b\\snapshots\\3f5c25d0bc631cb57ac65913f76e22c2dfb61d62",
+      "pruned_path": "test_data\\pruned_models\\facebook--opt-1.3b_mild_pruning",
+      "passed": false,
+      "metrics": {
+        "original_perplexity": 70.04,
+        "pruned_perplexity": 77.92,
+        "perplexity_increase_pct": 11.3,
+        "generation_similarities": [
+          1.0,
+          0.286,
+          0.529,
+          0.25,
+          1.0
+        ],
+        "avg_generation_similarity": 0.613
+      },
+      "errors": [],
+      "perplexity_passed": false,
+      "generation_passed": false
+    },
+    {
+      "model": "facebook/opt-1.3b",
+      "strategy": "structured_pruning",
+      "original_path": "test_data\\models\\models--facebook--opt-1.3b\\snapshots\\3f5c25d0bc631cb57ac65913f76e22c2dfb61d62",
+      "pruned_path": "test_data\\pruned_models\\facebook--opt-1.3b_structured_pruning",
+      "passed": false,
+      "metrics": {
+        "original_perplexity": 70.04,
+        "pruned_perplexity": 115.99,
+        "perplexity_increase_pct": 65.6,
+        "generation_similarities": [
+          0.176,
+          0.333,
+          0.314,
+          0.25,
+          1.0
+        ],
+        "avg_generation_similarity": 0.415
+      },
+      "errors": [],
+      "perplexity_passed": false,
+      "generation_passed": false
+    },
+    {
+      "model": "gpt2",
+      "strategy": "mild_pruning",
+      "original_path": "test_data\\models\\models--gpt2\\snapshots\\607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "pruned_path": "test_data\\pruned_models\\gpt2_mild_pruning",
+      "passed": true,
+      "metrics": {
+        "original_perplexity": 35.13,
+        "pruned_perplexity": 34.82,
+        "perplexity_increase_pct": -0.9,
+        "generation_similarities": [
+          1.0,
+          1.0,
+          0.457,
+          1.0,
+          1.0
+        ],
+        "avg_generation_similarity": 0.891
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": true
+    },
+    {
+      "model": "gpt2",
+      "strategy": "structured_pruning",
+      "original_path": "test_data\\models\\models--gpt2\\snapshots\\607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "pruned_path": "test_data\\pruned_models\\gpt2_structured_pruning",
+      "passed": false,
+      "metrics": {
+        "original_perplexity": 35.13,
+        "pruned_perplexity": 33.73,
+        "perplexity_increase_pct": -4.0,
+        "generation_similarities": [
+          0.5,
+          0.5,
+          0.605,
+          0.76,
+          0.133
+        ],
+        "avg_generation_similarity": 0.5
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": false
+    },
+    {
+      "model": "gpt2-medium",
+      "strategy": "mild_pruning",
+      "original_path": "test_data\\models\\models--gpt2-medium\\snapshots\\6dcaa7a952f72f9298047fd5137cd6e4f05f41da",
+      "pruned_path": "test_data\\pruned_models\\gpt2-medium_mild_pruning",
+      "passed": true,
+      "metrics": {
+        "original_perplexity": 35.77,
+        "pruned_perplexity": 35.8,
+        "perplexity_increase_pct": 0.1,
+        "generation_similarities": [
+          0.25,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "avg_generation_similarity": 0.85
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": true
+    },
+    {
+      "model": "gpt2-medium",
+      "strategy": "structured_pruning",
+      "original_path": "test_data\\models\\models--gpt2-medium\\snapshots\\6dcaa7a952f72f9298047fd5137cd6e4f05f41da",
+      "pruned_path": "test_data\\pruned_models\\gpt2-medium_structured_pruning",
+      "passed": false,
+      "metrics": {
+        "original_perplexity": 35.77,
+        "pruned_perplexity": 36.0,
+        "perplexity_increase_pct": 0.6,
+        "generation_similarities": [
+          0.25,
+          0.235,
+          0.4,
+          1.0,
+          0.158
+        ],
+        "avg_generation_similarity": 0.409
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": false
+    },
+    {
+      "model": "gpt2-xl",
+      "strategy": "mild_pruning",
+      "original_path": "test_data\\models\\models--gpt2-xl\\snapshots\\15ea56dee5df4983c59b2538573817e1667135e2",
+      "pruned_path": "test_data\\pruned_models\\gpt2-xl_mild_pruning",
+      "passed": true,
+      "metrics": {
+        "original_perplexity": 26.52,
+        "pruned_perplexity": 26.29,
+        "perplexity_increase_pct": -0.8,
+        "generation_similarities": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "avg_generation_similarity": 1.0
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": true
+    },
+    {
+      "model": "gpt2-xl",
+      "strategy": "structured_pruning",
+      "original_path": "test_data\\models\\models--gpt2-xl\\snapshots\\15ea56dee5df4983c59b2538573817e1667135e2",
+      "pruned_path": "test_data\\pruned_models\\gpt2-xl_structured_pruning",
+      "passed": true,
+      "metrics": {
+        "original_perplexity": 26.52,
+        "pruned_perplexity": 25.49,
+        "perplexity_increase_pct": -3.9,
+        "generation_similarities": [
+          0.706,
+          0.429,
+          0.762,
+          1.0,
+          0.765
+        ],
+        "avg_generation_similarity": 0.732
+      },
+      "errors": [],
+      "perplexity_passed": true,
+      "generation_passed": true
+    }
+  ]
+}
