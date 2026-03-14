@@ -115,6 +115,7 @@ def test_gpt2_with_patch():
         print("Testing patched prepare_calibration_input...")
 
         # First test getting layers
+
         layers = get_model_layers(model)
         print(f"Found layers: {type(layers)}, length: {len(layers)}")
 
