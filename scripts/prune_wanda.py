@@ -30,17 +30,17 @@ try:
     import torch
 
     # Import both pruning modules
-    from lib.prune import check_sparsity as check_sparsity_base
-    from lib.prune import prune_wanda as prune_wanda_base
-    from lib.prune_opt import check_sparsity as check_sparsity_opt
-    from lib.prune_opt import prune_wanda as prune_wanda_opt
+    from lib.prune import check_sparsity as check_sparsity_base  # noqa: F401
+    from lib.prune import prune_wanda as prune_wanda_base  # noqa: F401
+    from lib.prune_opt import check_sparsity as check_sparsity_opt  # noqa: F401
+    from lib.prune_opt import prune_wanda as prune_wanda_opt  # noqa: F401
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     # Import patched pruning functions
     sys.path.insert(0, str(Path(__file__).parent))
     from patched_prune import (
         check_sparsity_patched,
-        prepare_calibration_input_patched,
+        prepare_calibration_input_patched,  # noqa: F401
         prune_wanda_patched,
     )
 except ImportError as e:

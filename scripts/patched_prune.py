@@ -456,7 +456,8 @@ def prune_sparsegpt_patched(
                 unwrap_layer_forwards(layers, original_forwards)
                 unpatch_find_layers(original_find_layers)
         else:
-            # For other architectures (LLaMA, GPT-NeoX), SparseGPT uses prepare_calibration_input internally
+            # For other architectures (LLaMA, GPT-NeoX), SparseGPT uses "
+            "prepare_calibration_input internally"
             import lib.prune as prune_module
             original_prepare = prune_module.prepare_calibration_input
             prune_module.prepare_calibration_input = (
@@ -495,8 +496,8 @@ def check_sparsity_patched(model: torch.nn.Module) -> float:
                     subset = find_layers(layer)
                     print(f"  layer {i}: subset size {len(subset)}")
                     for name in subset:
-                        W = subset[name].weight.data
-                        print(f"    {name}: shape {W.shape}")
+                        w = subset[name].weight.data
+                        print(f"    {name}: shape {w.shape}")
                 return original_check_sparsity(model)
             finally:
                 if original_find_layers is not None:
@@ -509,11 +510,11 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     """Wanda pruning for GPT2 with Conv1D support."""
     print("[INFO] Using custom GPT2 pruning with Conv1D support")
     # Import inside function to avoid circular imports
+    import torch
     from lib.data import get_loaders
     from lib.layerwrapper import WrappedGPT
     from lib.prune import find_layers, prepare_calibration_input
     from transformers.pytorch_utils import Conv1D
-    import torch
 
     if device is None:
         device = torch.device("cuda:0")
@@ -554,10 +555,9 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
             wrapped_layers[name] = WrappedGPT(subset[name])
 
         def add_batch(name):
-            def tmp(_, inp, out):
-                wrapped_layers[name].add_batch(inp[0].data, out.data)
-
-            return tmp
+            def tmp(_, inp, out, wl=wrapped_layers, n=name):  # noqa: B023
+                wl[n].add_batch(inp[0].data, out.data)
+            return tmp  # noqa: B023
 
         handles = []
         for name in wrapped_layers:
@@ -584,31 +584,31 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
 
             # scaler_row corresponds to input dimension (columns in WrappedGPT)
             scaler = wrapped_layers[name].scaler_row
-            W_metric = torch.abs(weight_t) * torch.sqrt(scaler.reshape((1, -1)))
+            w_metric = torch.abs(weight_t) * torch.sqrt(scaler.reshape((1, -1)))
 
-            W_mask = torch.zeros_like(W_metric) == 1
+            w_mask = torch.zeros_like(w_metric) == 1
             if prune_n != 0:
                 # structured n:m sparsity
-                for ii in range(W_metric.shape[1]):
+                for ii in range(w_metric.shape[1]):
                     if ii % prune_m == 0:
-                        tmp = W_metric[:, ii : (ii + prune_m)].float()
-                        W_mask.scatter_(
+                        tmp = w_metric[:, ii : (ii + prune_m)].float()
+                        w_mask.scatter_(
                             1, ii + torch.topk(tmp, prune_n, dim=1, largest=False)[1], True
                         )
             else:
-                sort_res = torch.sort(W_metric, dim=-1, stable=True)
+                sort_res = torch.sort(w_metric, dim=-1, stable=True)
 
                 if args.use_variant:
                     # wanda variant
                     tmp_metric = torch.cumsum(sort_res[0], dim=1)
-                    sum_before = W_metric.sum(dim=1)
+                    sum_before = w_metric.sum(dim=1)
 
                     alpha = 0.4
                     alpha_hist = [0.0, 0.8]
                     from lib.prune import return_given_alpha
 
-                    W_mask, cur_sparsity = return_given_alpha(
-                        alpha, sort_res, W_metric, tmp_metric, sum_before
+                    w_mask, cur_sparsity = return_given_alpha(
+                        alpha, sort_res, w_metric, tmp_metric, sum_before
                     )
                     while (torch.abs(cur_sparsity - args.sparsity_ratio) > 0.001) and (
                         alpha_hist[1] - alpha_hist[0] >= 0.001
@@ -621,21 +621,21 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
                             alpha_hist[0] = alpha
 
                         alpha = alpha_new
-                        W_mask, cur_sparsity = return_given_alpha(
-                            alpha, sort_res, W_metric, tmp_metric, sum_before
+                        w_mask, cur_sparsity = return_given_alpha(
+                            alpha, sort_res, w_metric, tmp_metric, sum_before
                         )
                     print(f"alpha found {alpha} sparsity {cur_sparsity:.6f}")
                 else:
                     # unstructured pruning
-                    indices = sort_res[1][:, : int(W_metric.shape[1] * args.sparsity_ratio)]
-                    W_mask.scatter_(1, indices, True)
+                    indices = sort_res[1][:, : int(w_metric.shape[1] * args.sparsity_ratio)]
+                    w_mask.scatter_(1, indices, True)
 
             # If Conv1D, transpose mask back to (input, output)
             if is_conv1d:
-                W_mask = W_mask.t()  # (input, output)
+                w_mask = w_mask.t()  # (input, output)
 
             # Apply mask to original weight
-            weight[W_mask] = 0
+            weight[w_mask] = 0
 
         for j in range(args.nsamples):
             with torch.no_grad():
@@ -758,9 +758,9 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
             gpts[name] = SparseGPT(subset[name])
 
         def add_batch(name):
-            def tmp(_, inp, out):
-                gpts[name].add_batch(inp[0].data, out.data)
-            return tmp
+            def tmp(_, inp, out, g=gpts, n=name):  # noqa: B023
+                g[n].add_batch(inp[0].data, out.data)
+            return tmp  # noqa: B023
 
         handles = []
         for name in gpts:

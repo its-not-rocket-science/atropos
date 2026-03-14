@@ -159,7 +159,7 @@ def apply_magnitude_pruning(
     """
     # Collect all prune-able parameters
     parameters_to_prune = []
-    for name, module in model.named_modules():
+    for _name, module in model.named_modules():
         if isinstance(module, torch.nn.Linear):
             parameters_to_prune.append((module, "weight"))
 
@@ -385,7 +385,8 @@ def generate_markdown_report(report: PruningReport, output_path: Path) -> None:
         "",
         "## Pruned Models",
         "",
-        "| Model | Strategy | Target Sparsity | Achieved Sparsity | Original Params | Pruned Params | Time |",
+        "| Model | Strategy | Target Sparsity | Achieved Sparsity | Original Params | "
+        "Pruned Params | Time |",
         "|-------|----------|-----------------|-------------------|-----------------|---------------|------|",
     ]
 

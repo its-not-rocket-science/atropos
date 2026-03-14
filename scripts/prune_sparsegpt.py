@@ -33,10 +33,10 @@ try:
 
     # Import patched pruning functions (handle GPT2 Conv1D, OPT, etc.)
     # Keep original imports for reference (not used)
-    from lib.prune import check_sparsity as check_sparsity_base
-    from lib.prune import prune_sparsegpt as prune_sparsegpt_base
-    from lib.prune_opt import check_sparsity as check_sparsity_opt
-    from lib.prune_opt import prune_sparsegpt as prune_sparsegpt_opt
+    from lib.prune import check_sparsity as check_sparsity_base  # noqa: F401
+    from lib.prune import prune_sparsegpt as prune_sparsegpt_base  # noqa: F401
+    from lib.prune_opt import check_sparsity as check_sparsity_opt  # noqa: F401
+    from lib.prune_opt import prune_sparsegpt as prune_sparsegpt_opt  # noqa: F401
     from patched_prune import (
         check_sparsity_patched,
         prune_sparsegpt_patched,

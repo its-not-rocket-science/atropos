@@ -273,10 +273,12 @@ def generate_case_study(
 
     # Key findings
     report.key_findings = [
-        f"Average projected savings: ${report.summary.get('avg_projected_annual_savings', 0):,.0f}/year",
+        f"Average projected savings: "
+        f"${report.summary.get('avg_projected_annual_savings', 0):,.0f}/year",
         f"Average actual savings: ${report.summary.get('avg_actual_annual_savings', 0):,.0f}/year",
         f"Savings variance: {report.summary.get('savings_variance_pct', 0):+.1f}%",
-        f"Viable scenarios: {report.summary.get('viable_pruning_scenarios', 0)}/{len(report.results)}",
+        f"Viable scenarios: "
+        f"{report.summary.get('viable_pruning_scenarios', 0)}/{len(report.results)}",
         "Unstructured pruning (magnitude-based) achieves lower memory savings than projected",
         "Quality degradation varies significantly by model architecture",
         "OPT models achieve target sparsity better than GPT models",
@@ -311,7 +313,8 @@ def print_report(report: CaseStudyReport) -> None:
     print("Detailed Results:")
     print("-" * 80)
     print(
-        f"{'Model':<25} {'Strategy':<18} {'Proj Save':<12} {'Actual Save':<12} {'Break-even':<12} {'Recommendation'}"
+        f"{'Model':<25} {'Strategy':<18} {'Proj Save':<12} {'Actual Save':<12} "
+        f"{'Break-even':<12} {'Recommendation'}"
     )
     print("-" * 80)
 
@@ -321,7 +324,8 @@ def print_report(report: CaseStudyReport) -> None:
         be = f"{r.actual_break_even_months:.0f}mo" if r.actual_break_even_months else "N/A"
 
         print(
-            f"{r.model_id:<25} {r.strategy:<18} {proj_save:<12} {actual_save:<12} {be:<12} {r.recommendation}"
+            f"{r.model_id:<25} {r.strategy:<18} {proj_save:<12} {actual_save:<12} "
+            f"{be:<12} {r.recommendation}"
         )
 
     print()
@@ -363,7 +367,8 @@ def generate_markdown_report(report: CaseStudyReport, output_path: Path) -> None
             "",
             "## Detailed Analysis",
             "",
-            "| Model | Strategy | Proj Savings | Actual Savings | Variance | Break-even | Quality Impact | Recommendation |",
+            "| Model | Strategy | Proj Savings | Actual Savings | Variance | "
+            "Break-even | Quality Impact | Recommendation |",
             "|-------|----------|--------------|----------------|----------|------------|----------------|----------------|",
         ]
     )

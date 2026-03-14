@@ -8,8 +8,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "external" / "wanda"))
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from scripts.patched_prune import get_model_architecture, adapt_model_for_pruning
+from transformers import AutoModelForCausalLM
+
+from scripts.patched_prune import adapt_model_for_pruning, get_model_architecture
+
 
 def test_model(model_name: str, expected_arch: str):
     print(f"\n--- Testing {model_name} ---")
@@ -31,7 +33,8 @@ def test_model(model_name: str, expected_arch: str):
         assert arch == expected_arch, f"Arch mismatch: {arch} != {expected_arch}"
         # Test adapt_model_for_pruning
         adapted, original = adapt_model_for_pruning(model, arch)
-        print(f"  Adapted successfully, model.model.layers exists: {hasattr(adapted.model, 'layers')}")
+        print(f"  Adapted successfully, model.model.layers exists: "
+              f"{hasattr(adapted.model, 'layers')}")
         # Restore
         from scripts.patched_prune import restore_model_attrs
         restore_model_attrs(adapted, original)
