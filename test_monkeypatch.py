@@ -108,7 +108,6 @@ def test_gpt2_with_patch():
     tokenizer = AutoTokenizer.from_pretrained(str(model_path), use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
 
-
     device = torch.device("cpu")
 
     try:

@@ -376,34 +376,41 @@ def unwrap_layer_forwards(layers, original_forwards):
     for layer, original in zip(layers, original_forwards, strict=True):
         layer.forward = original
 
+
 def wrap_gpt_neox_layer_forwards(layers):
     """Wrap forward methods of GPT-NeoX layers to compute position_embeddings if missing."""
     original_forwards = []
     for layer in layers:
         original_forward = layer.forward
         # Check if attention has rotary_emb
-        if hasattr(layer.attention, 'rotary_emb'):
+        if hasattr(layer.attention, "rotary_emb"):
             rotary_emb = layer.attention.rotary_emb
         else:
             # fallback: maybe model has rotary_emb, but we can't access easily
             # skip wrapping
             original_forwards.append(original_forward)
             continue
+
         # Capture rotary_emb in closure
         def make_wrapped(orig, rot):
             def wrapped(*args, **kwargs):
-                if (kwargs.get('position_embeddings') is None
-                    and kwargs.get('position_ids') is not None):
-                    position_ids = kwargs['position_ids']
+                if (
+                    kwargs.get("position_embeddings") is None
+                    and kwargs.get("position_ids") is not None
+                ):
+                    position_ids = kwargs["position_ids"]
                     # rotary_emb.forward expects x (dummy) and position_ids
                     dummy = torch.zeros(1, dtype=rot.inv_freq.dtype, device=position_ids.device)
                     cos, sin = rot.forward(dummy, position_ids)
-                    kwargs['position_embeddings'] = (cos, sin)
+                    kwargs["position_embeddings"] = (cos, sin)
                 return orig(*args, **kwargs)
+
             return wrapped
+
         layer.forward = make_wrapped(original_forward, rotary_emb)
         original_forwards.append(original_forward)
     return original_forwards
+
 
 def unwrap_gpt_neox_layer_forwards(layers, original_forwards):
     """Restore original forward methods."""
@@ -506,6 +513,7 @@ def prune_sparsegpt_patched(
             # GPT-NeoX needs position_embeddings computed
             original_forwards = wrap_gpt_neox_layer_forwards(layers)
             import lib.prune as prune_module
+
             original_prepare = prune_module.prepare_calibration_input
             prune_module.prepare_calibration_input = (
                 lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
@@ -519,6 +527,7 @@ def prune_sparsegpt_patched(
             # For other architectures (LLaMA), SparseGPT uses "
             "prepare_calibration_input internally"
             import lib.prune as prune_module
+
             original_prepare = prune_module.prepare_calibration_input
             prune_module.prepare_calibration_input = (
                 lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
@@ -606,6 +615,7 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
         def add_batch(name):
             def tmp(_, inp, out, wl=wrapped_layers, n=name):  # noqa: B023
                 wl[n].add_batch(inp[0].data, out.data)
+
             return tmp  # noqa: B023
 
         handles = []
@@ -703,6 +713,7 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
     print("[INFO] Using custom GPT2 SparseGPT pruning")
     # Import inside function to avoid circular imports
     import torch
+
     if device is None:
         device = torch.device("cuda:0")
     from lib.data import get_loaders
@@ -711,17 +722,22 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
 
     # Monkey-patch SparseGPT.fasterprune to guard CUDA calls
     original_fasterprune = SparseGPT.fasterprune
+
     def patched_fasterprune(self, sparsity, prune_n=0, prune_m=0, blocksize=128, percdamp=0.01):
         # Temporarily replace torch.cuda.synchronize and torch.cuda.empty_cache with safe versions
         import torch.cuda
+
         original_sync = torch.cuda.synchronize
         original_empty = torch.cuda.empty_cache
+
         def safe_sync():
             if torch.cuda.is_available():
                 original_sync()
+
         def safe_empty():
             if torch.cuda.is_available():
                 original_empty()
+
         try:
             torch.cuda.synchronize = safe_sync
             torch.cuda.empty_cache = safe_empty
@@ -729,6 +745,7 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
         finally:
             torch.cuda.synchronize = original_sync
             torch.cuda.empty_cache = original_empty
+
     SparseGPT.fasterprune = patched_fasterprune
     patched = True
 
@@ -757,10 +774,12 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
 
     # Modified Catcher that handles missing position_ids
     import torch.nn as nn
+
     class Catcher(nn.Module):
         def __init__(self, module):
             super().__init__()
             self.module = module
+
         def forward(self, inp, **kwargs):
             inps[cache["i"]] = inp
             cache["i"] += 1
@@ -809,6 +828,7 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
         def add_batch(name):
             def tmp(_, inp, out, g=gpts, n=name):  # noqa: B023
                 g[n].add_batch(inp[0].data, out.data)
+
             return tmp  # noqa: B023
 
         handles = []
@@ -822,9 +842,7 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
                     inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids
                 )[0]
             else:
-                outs[j] = layer(
-                    inps[j].unsqueeze(0), attention_mask=attention_mask
-                )[0]
+                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask)[0]
         for h in handles:
             h.remove()
 
@@ -842,9 +860,7 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
                     inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids
                 )[0]
             else:
-                outs[j] = layer(
-                    inps[j].unsqueeze(0), attention_mask=attention_mask
-                )[0]
+                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask)[0]
 
         layers[i] = layer
         if torch.cuda.is_available():

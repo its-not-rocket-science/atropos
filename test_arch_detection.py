@@ -33,14 +33,17 @@ def test_model(model_name: str, expected_arch: str):
         assert arch == expected_arch, f"Arch mismatch: {arch} != {expected_arch}"
         # Test adapt_model_for_pruning
         adapted, original = adapt_model_for_pruning(model, arch)
-        print(f"  Adapted successfully, model.model.layers exists: "
-              f"{hasattr(adapted.model, 'layers')}")
+        print(
+            f"  Adapted successfully, model.model.layers exists: {hasattr(adapted.model, 'layers')}"
+        )
         # Restore
         from scripts.patched_prune import restore_model_attrs
+
         restore_model_attrs(adapted, original)
         print("  OK Pass")
     except Exception as e:
         print(f"  FAIL: {e}")
+
 
 if __name__ == "__main__":
     # Test GPT2

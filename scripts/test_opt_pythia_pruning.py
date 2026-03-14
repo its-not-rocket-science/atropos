@@ -19,9 +19,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def test_model(model_name: str, model_id: str):
     """Test pruning on a single model."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing {model_name} ({model_id})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     try:
         # Download model on the fly
@@ -122,6 +122,7 @@ def test_model(model_name: str, model_id: str):
     except Exception as e:
         print(f"[FAIL] Error testing {model_name}: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -137,7 +138,7 @@ def main():
         success = test_model(model_name, model_id)
         results[model_name] = success
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Test Summary:")
     for model_name, success in results.items():
         status = "[OK] PASS" if success else "[FAIL] FAIL"
