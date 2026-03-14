@@ -346,6 +346,12 @@ def prepare_calibration_input_patched(
     attention_mask = cache["attention_mask"]
     position_ids = cache["position_ids"]
 
+    if position_ids is None and arch == "gpt_neox":
+        # generate position_ids for rotary embeddings
+        batch_size = inps.shape[0]
+        position_ids = torch.arange(model.seqlen, device=inps.device)
+        position_ids = position_ids.unsqueeze(0).expand(batch_size, -1)
+
     model.config.use_cache = use_cache
 
     return inps, outs, attention_mask, position_ids
@@ -366,6 +372,40 @@ def wrap_layer_forwards(layers):
 
 
 def unwrap_layer_forwards(layers, original_forwards):
+    """Restore original forward methods."""
+    for layer, original in zip(layers, original_forwards, strict=True):
+        layer.forward = original
+
+def wrap_gpt_neox_layer_forwards(layers):
+    """Wrap forward methods of GPT-NeoX layers to compute position_embeddings if missing."""
+    original_forwards = []
+    for layer in layers:
+        original_forward = layer.forward
+        # Check if attention has rotary_emb
+        if hasattr(layer.attention, 'rotary_emb'):
+            rotary_emb = layer.attention.rotary_emb
+        else:
+            # fallback: maybe model has rotary_emb, but we can't access easily
+            # skip wrapping
+            original_forwards.append(original_forward)
+            continue
+        # Capture rotary_emb in closure
+        def make_wrapped(orig, rot):
+            def wrapped(*args, **kwargs):
+                if (kwargs.get('position_embeddings') is None
+                    and kwargs.get('position_ids') is not None):
+                    position_ids = kwargs['position_ids']
+                    # rotary_emb.forward expects x (dummy) and position_ids
+                    dummy = torch.zeros(1, dtype=rot.inv_freq.dtype, device=position_ids.device)
+                    cos, sin = rot.forward(dummy, position_ids)
+                    kwargs['position_embeddings'] = (cos, sin)
+                return orig(*args, **kwargs)
+            return wrapped
+        layer.forward = make_wrapped(original_forward, rotary_emb)
+        original_forwards.append(original_forward)
+    return original_forwards
+
+def unwrap_gpt_neox_layer_forwards(layers, original_forwards):
     """Restore original forward methods."""
     for layer, original in zip(layers, original_forwards, strict=True):
         layer.forward = original
@@ -399,13 +439,17 @@ def prune_wanda_patched(
             prune_module.prepare_calibration_input = (
                 lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
             )
+            layers = model.model.layers
             # Additionally, for GPT2 we need to wrap layer forwards to ignore position_ids
             # and patch find_layers to include Conv1D
             if arch == "gpt2":
-                layers = model.model.layers
                 original_forwards = wrap_layer_forwards(layers)
                 original_find_layers = patch_find_layers_for_gpt2()
                 original_wrapped_pair = patch_wrapped_gpt_for_conv1d()
+            elif arch == "gpt_neox":
+                original_forwards = wrap_gpt_neox_layer_forwards(layers)
+                original_find_layers = None
+                original_wrapped_pair = None
             else:
                 original_forwards = None
                 original_find_layers = None
@@ -419,6 +463,8 @@ def prune_wanda_patched(
                 prune_module.prepare_calibration_input = original_prepare
                 if arch == "gpt2":
                     unwrap_layer_forwards(layers, original_forwards)
+                elif arch == "gpt_neox":
+                    unwrap_gpt_neox_layer_forwards(layers, original_forwards)
                 if original_find_layers is not None:
                     unpatch_find_layers(original_find_layers)
                 if original_wrapped_pair is not None:
@@ -441,13 +487,14 @@ def prune_sparsegpt_patched(
     arch = get_model_architecture(model)
 
     model, original = adapt_model_for_pruning(model, arch)
+    if arch != "opt":
+        layers = model.model.layers
 
     try:
         if arch == "opt":
             return original_prune_sparsegpt_opt(args, model, tokenizer, device, prune_n, prune_m)
         elif arch == "gpt2":
             # GPT2 requires custom SparseGPT pruning due to Conv1D layers and missing position_ids
-            layers = model.model.layers
             original_forwards = wrap_layer_forwards(layers)
             original_find_layers = patch_find_layers_for_gpt2()
             try:
@@ -455,8 +502,21 @@ def prune_sparsegpt_patched(
             finally:
                 unwrap_layer_forwards(layers, original_forwards)
                 unpatch_find_layers(original_find_layers)
+        elif arch == "gpt_neox":
+            # GPT-NeoX needs position_embeddings computed
+            original_forwards = wrap_gpt_neox_layer_forwards(layers)
+            import lib.prune as prune_module
+            original_prepare = prune_module.prepare_calibration_input
+            prune_module.prepare_calibration_input = (
+                lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
+            )
+            try:
+                return original_prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m)
+            finally:
+                prune_module.prepare_calibration_input = original_prepare
+                unwrap_gpt_neox_layer_forwards(layers, original_forwards)
         else:
-            # For other architectures (LLaMA, GPT-NeoX), SparseGPT uses "
+            # For other architectures (LLaMA), SparseGPT uses "
             "prepare_calibration_input internally"
             import lib.prune as prune_module
             original_prepare = prune_module.prepare_calibration_input
@@ -487,17 +547,6 @@ def check_sparsity_patched(model: torch.nn.Module) -> float:
             else:
                 original_find_layers = None
             try:
-                # Debug: print layer info
-                from lib.prune import find_layers
-
-                layers = model.model.layers
-                print(f"[DEBUG] check_sparsity: arch={arch}, num layers={len(layers)}")
-                for i, layer in enumerate(layers):
-                    subset = find_layers(layer)
-                    print(f"  layer {i}: subset size {len(subset)}")
-                    for name in subset:
-                        w = subset[name].weight.data
-                        print(f"    {name}: shape {w.shape}")
                 return original_check_sparsity(model)
             finally:
                 if original_find_layers is not None:
@@ -522,7 +571,7 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     use_cache = model.config.use_cache
     model.config.use_cache = False
 
-    print("loading calibdation data")
+    print("loading calibration data")
     dataloader, _ = get_loaders(
         "wikitext2",
         nsamples=args.nsamples,

@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Test OPT and Pythia pruning with Wanda and SparseGPT."""
+
+import argparse
+import sys
+from pathlib import Path
+
+# Add external/wanda to path
+sys.path.insert(0, str(Path(__file__).parent / "external" / "wanda"))
+
+import torch
+from patched_prune import (
+    check_sparsity_patched,
+    prune_sparsegpt_patched,
+    prune_wanda_patched,
+)
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+
+def test_model(model_name: str, model_id: str):
+    """Test pruning on a single model."""
+    print(f"\n{'='*60}")
+    print(f"Testing {model_name} ({model_id})")
+    print(f"{'='*60}")
+
+    try:
+        # Download model on the fly
+        print("Loading model...")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True,
+        )
+        model.eval()
+
+        # Try loading tokenizer with use_fast=False first, fall back to default
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False)
+        except ValueError:
+            # Some tokenizers (e.g., GPTNeoX) don't support use_fast=False
+            tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+        # Set pad token if not already set
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+        # Set required attributes for pruning
+        model.seqlen = model.config.max_position_embeddings
+        if not hasattr(model, "hf_device_map"):
+            model.hf_device_map = {}
+
+        # Create args
+        args = argparse.Namespace(
+            model=model_id,
+            seed=0,
+            nsamples=2,  # minimal calibration samples
+            sparsity_ratio=0.1,
+            sparsity_type="unstructured",
+            use_variant=False,
+            save="test_output",
+            save_model="test_output",
+            cache_dir=None,
+        )
+
+        device = torch.device("cpu")
+        print(f"Using device: {device}")
+
+        # Test Wanda pruning
+        print("\n--- Testing Wanda pruning ---")
+        sparsity_before = check_sparsity_patched(model)
+        print(f"Sparsity before: {sparsity_before:.6f}")
+
+        print("Starting Wanda pruning...")
+        prune_wanda_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
+        print("Wanda pruning completed.")
+
+        sparsity_after = check_sparsity_patched(model)
+        print(f"Sparsity after: {sparsity_after:.6f}")
+        print(f"Target sparsity: {args.sparsity_ratio:.2f}")
+        print(f"Difference: {abs(sparsity_after - args.sparsity_ratio):.6f}")
+
+        if sparsity_after > 0.05:  # at least 5% sparsity achieved
+            print("[OK] Wanda pruning applied successfully")
+            wanda_success = True
+        else:
+            print("[FAIL] Wanda pruning failed to achieve significant sparsity")
+            wanda_success = False
+
+        # Reload fresh model for SparseGPT test
+        print("\n--- Reloading fresh model for SparseGPT test ---")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True,
+        )
+        model.eval()
+        model.seqlen = model.config.max_position_embeddings
+        if not hasattr(model, "hf_device_map"):
+            model.hf_device_map = {}
+
+        # Test SparseGPT pruning
+        print("\n--- Testing SparseGPT pruning ---")
+        sparsity_before = check_sparsity_patched(model)
+        print(f"Sparsity before: {sparsity_before:.6f}")
+
+        prune_sparsegpt_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
+
+        sparsity_after = check_sparsity_patched(model)
+        print(f"Sparsity after: {sparsity_after:.6f}")
+        print(f"Target sparsity: {args.sparsity_ratio:.2f}")
+        print(f"Difference: {abs(sparsity_after - args.sparsity_ratio):.6f}")
+
+        if sparsity_after > 0.05:
+            print("[OK] SparseGPT pruning applied successfully")
+            sparsegpt_success = True
+        else:
+            print("[FAIL] SparseGPT pruning failed to achieve significant sparsity")
+            sparsegpt_success = False
+
+        return wanda_success and sparsegpt_success
+
+    except Exception as e:
+        print(f"[FAIL] Error testing {model_name}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def main():
+    """Test OPT and Pythia models."""
+    test_cases = [
+        ("OPT-125M", "facebook/opt-125m"),
+    ]
+
+    results = {}
+    for model_name, model_id in test_cases:
+        success = test_model(model_name, model_id)
+        results[model_name] = success
+
+    print(f"\n{'='*60}")
+    print("Test Summary:")
+    for model_name, success in results.items():
+        status = "[OK] PASS" if success else "[FAIL] FAIL"
+        print(f"  {model_name}: {status}")
+
+    all_passed = all(results.values())
+    if all_passed:
+        print("\n[OK] All tests passed!")
+    else:
+        print("\n[FAIL] Some tests failed.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
