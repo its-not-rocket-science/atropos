@@ -6,8 +6,11 @@
 - ✅ add CSV-to-markdown report generation
 - ✅ expand comparison and sensitivity CLI output
 - ✅ publish documentation pages
-- [ ] integrate Wanda pruning framework
-- [ ] add SparseGPT pruning support
+- [ ] stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT)
+  - Comprehensive test coverage across diverse model architectures
+  - Clear documentation on limitations, dependencies, and failure modes
+  - Validation suite to confirm model/environment compatibility
+- [ ] improve CI stability and reliability
 - [ ] optimize validation script for GPU acceleration
 - [ ] add pruning result visualizations (charts, graphs)
 
@@ -21,10 +24,12 @@
 - [ ] distributed pruning experiments
 - [ ] quantization + pruning combination analysis
 - [ ] automated hyperparameter tuning for pruning targets
+- [ ] enhance error handling and debugging capabilities
 
 ## Long term
 
 - ✅ lightweight web dashboard
+  - Future enhancements: comparative views, what-if sliders, pipeline visualization
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
 - [ ] production deployment automation
