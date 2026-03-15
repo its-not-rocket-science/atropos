@@ -69,3 +69,4 @@ strict = true
 mypy_path = "src"
 packages = ["atropos"]
 ignore_missing_imports = true
+disable_error_code = ["unused-ignore"]
