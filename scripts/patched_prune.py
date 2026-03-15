@@ -41,6 +41,78 @@ from lib.prune_opt import (
 )
 
 
+def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
+    """Patched version of get_wikitext2 that tokenizes per document to avoid huge concatenation."""
+    print(f"[PATCH] Using patched get_wikitext2 with nsamples={nsamples}")
+    from datasets import load_dataset
+    import random
+
+    # Load train and test datasets
+    traindata = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+    testdata = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
+
+    # Tokenize each training document separately
+    print(f"[PATCH] Tokenizing {len(traindata)} training documents...")
+    train_tokenized = []
+    total_tokens = 0
+
+    # Process in batches to avoid memory issues
+    batch_size = 100
+    batch_count = 0
+    for i in range(0, len(traindata), batch_size):
+        batch_count += 1
+        if batch_count % 10 == 0:
+            print(f"[PATCH] Processed {i} documents...")
+        batch = traindata[i:i+batch_size]["text"]
+        # Tokenize each document individually
+        for j, text in enumerate(batch):
+            if not text or text.strip() == "":
+                continue  # Skip empty documents
+            try:
+                enc = tokenizer(text, padding=False, truncation=False, return_tensors="pt")
+                if enc.input_ids.shape[1] >= seqlen:
+                    train_tokenized.append(enc.input_ids[0])
+                    total_tokens += enc.input_ids.shape[1]
+            except Exception as e:
+                print(f"[PATCH] Warning: Failed to tokenize document {i+j}: {e}")
+                continue
+
+    print(f"[PATCH] Tokenized {len(train_tokenized)} documents with >={seqlen} tokens, total {total_tokens} tokens")
+
+    if len(train_tokenized) == 0:
+        raise ValueError(f"No documents with length >= {seqlen} tokens")
+
+    # Tokenize test data (concatenated for compatibility)
+    print(f"[PATCH] Tokenizing test data...")
+    testenc = tokenizer("\n\n".join(testdata["text"]), return_tensors="pt")
+
+    # Generate samples from tokenized documents
+    random.seed(seed)
+    trainloader = []
+
+    for _ in range(nsamples):
+        # Select a random document
+        doc_idx = random.randint(0, len(train_tokenized) - 1)
+        doc_tokens = train_tokenized[doc_idx]
+
+        # Select random start position within document
+        max_start = doc_tokens.shape[0] - seqlen
+        if max_start <= 0:
+            # Document is exactly seqlen or shorter (should not happen due to filter)
+            start = 0
+        else:
+            start = random.randint(0, max_start)
+
+        end = start + seqlen
+        inp = doc_tokens[start:end].unsqueeze(0)  # Shape: [1, seqlen]
+        tar = inp.clone()
+        tar[:, :-1] = -100
+        trainloader.append((inp, tar))
+
+    print(f"[PATCH] Generated {len(trainloader)} samples")
+    return trainloader, testenc
+
+
 def patch_find_layers_for_gpt2():
     """Monkey-patch find_layers to include Conv1D layers for GPT2."""
     try:
@@ -163,6 +235,12 @@ def get_model_architecture(model: torch.nn.Module) -> str:
     # GPT-NeoX family (Pythia)
     elif model_type == "GPTNeoXForCausalLM" or config_type == "gpt_neox":
         return "gpt_neox"
+    # BLOOM family
+    elif model_type == "BloomForCausalLM" or config_type == "bloom":
+        return "bloom"
+    # GPT-J family
+    elif model_type == "GPTJForCausalLM" or config_type == "gptj":
+        return "gptj"
     # Default to base (assume LLaMA-like)
     else:
         return "base"
@@ -198,6 +276,18 @@ def get_layer_container(model: torch.nn.Module, arch: str) -> torch.nn.Module:
             return model.gpt_neox.layers
         else:
             raise AttributeError("GPT-NeoX model missing gpt_neox.layers")
+    elif arch == "bloom":
+        # BLOOM: model.transformer.h
+        if hasattr(model, "transformer") and hasattr(model.transformer, "h"):
+            return model.transformer.h
+        else:
+            raise AttributeError("BLOOM model missing transformer.h")
+    elif arch == "gptj":
+        # GPT-J: model.transformer.h
+        if hasattr(model, "transformer") and hasattr(model.transformer, "h"):
+            return model.transformer.h
+        else:
+            raise AttributeError("GPT-J model missing transformer.h")
     else:
         raise ValueError(f"Unsupported architecture: {arch}")
 
@@ -418,6 +508,49 @@ def unwrap_gpt_neox_layer_forwards(layers, original_forwards):
         layer.forward = original
 
 
+def wrap_bloom_layer_forwards(layers):
+    """Wrap forward methods of BLOOM layers to handle alibi and ignore position_ids."""
+    print(f"[DEBUG] wrap_bloom_layer_forwards: wrapping {len(layers)} layers")
+    from transformers.models.bloom.modeling_bloom import build_alibi_tensor
+    original_forwards = []
+    for layer in layers:
+        original_forward = layer.forward
+        # Capture layer and build_alibi_tensor in closure
+        def make_wrapped(orig, lyr):
+            printed = [False]  # mutable container for closure
+            def wrapped(hidden_states, attention_mask, **kwargs):
+                # Remove position_ids if present
+                kwargs.pop("position_ids", None)
+                # Compute alibi tensor from attention_mask
+                # attention_mask shape may be (batch, 1, 1, seq_len) or (batch, seq_len)
+                # build_alibi_tensor expects attention_mask shape (batch, seq_len)
+                if attention_mask.dim() == 4:
+                    batch_size = attention_mask.shape[0]
+                    seq_length = attention_mask.shape[-1]
+                    # Create token-wise mask of all ones (no padding)
+                    attention_mask_2d = torch.ones(batch_size, seq_length, dtype=attention_mask.dtype, device=attention_mask.device)
+                else:
+                    attention_mask_2d = attention_mask
+                if not printed[0]:
+                    print(f"[DEBUG] BLOOM wrapper: attention_mask shape {attention_mask.shape}, attention_mask_2d shape {attention_mask_2d.shape}, num_heads {lyr.self_attention.num_heads}")
+                    printed[0] = True
+                alibi = build_alibi_tensor(attention_mask_2d, lyr.self_attention.num_heads, hidden_states.dtype)
+                if not printed[0]:
+                    print(f"[DEBUG] BLOOM wrapper: alibi shape {alibi.shape}")
+                # Pass alibi to layer forward
+                return orig(hidden_states, attention_mask=attention_mask, alibi=alibi, **kwargs)
+            return wrapped
+        layer.forward = make_wrapped(original_forward, layer)
+        original_forwards.append(original_forward)
+    return original_forwards
+
+
+def unwrap_bloom_layer_forwards(layers, original_forwards):
+    """Restore original forward methods."""
+    for layer, original in zip(layers, original_forwards, strict=True):
+        layer.forward = original
+
+
 def prune_wanda_patched(
     args: Any,
     model: torch.nn.Module,
@@ -430,9 +563,12 @@ def prune_wanda_patched(
     if device is None:
         device = torch.device("cuda:0")
     arch = get_model_architecture(model)
+    print(f"[DEBUG] prune_wanda_patched detected architecture: {arch}")
 
     # Adapt model attributes
+    print(f"[DEBUG] Adapting model for pruning...")
     model, original = adapt_model_for_pruning(model, arch)
+    print(f"[DEBUG] Model adapted, original attrs: {list(original.keys())}")
 
     try:
         if arch == "opt":
@@ -457,14 +593,21 @@ def prune_wanda_patched(
                 original_forwards = wrap_gpt_neox_layer_forwards(layers)
                 original_find_layers = None
                 original_wrapped_pair = None
+            elif arch == "bloom":
+                original_forwards = wrap_bloom_layer_forwards(layers)
+                original_find_layers = None
+                original_wrapped_pair = None
             else:
                 original_forwards = None
                 original_find_layers = None
                 original_wrapped_pair = None
+            print(f"[DEBUG] Starting pruning for arch={arch}")
             try:
                 if arch == "gpt2":
+                    print(f"[DEBUG] Calling prune_wanda_gpt2")
                     return prune_wanda_gpt2(args, model, tokenizer, device, prune_n, prune_m)
                 else:
+                    print(f"[DEBUG] Calling original_prune_wanda")
                     return original_prune_wanda(args, model, tokenizer, device, prune_n, prune_m)
             finally:
                 prune_module.prepare_calibration_input = original_prepare
@@ -472,6 +615,8 @@ def prune_wanda_patched(
                     unwrap_layer_forwards(layers, original_forwards)
                 elif arch == "gpt_neox":
                     unwrap_gpt_neox_layer_forwards(layers, original_forwards)
+                elif arch == "bloom":
+                    unwrap_bloom_layer_forwards(layers, original_forwards)
                 if original_find_layers is not None:
                     unpatch_find_layers(original_find_layers)
                 if original_wrapped_pair is not None:
@@ -523,6 +668,20 @@ def prune_sparsegpt_patched(
             finally:
                 prune_module.prepare_calibration_input = original_prepare
                 unwrap_gpt_neox_layer_forwards(layers, original_forwards)
+        elif arch == "bloom":
+            # BLOOM needs alibi tensor computed
+            original_forwards = wrap_bloom_layer_forwards(layers)
+            import lib.prune as prune_module
+
+            original_prepare = prune_module.prepare_calibration_input
+            prune_module.prepare_calibration_input = lambda m, d, dev: (
+                prepare_calibration_input_patched(m, d, dev, arch)
+            )
+            try:
+                return original_prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m)
+            finally:
+                prune_module.prepare_calibration_input = original_prepare
+                unwrap_bloom_layer_forwards(layers, original_forwards)
         else:
             # For other architectures (LLaMA), SparseGPT uses "
             "prepare_calibration_input internally"
@@ -567,12 +726,22 @@ def check_sparsity_patched(model: torch.nn.Module) -> float:
 def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     """Wanda pruning for GPT2 with Conv1D support."""
     print("[INFO] Using custom GPT2 pruning with Conv1D support")
+    print(f"[DEBUG] prune_wanda_gpt2 called with args: {args}")
     # Import inside function to avoid circular imports
+    print(f"[DEBUG] Importing lib.data...")
     import torch
+    import lib.data
     from lib.data import get_loaders
     from lib.layerwrapper import WrappedGPT
     from lib.prune import find_layers, prepare_calibration_input
     from transformers.pytorch_utils import Conv1D
+    print(f"[DEBUG] Imports done.")
+
+    # Don't monkey-patch - use original get_wikitext2 which concatenates documents
+    # original_get_wikitext2 = lib.data.get_wikitext2
+    # lib.data.get_wikitext2 = get_wikitext2_patched
+    # print(f"[DEBUG] Patched get_wikitext2")
+    print(f"[DEBUG] Using original get_wikitext2 (concatenates all documents)")
 
     if device is None:
         device = torch.device("cuda:0")
@@ -581,14 +750,22 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     model.config.use_cache = False
 
     print("loading calibration data")
-    dataloader, _ = get_loaders(
-        "wikitext2",
-        nsamples=args.nsamples,
-        seed=args.seed,
-        seqlen=model.seqlen,
-        tokenizer=tokenizer,
-    )
-    print("dataset loading complete")
+    print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
+    try:
+        dataloader, _ = get_loaders(
+            "wikitext2",
+            nsamples=args.nsamples,
+            seed=args.seed,
+            seqlen=model.seqlen,
+            tokenizer=tokenizer,
+        )
+        print("dataset loading complete")
+        print(f"[DEBUG] Dataloader obtained")
+    except Exception as e:
+        print(f"[ERROR] Failed to load dataloader: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     with torch.no_grad():
         inps, outs, attention_mask, position_ids = prepare_calibration_input(
             model, dataloader, device
@@ -753,14 +930,22 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
     model.config.use_cache = False
 
     print("loading calibration data")
-    dataloader, _ = get_loaders(
-        "wikitext2",
-        nsamples=args.nsamples,
-        seed=args.seed,
-        seqlen=model.seqlen,
-        tokenizer=tokenizer,
-    )
-    print("dataset loading complete")
+    print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
+    try:
+        dataloader, _ = get_loaders(
+            "wikitext2",
+            nsamples=args.nsamples,
+            seed=args.seed,
+            seqlen=model.seqlen,
+            tokenizer=tokenizer,
+        )
+        print("dataset loading complete")
+        print(f"[DEBUG] Dataloader obtained")
+    except Exception as e:
+        print(f"[ERROR] Failed to load dataloader: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
     layers = model.model.layers
     if "model.embed_tokens" in model.hf_device_map:

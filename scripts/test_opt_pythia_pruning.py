@@ -17,7 +17,7 @@ from patched_prune import (
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def test_model(model_name: str, model_id: str, device: torch.device = None):
+def test_model(model_name: str, model_id: str, device: torch.device = None, skip_sparsegpt: bool = False):
     """Test pruning on a single model."""
     print(f"\n{'=' * 60}")
     print(f"Testing {model_name} ({model_id})")
@@ -31,6 +31,7 @@ def test_model(model_name: str, model_id: str, device: torch.device = None):
             torch_dtype=torch.float16,
             low_cpu_mem_usage=True,
         )
+        print(f"Model loaded: {model_id}")
         model.eval()
 
         # Try loading tokenizer with use_fast=False first, fall back to default
@@ -39,6 +40,7 @@ def test_model(model_name: str, model_id: str, device: torch.device = None):
         except ValueError:
             # Some tokenizers (e.g., GPTNeoX) don't support use_fast=False
             tokenizer = AutoTokenizer.from_pretrained(model_id)
+        print(f"Tokenizer loaded")
 
         # Set pad token if not already set
         if tokenizer.pad_token is None:
@@ -73,6 +75,7 @@ def test_model(model_name: str, model_id: str, device: torch.device = None):
         print(f"Sparsity before: {sparsity_before:.6f}")
 
         print("Starting Wanda pruning...")
+        print(f"[TEST] Calling prune_wanda_patched for {model_name}")
         prune_wanda_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
         print("Wanda pruning completed.")
 
@@ -88,39 +91,43 @@ def test_model(model_name: str, model_id: str, device: torch.device = None):
             print("[FAIL] Wanda pruning failed to achieve significant sparsity")
             wanda_success = False
 
-        # Reload fresh model for SparseGPT test
-        print("\n--- Reloading fresh model for SparseGPT test ---")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-        )
-        model.eval()
-        model.seqlen = model.config.max_position_embeddings
-        if not hasattr(model, "hf_device_map"):
-            model.hf_device_map = {}
-        model.to(device)
+        # Reload fresh model for SparseGPT test (if not skipped)
+        if not skip_sparsegpt:
+            print("\n--- Reloading fresh model for SparseGPT test ---")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            )
+            model.eval()
+            model.seqlen = model.config.max_position_embeddings
+            if not hasattr(model, "hf_device_map"):
+                model.hf_device_map = {}
+            model.to(device)
 
-        # Test SparseGPT pruning
-        print("\n--- Testing SparseGPT pruning ---")
-        sparsity_before = check_sparsity_patched(model)
-        print(f"Sparsity before: {sparsity_before:.6f}")
+            # Test SparseGPT pruning
+            print("\n--- Testing SparseGPT pruning ---")
+            sparsity_before = check_sparsity_patched(model)
+            print(f"Sparsity before: {sparsity_before:.6f}")
 
-        prune_sparsegpt_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
+            prune_sparsegpt_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
 
-        sparsity_after = check_sparsity_patched(model)
-        print(f"Sparsity after: {sparsity_after:.6f}")
-        print(f"Target sparsity: {args.sparsity_ratio:.2f}")
-        print(f"Difference: {abs(sparsity_after - args.sparsity_ratio):.6f}")
+            sparsity_after = check_sparsity_patched(model)
+            print(f"Sparsity after: {sparsity_after:.6f}")
+            print(f"Target sparsity: {args.sparsity_ratio:.2f}")
+            print(f"Difference: {abs(sparsity_after - args.sparsity_ratio):.6f}")
 
-        if sparsity_after > 0.05:
-            print("[OK] SparseGPT pruning applied successfully")
-            sparsegpt_success = True
+            if sparsity_after > 0.05:
+                print("[OK] SparseGPT pruning applied successfully")
+                sparsegpt_success = True
+            else:
+                print("[FAIL] SparseGPT pruning failed to achieve significant sparsity")
+                sparsegpt_success = False
+
+            return wanda_success and sparsegpt_success
         else:
-            print("[FAIL] SparseGPT pruning failed to achieve significant sparsity")
-            sparsegpt_success = False
-
-        return wanda_success and sparsegpt_success
+            # Skip SparseGPT, only check Wanda
+            return wanda_success
 
     except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
         if "out of memory" in str(e).lower() or "cuda out of memory" in str(e).lower():
@@ -149,6 +156,7 @@ def main():
         "pythia-160m": "EleutherAI/pythia-160m",
         "pythia-410m": "EleutherAI/pythia-410m",
         "pythia-1b": "EleutherAI/pythia-1b",
+        "gpt2": "gpt2",
     }
 
     parser = argparse.ArgumentParser(description="Test pruning on OPT and Pythia models")
