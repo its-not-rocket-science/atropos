@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/dashboard-guide/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Atropos Web Dashboard Guide - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Atropos Web Dashboard Guide";
+        var mkdocs_page_input_path = "dashboard-guide.md";
+        var mkdocs_page_url = "/atropos/dashboard-guide/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Atropos Web Dashboard Guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="atropos-web-dashboard-guide">Atropos Web Dashboard Guide</h1>
+<p>The Atropos Web Dashboard provides an interactive, browser-based interface for exploring ROI projections for LLM pruning and optimization.</p>
+<h2 id="launching-the-dashboard">Launching the Dashboard</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>Install dashboard dependencies:</p>
+<pre class="codehilite"><code class="language-bash">pip install dash plotly pandas
+</code></pre>
+
+<p>Or install with all extras:</p>
+<pre class="codehilite"><code class="language-bash">pip install -e &quot;.[dashboard]&quot;
+</code></pre>
+
+<h3 id="starting-the-server">Starting the Server</h3>
+<pre class="codehilite"><code class="language-bash"># Start dashboard on default port (8050)
+atropos dashboard
+
+# Start on custom host/port
+atropos dashboard --host 0.0.0.0 --port 8080
+
+# Enable debug mode (auto-reload on code changes)
+atropos dashboard --debug
+</code></pre>
+
+<p>Then open your browser to <code>http://localhost:8050</code> (or the host/port you specified).</p>
+<h2 id="dashboard-layout">Dashboard Layout</h2>
+<p>The dashboard has a two-column layout:</p>
+<ul>
+<li><strong>Left Panel (350px)</strong>: Configuration inputs</li>
+<li><strong>Right Panel</strong>: Results, charts, and visualizations</li>
+</ul>
+<h3 id="header-section">Header Section</h3>
+<p>The header displays:
+- <strong>Atropos</strong> title and logo area
+- Subtitle: "ROI Calculator for LLM Pruning &amp; Optimization"</p>
+<h2 id="configuration-panel">Configuration Panel</h2>
+<h3 id="scenario-selection">Scenario Selection</h3>
+<p>Choose from built-in presets or create custom scenarios:</p>
+<p><strong>Built-in Presets:</strong>
+- <code>edge-coder</code> - Small model for edge deployment (0.355B params)
+- <code>medium-coder</code> - Medium-sized coding model (3B params)
+- <code>large-coder</code> - Large coding deployment (7B params)</p>
+<p><strong>Custom Scenario:</strong>
+Select "Custom" to configure your own parameters:
+- Model parameters (billions)
+- Memory usage (GB)
+- Throughput (tokens/sec)
+- Power consumption (watts)
+- Request volume (per day)
+- Tokens per request
+- Cost parameters (electricity, hardware, project costs)</p>
+<h3 id="strategy-selection">Strategy Selection</h3>
+<p>Choose optimization strategies:</p>
+<ul>
+<li><code>mild_pruning</code> - Conservative 15% parameter reduction</li>
+<li><code>structured_pruning</code> - 30% structured pruning with speedup</li>
+<li><code>hardware_aware_pruning</code> - Aggressive 50% reduction</li>
+</ul>
+<p><strong>Quantization Bonus:</strong>
+Enable the checkbox to combine pruning with quantization for additional gains.</p>
+<h3 id="region-selection">Region Selection</h3>
+<p>Select deployment region for accurate carbon calculations:</p>
+<ul>
+<li><strong>ISO Country Codes</strong>: US, DE, FR, GB, etc.</li>
+<li><strong>Cloud Regions</strong>: us-east-1, eu-west-1, ap-southeast-1, etc.</li>
+</ul>
+<p>Carbon intensity (kg CO2e/kWh) is automatically loaded based on region.</p>
+<h3 id="action-buttons">Action Buttons</h3>
+<ul>
+<li><strong>Calculate</strong> - Run the ROI analysis with selected parameters</li>
+<li><strong>Export Scenario</strong> - Download the current scenario as YAML</li>
+</ul>
+<h2 id="results-panel">Results Panel</h2>
+<p>After clicking Calculate, the results panel displays:</p>
+<h3 id="summary-cards">Summary Cards</h3>
+<p>Key metrics at a glance:
+- <strong>Annual Savings</strong> - Projected cost savings per year
+- <strong>Break-even Time</strong> - Months to recover optimization investment
+- <strong>CO2e Reduction</strong> - Annual carbon emissions saved
+- <strong>Memory Reduction</strong> - Percentage and absolute GB saved
+- <strong>Throughput Improvement</strong> - Speedup percentage</p>
+<h3 id="comparison-chart">Comparison Chart</h3>
+<p>Bar chart comparing:
+- Baseline vs Optimized memory (GB)
+- Baseline vs Optimized throughput (tokens/sec)
+- Visual side-by-side comparison</p>
+<h3 id="savings-breakdown-chart">Savings Breakdown Chart</h3>
+<p>Pie or stacked bar chart showing:
+- Hardware cost savings
+- Energy cost savings
+- Initial project investment (negative)</p>
+<h3 id="monte-carlo-uncertainty-chart">Monte Carlo Uncertainty Chart</h3>
+<p>When enabled, shows:
+- Probability distribution of annual savings
+- P5, P25, Median, P75, P95 percentiles
+- Risk assessment visualization</p>
+<h2 id="interactive-features">Interactive Features</h2>
+<h3 id="custom-parameter-editing">Custom Parameter Editing</h3>
+<p>When "Custom" scenario is selected:</p>
+<ol>
+<li>Click <strong>Edit Custom Parameters</strong> to open the modal</li>
+<li>Adjust sliders and inputs:</li>
+<li>Model size (0.1B to 70B parameters)</li>
+<li>Memory (1GB to 80GB)</li>
+<li>Throughput (10 to 1000 tokens/sec)</li>
+<li>Power (50W to 700W)</li>
+<li>Request volume (1,000 to 1,000,000/day)</li>
+<li>Click <strong>Save</strong> to update calculations</li>
+</ol>
+<h3 id="real-time-updates">Real-time Updates</h3>
+<p>All charts update immediately when you click <strong>Calculate</strong>. No page reload required.</p>
+<h3 id="export-functionality">Export Functionality</h3>
+<p><strong>Export Scenario:</strong>
+- Downloads current configuration as YAML
+- Filename: <code>atropos-scenario-{timestamp}.yaml</code>
+- Can be reloaded via CLI: <code>atropos scenario file.yaml</code></p>
+<h2 id="advanced-usage">Advanced Usage</h2>
+<h3 id="monte-carlo-analysis">Monte Carlo Analysis</h3>
+<p>The dashboard automatically runs Monte Carlo simulations to show uncertainty ranges:</p>
+<ul>
+<li><strong>Default</strong>: 1000 simulations per calculation</li>
+<li><strong>Parameters varied</strong>: Memory reduction, throughput improvement</li>
+<li><strong>Distribution</strong>: Normal with 10% standard deviation</li>
+</ul>
+<h3 id="strategy-comparison">Strategy Comparison</h3>
+<p>To compare multiple strategies:</p>
+<ol>
+<li>Calculate with first strategy</li>
+<li>Note or screenshot results</li>
+<li>Change strategy</li>
+<li>Calculate again</li>
+<li>Compare side-by-side</li>
+</ol>
+<h3 id="custom-region-carbon-intensity">Custom Region Carbon Intensity</h3>
+<p>If your region isn't listed:</p>
+<pre class="codehilite"><code class="language-python"># Add custom preset (for developers)
+from atropos.carbon_presets import CARBON_PRESETS
+
+CARBON_PRESETS[&quot;CUSTOM&quot;] = CarbonPreset(
+    region_code=&quot;CUSTOM&quot;,
+    region_name=&quot;My Custom Region&quot;,
+    carbon_intensity_kg_per_kwh=0.25,
+    data_year=2024,
+    source=&quot;Custom data&quot;,
+)
+</code></pre>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="dashboard-wont-start">Dashboard Won't Start</h3>
+<p><strong>Error:</strong> <code>ModuleNotFoundError: No module named 'dash'</code></p>
+<pre class="codehilite"><code class="language-bash">pip install dash plotly pandas
+</code></pre>
+
+<p><strong>Error:</strong> <code>Address already in use</code></p>
+<pre class="codehilite"><code class="language-bash"># Use a different port
+atropos dashboard --port 8051
+</code></pre>
+
+<h3 id="charts-not-displaying">Charts Not Displaying</h3>
+<ol>
+<li>Check browser console for JavaScript errors</li>
+<li>Ensure JavaScript is enabled</li>
+<li>Try refreshing the page</li>
+<li>Disable browser extensions that block scripts</li>
+</ol>
+<h3 id="slow-performance">Slow Performance</h3>
+<p>For faster calculations:
+- Disable Monte Carlo (reduce simulations)
+- Use preset scenarios instead of custom
+- Reduce browser tab count</p>
+<h3 id="export-not-working">Export Not Working</h3>
+<ul>
+<li>Check browser download settings</li>
+<li>Ensure pop-ups are not blocked</li>
+<li>Try a different browser</li>
+</ul>
+<h2 id="configuration-reference">Configuration Reference</h2>
+<h3 id="default-port">Default Port</h3>
+<pre class="codehilite"><code class="language-python"># In your code
+from atropos.dashboard import run_dashboard
+
+run_dashboard(host=&quot;127.0.0.1&quot;, port=8050, debug=False)
+</code></pre>
+
+<h3 id="environment-variables">Environment Variables</h3>
+<pre class="codehilite"><code class="language-bash"># Change default port
+export ATROPOS_DASHBOARD_PORT=8080
+
+# Enable debug mode
+export ATROPOS_DASHBOARD_DEBUG=1
+</code></pre>
+
+<h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
+<ul>
+<li><strong>Ctrl+Enter</strong> - Trigger Calculate (when focused on input)</li>
+<li><strong>Esc</strong> - Close modal dialogs</li>
+</ul>
+<h2 id="browser-compatibility">Browser Compatibility</h2>
+<p>Tested on:
+- Chrome 120+
+- Firefox 121+
+- Safari 17+
+- Edge 120+</p>
+<p>Requires JavaScript enabled.</p>
+<h2 id="next-steps">Next Steps</h2>
+<p>After using the dashboard:</p>
+<ol>
+<li><strong>Export promising scenarios</strong> as YAML</li>
+<li><strong>Validate with real models</strong> using <code>atropos validate</code></li>
+<li><strong>Run optimization pipeline</strong> using <code>atropos pipeline</code></li>
+<li><strong>Share configurations</strong> with your team</li>
+</ol>
+<h2 id="api-integration">API Integration</h2>
+<p>The dashboard uses the same core functions as the CLI:</p>
+<pre class="codehilite"><code class="language-python">from atropos.calculations import estimate_outcome
+from atropos.presets import SCENARIOS, STRATEGIES
+
+scenario = SCENARIOS[&quot;medium-coder&quot;]
+strategy = STRATEGIES[&quot;structured_pruning&quot;]
+
+outcome = estimate_outcome(scenario, strategy)
+print(outcome.annual_total_savings_usd)
+</code></pre>
+
+<p>See the <a href="api-reference.md">API documentation</a> for more details.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

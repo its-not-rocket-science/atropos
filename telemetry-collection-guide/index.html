@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/telemetry-collection-guide/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Telemetry Collection Guide - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Telemetry Collection Guide";
+        var mkdocs_page_input_path = "telemetry-collection-guide.md";
+        var mkdocs_page_url = "/atropos/telemetry-collection-guide/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Telemetry Collection Guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="telemetry-collection-guide">Telemetry Collection Guide</h1>
+<p>This guide shows how to collect real performance metrics from running inference servers and use them to validate Atropos projections.</p>
+<h2 id="overview">Overview</h2>
+<p>The telemetry collection system allows you to:
+1. Connect to running inference servers (vLLM, TGI, Triton)
+2. Collect actual performance metrics (memory, throughput, latency)
+3. Import metrics into Atropos scenarios
+4. Compare projections vs reality</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<pre class="codehilite"><code class="language-bash"># Install inference server (example: vLLM)
+pip install vllm
+
+# Or TGI
+# Follow: https://github.com/huggingface/text-generation-inference
+
+# Or Triton
+# Follow: https://github.com/triton-inference-server/server
+</code></pre>
+
+<h2 id="step-1-start-an-inference-server">Step 1: Start an Inference Server</h2>
+<h3 id="vllm-example">vLLM Example</h3>
+<pre class="codehilite"><code class="language-bash"># Start vLLM server with a model
+python -m vllm.entrypoints.openai.api_server \
+    --model gpt2 \
+    --port 8000 \
+    --max-model-len 2048
+
+# Test it's running
+curl http://localhost:8000/health
+</code></pre>
+
+<h3 id="tgi-example">TGI Example</h3>
+<pre class="codehilite"><code class="language-bash"># Start TGI server
+docker run --gpus all --shm-size 1g -p 8080:80 \
+    ghcr.io/huggingface/text-generation-inference:latest \
+    --model-id gpt2
+
+# Test it's running
+curl http://localhost:8080/health
+</code></pre>
+
+<h3 id="triton-example">Triton Example</h3>
+<pre class="codehilite"><code class="language-bash"># Start Triton with your model repository
+docker run --gpus all --rm -p 8000:8000 -p 8001:8001 -p 8002:8002 \
+    -v $(pwd)/model_repository:/models:rw \
+    nvcr.io/nvidia/tritonserver:23.10-py3 \
+    tritonserver --model-repository=/models
+
+# Test it's running
+curl http://localhost:8000/v2/health/ready
+</code></pre>
+
+<h2 id="step-2-collect-telemetry">Step 2: Collect Telemetry</h2>
+<h3 id="basic-collection">Basic Collection</h3>
+<pre class="codehilite"><code class="language-bash"># Collect from vLLM for 60 seconds
+atropos collect-telemetry \
+    --server-type vllm \
+    --url http://localhost:8000 \
+    --duration 60 \
+    --interval 5 \
+    --output baseline-telemetry.json
+
+# Output shows collected metrics:
+# Collection complete!
+# Throughput: 450.3 tok/s
+# Latency: 45.2 ms
+# Memory: 12.4 GB
+</code></pre>
+
+<h3 id="collection-with-scenario-creation">Collection with Scenario Creation</h3>
+<pre class="codehilite"><code class="language-bash"># Collect and automatically create Atropos scenario
+atropos collect-telemetry \
+    --server-type vllm \
+    --url http://localhost:8000 \
+    --duration 120 \
+    --interval 10 \
+    --output baseline-telemetry.json \
+    --create-scenario \
+    --name &quot;gpt2-baseline&quot;
+
+# Creates both:
+# - baseline-telemetry.json (raw telemetry)
+# - baseline-telemetry.yaml (Atropos scenario)
+</code></pre>
+
+<h3 id="collection-parameters">Collection Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--server-type</code></td>
+<td>vllm, tgi, or triton</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>--url</code></td>
+<td>Server base URL</td>
+<td>http://localhost:8000</td>
+</tr>
+<tr>
+<td><code>--duration</code></td>
+<td>Collection duration (seconds)</td>
+<td>60</td>
+</tr>
+<tr>
+<td><code>--interval</code></td>
+<td>Sampling interval (seconds)</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>--warmup</code></td>
+<td>Number of warmup requests</td>
+<td>10</td>
+</tr>
+<tr>
+<td><code>--output</code></td>
+<td>Output JSON file</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>--create-scenario</code></td>
+<td>Also create YAML scenario</td>
+<td>False</td>
+</tr>
+<tr>
+<td><code>--name</code></td>
+<td>Scenario name</td>
+<td>{server-type}-collected</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-3-import-telemetry-into-atropos">Step 3: Import Telemetry into Atropos</h2>
+<h3 id="using-collected-telemetry-directly">Using Collected Telemetry Directly</h3>
+<p>If you used <code>--create-scenario</code>, you already have a YAML file:</p>
+<pre class="codehilite"><code class="language-bash"># Use the generated scenario
+atropos scenario baseline-telemetry.yaml --strategy structured_pruning
+</code></pre>
+
+<h3 id="import-from-json-file">Import from JSON File</h3>
+<pre class="codehilite"><code class="language-bash"># Import telemetry JSON to create/update scenario
+atropos import-telemetry \
+    baseline-telemetry.json \
+    --format json \
+    --name &quot;gpt2-baseline&quot; \
+    --output gpt2-scenario.yaml
+</code></pre>
+
+<h2 id="step-4-calibrate-against-projections">Step 4: Calibrate Against Projections</h2>
+<h3 id="run-calibration">Run Calibration</h3>
+<pre class="codehilite"><code class="language-bash"># Compare telemetry against Atropos projections
+atropos calibrate \
+    gpt2-scenario.yaml \
+    baseline-telemetry.json \
+    --format markdown \
+    --output calibration-report.md
+</code></pre>
+
+<h3 id="example-calibration-report">Example Calibration Report</h3>
+<pre class="codehilite"><code class="language-markdown"># Calibration Report: gpt2-baseline
+
+## Variance Summary
+
+| Metric | Projected | Measured | Variance |
+|--------|-----------|----------|----------|
+| Memory (GB) | 10.5 | 12.4 | +18.1% |
+| Throughput (tok/s) | 500 | 450 | -10.0% |
+| Latency (ms) | 40 | 45 | +12.5% |
+
+## Assessment
+
+⚠️ 2/3 metrics outside tolerance (&gt;10% variance)
+
+### Recommendations
+
+1. Memory usage higher than expected - update scenario memory_gb
+2. Throughput lower - may indicate batch size or hardware differences
+3. Consider re-running with actual hardware specs
+</code></pre>
+
+<h2 id="complete-workflow-example">Complete Workflow Example</h2>
+<h3 id="1-baseline-measurement">1. Baseline Measurement</h3>
+<pre class="codehilite"><code class="language-bash"># Start server with baseline model
+python -m vllm.entrypoints.openai.api_server \
+    --model gpt2-medium \
+    --port 8000 &amp;
+
+# Collect baseline telemetry
+atropos collect-telemetry \
+    --server-type vllm \
+    --url http://localhost:8000 \
+    --duration 120 \
+    --output baseline.json \
+    --create-scenario \
+    --name &quot;gpt2-medium-baseline&quot;
+
+# Stop server
+pkill -f vllm.entrypoints
+</code></pre>
+
+<h3 id="2-pruned-model-measurement">2. Pruned Model Measurement</h3>
+<pre class="codehilite"><code class="language-bash"># Start server with pruned model (after pruning)
+python -m vllm.entrypoints.openai.api_server \
+    --model ./pruned-models/gpt2-medium-pruned \
+    --port 8000 &amp;
+
+# Collect pruned telemetry
+atropos collect-telemetry \
+    --server-type vllm \
+    --url http://localhost:8000 \
+    --duration 120 \
+    --output pruned.json \
+    --create-scenario \
+    --name &quot;gpt2-medium-pruned&quot;
+</code></pre>
+
+<h3 id="3-compare-and-validate">3. Compare and Validate</h3>
+<pre class="codehilite"><code class="language-bash"># Create comparison report
+cat &gt; compare-telemetry.py &lt;&lt; 'EOF'
+import json
+
+with open('baseline.json') as f:
+    baseline = json.load(f)
+
+with open('pruned.json') as f:
+    pruned = json.load(f)
+
+print(&quot;## Comparison: Baseline vs Pruned&quot;)
+print()
+print(f&quot;Memory: {baseline['memory_gb']:.1f}GB → {pruned['memory_gb']:.1f}GB &quot;
+      f&quot;({(1 - pruned['memory_gb']/baseline['memory_gb'])*100:.1f}% reduction)&quot;)
+print(f&quot;Throughput: {baseline['throughput_toks_per_sec']:.1f} → &quot;
+      f&quot;{pruned['throughput_toks_per_sec']:.1f} tok/s &quot;
+      f&quot;({(pruned['throughput_toks_per_sec']/baseline['throughput_toks_per_sec']-1)*100:+.1f}%)&quot;)
+print(f&quot;Latency: {baseline['latency_ms_per_request']:.1f} → &quot;
+      f&quot;{pruned['latency_ms_per_request']:.1f} ms &quot;
+      f&quot;({(pruned['latency_ms_per_request']/baseline['latency_ms_per_request']-1)*100:+.1f}%)&quot;)
+EOF
+
+python compare-telemetry.py
+</code></pre>
+
+<h2 id="supported-metrics-by-server">Supported Metrics by Server</h2>
+<h3 id="vllm">vLLM</h3>
+<ul>
+<li>✅ GPU memory usage (via <code>/metrics</code> endpoint)</li>
+<li>✅ Token throughput (calculated)</li>
+<li>✅ Request latency</li>
+<li>✅ Cache hit rates</li>
+<li>✅ Batch size statistics</li>
+</ul>
+<h3 id="tgi">TGI</h3>
+<ul>
+<li>✅ Batch current size</li>
+<li>✅ Queue size</li>
+<li>✅ Basic throughput/latency (from benchmark requests)</li>
+</ul>
+<h3 id="triton">Triton</h3>
+<ul>
+<li>✅ Inference statistics</li>
+<li>✅ Request counts</li>
+<li>✅ Compute latency</li>
+<li>⚠️ Memory (requires GPU metrics extension)</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="server-is-not-healthy">"Server is not healthy"</h3>
+<pre class="codehilite"><code class="language-bash"># Check server is running
+curl http://localhost:8000/health  # vLLM
+curl http://localhost:8080/health  # TGI
+curl http://localhost:8000/v2/health/ready  # Triton
+
+# Check correct port
+# Check firewall/network settings
+</code></pre>
+
+<h3 id="no-samples-collected">"No samples collected"</h3>
+<pre class="codehilite"><code class="language-bash"># Increase duration or decrease interval
+atropos collect-telemetry ... --duration 120 --interval 2
+
+# Check server has GPU available
+# Check model is loaded and ready
+</code></pre>
+
+<h3 id="memory-shows-00-gb">Memory shows 0.0 GB</h3>
+<p>Some servers don't expose memory metrics directly. The collector falls back to estimates from request benchmarks. For accurate memory:</p>
+<pre class="codehilite"><code class="language-bash"># Use nvidia-smi alongside collection
+watch -n 5 nvidia-smi
+
+# Or manually specify in scenario
+atropos import-telemetry telemetry.json --format json --name &quot;manual&quot; -o scenario.yaml
+# Then edit scenario.yaml to set correct memory_gb
+</code></pre>
+
+<h2 id="tips-for-accurate-collection">Tips for Accurate Collection</h2>
+<ol>
+<li><strong>Warmup Period</strong>: Allow server to warm up before collecting (handled automatically)</li>
+<li><strong>Duration</strong>: Collect for at least 60 seconds to get stable averages</li>
+<li><strong>Load</strong>: Ensure server is under realistic load (use actual traffic or load test)</li>
+<li><strong>Multiple Runs</strong>: Collect 3 times and average for best accuracy</li>
+<li><strong>Document Hardware</strong>: Record GPU type, CPU, RAM for reproducibility</li>
+</ol>
+<h2 id="next-steps">Next Steps</h2>
+<p>After collecting telemetry:</p>
+<ol>
+<li><strong>Validate Projections</strong>: Use <code>atropos calibrate</code> to check accuracy</li>
+<li><strong>Update Scenarios</strong>: Adjust scenario parameters based on real data</li>
+<li><strong>Run Pipeline</strong>: Use <code>atropos pipeline</code> with real scenarios</li>
+<li><strong>Share Results</strong>: Export calibration reports to improve Atropos models</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

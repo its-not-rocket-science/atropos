@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/model-testing-guide/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Model Testing Guide for Atropos Validation - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Model Testing Guide for Atropos Validation";
+        var mkdocs_page_input_path = "model-testing-guide.md";
+        var mkdocs_page_url = "/atropos/model-testing-guide/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Model Testing Guide for Atropos Validation</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="model-testing-guide-for-atropos-validation">Model Testing Guide for Atropos Validation</h1>
+<p>This guide helps you find and test neural networks and LLMs to validate Atropos projections.</p>
+<h2 id="quick-start-recommended-test-models">Quick Start: Recommended Test Models</h2>
+<h3 id="small-models-fast-testing-1b-params">Small Models (Fast Testing, &lt; 1B params)</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Use Case</th>
+<th>Install</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpt2</code></td>
+<td>124M</td>
+<td>General testing</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>gpt2-medium</code></td>
+<td>355M</td>
+<td>Medium tests</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>gpt2-large</code></td>
+<td>774M</td>
+<td>Larger tests</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>gpt2-xl</code></td>
+<td>1.5B</td>
+<td>Pre-Llama scale</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>facebook/opt-125m</code></td>
+<td>125M</td>
+<td>Open-source alt</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>facebook/opt-350m</code></td>
+<td>350M</td>
+<td>OPT family</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>bigscience/bloom-560m</code></td>
+<td>560M</td>
+<td>Multilingual</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>EleutherAI/pythia-160m</code></td>
+<td>160M</td>
+<td>Research model</td>
+<td><code>pip install transformers</code></td>
+</tr>
+<tr>
+<td><code>EleutherAI/pythia-410m</code></td>
+<td>410M</td>
+<td>Research model</td>
+<td><code>pip install transformers</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-specific-models-for-coding-llm-scenarios">Code-Specific Models (For Coding LLM scenarios)</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>microsoft/codegpt-small</code></td>
+<td>124M</td>
+<td>Code completion</td>
+</tr>
+<tr>
+<td><code>microsoft/DialoGPT-small</code></td>
+<td>117M</td>
+<td>Dialogue systems</td>
+</tr>
+<tr>
+<td><code>Salesforce/codet5-small</code></td>
+<td>60M</td>
+<td>Code generation</td>
+</tr>
+<tr>
+<td><code>t5-small</code></td>
+<td>60M</td>
+<td>General seq2seq</td>
+</tr>
+<tr>
+<td><code>t5-base</code></td>
+<td>220M</td>
+<td>General seq2seq</td>
+</tr>
+</tbody>
+</table>
+<h3 id="medium-models-realistic-testing-1b-7b-params">Medium Models (Realistic Testing, 1B-7B params)</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>VRAM Required</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>meta-llama/Llama-2-7b-hf</code></td>
+<td>7B</td>
+<td>~14GB</td>
+<td>Requires HF login</td>
+</tr>
+<tr>
+<td><code>TinyLlama/TinyLlama-1.1B-v1.0</code></td>
+<td>1.1B</td>
+<td>~2.5GB</td>
+<td>Open, no login</td>
+</tr>
+<tr>
+<td><code>stabilityai/stablelm-3b-4e1t</code></td>
+<td>3B</td>
+<td>~6GB</td>
+<td>Stability AI</td>
+</tr>
+<tr>
+<td><code>HuggingFaceTB/SmolLM-1.7B</code></td>
+<td>1.7B</td>
+<td>~3.5GB</td>
+<td>Recent, open</td>
+</tr>
+<tr>
+<td><code>microsoft/Phi-3-mini-4k-instruct</code></td>
+<td>3.8B</td>
+<td>~8GB</td>
+<td>Strong small model</td>
+</tr>
+</tbody>
+</table>
+<h2 id="finding-models">Finding Models</h2>
+<h3 id="1-huggingface-model-hub">1. HuggingFace Model Hub</h3>
+<p>The primary source for open models:</p>
+<pre class="codehilite"><code class="language-bash"># Install CLI tool
+pip install huggingface-hub
+
+# Search for models
+huggingface-cli search gpt2
+huggingface-cli search llama
+
+# List popular models
+huggingface-cli scan-cache
+</code></pre>
+
+<p>Website: https://huggingface.co/models</p>
+<p><strong>Filters to use:</strong>
+- <strong>Library:</strong> PyTorch
+- <strong>Task:</strong> Text Generation
+- <strong>Size:</strong> &lt; 1B params (for testing)
+- <strong>License:</strong> Apache 2.0, MIT, OpenRAIL (for permissive use)</p>
+<h3 id="2-model-discovery-script">2. Model Discovery Script</h3>
+<p>Create <code>find_models.py</code>:</p>
+<pre class="codehilite"><code class="language-python">#!/usr/bin/env python3
+&quot;&quot;&quot;Discover available models for Atropos testing.&quot;&quot;&quot;
+
+from huggingface_hub import HfApi, ModelFilter
+import torch
+
+def find_test_models(max_params=2_000_000_000):
+    &quot;&quot;&quot;Find suitable test models from HuggingFace.&quot;&quot;&quot;
+    api = HfApi()
+
+    # Filter for text generation models
+    models = api.list_models(
+        filter=ModelFilter(
+            task=&quot;text-generation&quot;,
+            library=&quot;pytorch&quot;,
+        ),
+        sort=&quot;downloads&quot;,
+        direction=-1,
+        limit=100
+    )
+
+    print(&quot;Available Models for Testing:&quot;)
+    print(&quot;-&quot; * 80)
+
+    for model in models:
+        model_id = model.modelId
+
+        # Skip if requires authentication (most LLaMA variants)
+        if model.private or &quot;meta-llama&quot; in model_id.lower():
+            continue
+
+        # Get parameter count from tags if available
+        params = None
+        for tag in model.tags or []:
+            if tag.endswith(&quot;B&quot;) and tag[:-1].replace(&quot;.&quot;, &quot;&quot;).isdigit():
+                try:
+                    params = float(tag[:-1]) * 1e9
+                except ValueError:
+                    continue
+
+        if params and params &lt;= max_params:
+            print(f&quot;{model_id:50s} {params/1e9:&gt;6.1f}B&quot;)
+
+        elif not params and any(x in model_id.lower() for x in [&quot;small&quot;, &quot;tiny&quot;, &quot;mini&quot;]):
+            print(f&quot;{model_id:50s}     ?B (likely small)&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    find_test_models()
+</code></pre>
+
+<h3 id="3-check-local-models">3. Check Local Models</h3>
+<pre class="codehilite"><code class="language-python"># list_local_models.py
+from transformers import AutoModel, MODEL_MAPPING
+
+print(&quot;Installed Transformers Models:&quot;)
+print(MODEL_MAPPING.keys())
+</code></pre>
+
+<h2 id="running-validation">Running Validation</h2>
+<h3 id="basic-test-fast-small-model">Basic Test (Fast, Small Model)</h3>
+<pre class="codehilite"><code class="language-bash"># Test with GPT-2 (124M params) - very fast
+atropos validate edge-coder --model gpt2 --device cpu
+
+# Test with GPT-2 Medium (355M params)
+atropos validate medium-coder --model gpt2-medium --device cpu
+</code></pre>
+
+<h3 id="realistic-test-medium-model-gpu">Realistic Test (Medium Model, GPU)</h3>
+<pre class="codehilite"><code class="language-bash"># Requires ~2.5GB VRAM
+atropos validate medium-coder \
+    --model TinyLlama/TinyLlama-1.1B-v1.0 \
+    --device cuda \
+    --strategy structured_pruning
+</code></pre>
+
+<h3 id="batch-testing-multiple-models">Batch Testing Multiple Models</h3>
+<pre class="codehilite"><code class="language-bash">#!/bin/bash
+# test_models.sh
+
+MODELS=(&quot;gpt2&quot; &quot;gpt2-medium&quot; &quot;facebook/opt-125m&quot;)
+STRATEGIES=(&quot;mild_pruning&quot; &quot;structured_pruning&quot;)
+
+for model in &quot;${MODELS[@]}&quot;; do
+    for strategy in &quot;${STRATEGIES[@]}&quot;; do
+        echo &quot;Testing $model with $strategy&quot;
+        atropos validate edge-coder \
+            --model &quot;$model&quot; \
+            --strategy &quot;$strategy&quot; \
+            --output &quot;results/${model}_${strategy}.md&quot;
+    done
+done
+</code></pre>
+
+<h2 id="benchmark-datasets">Benchmark Datasets</h2>
+<h3 id="for-code-llms">For Code LLMs</h3>
+<ol>
+<li><strong>HumanEval</strong> (OpenAI)</li>
+<li>164 programming problems</li>
+<li>Install: <code>pip install datasets</code></li>
+<li>
+<p>Load: <code>datasets.load_dataset("openai_humaneval")</code></p>
+</li>
+<li>
+<p><strong>MBPP</strong> (Google)</p>
+</li>
+<li>974 Python programming problems</li>
+<li>
+<p>Load: <code>datasets.load_dataset("mbpp")</code></p>
+</li>
+<li>
+<p><strong>CodeParrot/GitHub-Code</strong> (HuggingFace)</p>
+</li>
+<li>Large code corpus</li>
+<li>Good for throughput testing</li>
+</ol>
+<h3 id="general-text">General Text</h3>
+<ol>
+<li><strong>C4</strong> (Common Crawl)</li>
+<li>Large text corpus</li>
+<li>
+<p>Load: <code>datasets.load_dataset("c4", "en")</code></p>
+</li>
+<li>
+<p><strong>WikiText-103</strong></p>
+</li>
+<li>Wikipedia articles</li>
+<li>Load: <code>datasets.load_dataset("wikitext", "wikitext-103-raw-v1")</code></li>
+</ol>
+<h2 id="testing-workflows">Testing Workflows</h2>
+<h3 id="workflow-1-quick-smoke-test">Workflow 1: Quick Smoke Test</h3>
+<pre class="codehilite"><code class="language-bash"># 1. Test basic functionality
+atropos validate edge-coder --model gpt2
+
+# 2. Check if Atropos is in the right ballpark
+# Expect: variance &lt; 20% for memory, &lt; 30% for throughput
+</code></pre>
+
+<h3 id="workflow-2-full-calibration">Workflow 2: Full Calibration</h3>
+<pre class="codehilite"><code class="language-bash"># 1. Create a scenario file
+cat &gt; my_scenario.yaml &lt;&lt;EOF
+name: my-test-model
+parameters_b: 0.355
+gpu_tier: A100_40GB
+memory_gb: 0.7
+throughput_toks_per_sec: 50
+power_watts: 60
+requests_per_day: 10000
+tokens_per_request: 100
+electricity_cost_per_kwh: 0.15
+one_time_project_cost_usd: 5000
+batch_size: 1
+EOF
+
+# 2. Validate against actual model
+atropos validate my_scenario.yaml --model gpt2-medium
+
+# 3. If variance &gt; 20%, calibrate
+atropos calibrate my_scenario.yaml telemetry.json
+</code></pre>
+
+<h3 id="workflow-3-pruning-effectiveness-study">Workflow 3: Pruning Effectiveness Study</h3>
+<pre class="codehilite"><code class="language-bash"># Test different pruning levels
+for sparsity in 0.1 0.2 0.3 0.4; do
+    # Create custom strategy
+    python -c &quot;
+import json
+strategy = {
+    'name': f'prune_{int(sparsity*100)}',
+    'parameter_reduction_fraction': sparsity,
+    'memory_reduction_fraction': sparsity * 0.7,
+    'throughput_improvement_fraction': sparsity * 0.5,
+    'power_reduction_fraction': sparsity * 0.4,
+    'quality_risk': 'low' if sparsity &lt; 0.3 else 'medium'
+}
+print(json.dumps(strategy))
+&quot; &gt; strategy.json
+
+    # Run validation
+    atropos validate edge-coder \
+        --model gpt2 \
+        --strategy structured_pruning \
+        --output &quot;results/sparsity_${sparsity}.json&quot;
+done
+</code></pre>
+
+<h2 id="measuring-real-hardware">Measuring Real Hardware</h2>
+<h3 id="cpu-testing">CPU Testing</h3>
+<pre class="codehilite"><code class="language-bash"># Basic CPU test (works everywhere)
+atropos validate medium-coder --model gpt2 --device cpu
+
+# Monitor resources
+# Linux/Mac:
+time -v atropos validate medium-coder --model gpt2
+
+# Or use psrecord:
+pip install psrecord
+psrecord &quot;atropos validate medium-coder --model gpt2&quot; --plot plot.png
+</code></pre>
+
+<h3 id="gpu-testing">GPU Testing</h3>
+<pre class="codehilite"><code class="language-bash"># Check GPU availability
+python -c &quot;import torch; print(f'CUDA available: {torch.cuda.is_available()}')&quot;
+
+# Run with GPU
+atropos validate medium-coder --model gpt2 --device cuda
+
+# Monitor GPU usage
+# Install: pip install gpustat
+watch -n 1 gpustat
+</code></pre>
+
+<h2 id="collecting-results">Collecting Results</h2>
+<h3 id="aggregate-results">Aggregate Results</h3>
+<pre class="codehilite"><code class="language-python">#!/usr/bin/env python3
+# aggregate_results.py
+import json
+import glob
+from pathlib import Path
+
+results = []
+for file in glob.glob(&quot;results/*.json&quot;):
+    with open(file) as f:
+        data = json.load(f)
+        results.append({
+            &quot;model&quot;: data[&quot;baseline_metrics&quot;][&quot;model_name&quot;],
+            &quot;strategy&quot;: data[&quot;strategy_name&quot;],
+            &quot;memory_variance&quot;: next(
+                (c[&quot;variance_pct&quot;] for c in data[&quot;comparisons&quot;] if c[&quot;name&quot;] == &quot;Memory&quot;),
+                None
+            ),
+            &quot;throughput_variance&quot;: next(
+                (c[&quot;variance_pct&quot;] for c in data[&quot;comparisons&quot;] if c[&quot;name&quot;] == &quot;Throughput&quot;),
+                None
+            ),
+            &quot;accuracy&quot;: data[&quot;savings_accuracy&quot;]
+        })
+
+# Print summary
+print(&quot;Model, Strategy, Memory Var %, Throughput Var %, Accuracy&quot;)
+for r in results:
+    print(f&quot;{r['model']}, {r['strategy']}, {r['memory_variance']}, {r['throughput_variance']}, {r['accuracy']}&quot;)
+</code></pre>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="model-wont-load">Model Won't Load</h3>
+<pre class="codehilite"><code class="language-bash"># Check model exists
+python -c &quot;from transformers import AutoModel; AutoModel.from_pretrained('gpt2')&quot;
+
+# Clear cache if corrupted
+rm -rf ~/.cache/huggingface/hub/models--gpt2
+</code></pre>
+
+<h3 id="out-of-memory">Out of Memory</h3>
+<pre class="codehilite"><code class="language-bash"># Use smaller batch size (in scenario config)
+# Use CPU instead
+atropos validate medium-coder --model gpt2 --device cpu
+
+# Or use a smaller model
+atropos validate edge-coder --model gpt2
+</code></pre>
+
+<h3 id="slow-execution">Slow Execution</h3>
+<pre class="codehilite"><code class="language-bash"># Limit sequence length
+export TRANSFORMERS_MAX_LENGTH=128
+
+# Use quantized model
+atropos validate medium-coder --model &quot;gpt2&quot;  # No quantization yet
+</code></pre>
+
+<h2 id="next-steps">Next Steps</h2>
+<ol>
+<li><strong>Start Small</strong>: Test with <code>gpt2</code> first</li>
+<li><strong>Build a Test Suite</strong>: Create YAML scenarios for each model family</li>
+<li><strong>Track Over Time</strong>: Re-run validation after Atropos updates</li>
+<li><strong>Contribute Results</strong>: Share findings to improve Atropos models</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

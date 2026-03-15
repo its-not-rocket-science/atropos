@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/model-recommendations/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Model Recommendations for Atropos - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Model Recommendations for Atropos";
+        var mkdocs_page_input_path = "model-recommendations.md";
+        var mkdocs_page_url = "/atropos/model-recommendations/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Model Recommendations for Atropos</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="model-recommendations-for-atropos">Model Recommendations for Atropos</h1>
+<p>This guide helps you select appropriate models for testing and validating Atropos projections based on your deployment scenario.</p>
+<h2 id="quick-reference">Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Deployment</th>
+<th>Size</th>
+<th>Example Models</th>
+<th>Atropos Preset</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Edge/Embedded</td>
+<td>&lt; 1B</td>
+<td>gpt2, opt-125m, pythia-160m</td>
+<td><code>edge-coder</code></td>
+</tr>
+<tr>
+<td>Small Server</td>
+<td>1-3B</td>
+<td>gpt2-xl, TinyLlama-1.1B</td>
+<td><code>small-coder</code></td>
+</tr>
+<tr>
+<td>Medium Server</td>
+<td>3-7B</td>
+<td>opt-2.7b, pythia-2.8b</td>
+<td><code>medium-coder</code></td>
+</tr>
+<tr>
+<td>Large Server</td>
+<td>7-13B</td>
+<td>Llama-2-7b, Mistral-7B</td>
+<td><code>large-coder</code></td>
+</tr>
+<tr>
+<td>Enterprise</td>
+<td>&gt; 13B</td>
+<td>Llama-2-13b, Mixtral-8x7B</td>
+<td>Custom</td>
+</tr>
+</tbody>
+</table>
+<h2 id="model-size-tiers">Model Size Tiers</h2>
+<h3 id="edge-models-1b-parameters">Edge Models (&lt; 1B parameters)</h3>
+<p>Best for: Mobile apps, IoT devices, browser-based inference, low-latency edge deployments.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Memory*</th>
+<th>License</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gpt2</strong></td>
+<td>124M</td>
+<td>0.5 GB</td>
+<td>MIT</td>
+<td>General text, prototyping</td>
+</tr>
+<tr>
+<td><strong>facebook/opt-125m</strong></td>
+<td>125M</td>
+<td>0.5 GB</td>
+<td>Apache 2.0</td>
+<td>Research, experimentation</td>
+</tr>
+<tr>
+<td><strong>EleutherAI/pythia-160m</strong></td>
+<td>160M</td>
+<td>0.6 GB</td>
+<td>Apache 2.0</td>
+<td>Research, interpretability</td>
+</tr>
+<tr>
+<td><strong>gpt2-medium</strong></td>
+<td>355M</td>
+<td>1.4 GB</td>
+<td>MIT</td>
+<td>Better quality edge</td>
+</tr>
+<tr>
+<td><strong>facebook/opt-350m</strong></td>
+<td>350M</td>
+<td>1.4 GB</td>
+<td>Apache 2.0</td>
+<td>Research, fine-tuning</td>
+</tr>
+<tr>
+<td><strong>EleutherAI/pythia-410m</strong></td>
+<td>410M</td>
+<td>1.6 GB</td>
+<td>Apache 2.0</td>
+<td>Research tasks</td>
+</tr>
+<tr>
+<td><strong>bigscience/bloom-560m</strong></td>
+<td>560M</td>
+<td>2.2 GB</td>
+<td>BigScience RAIL</td>
+<td>Multilingual</td>
+</tr>
+<tr>
+<td><strong>gpt2-large</strong></td>
+<td>774M</td>
+<td>3.1 GB</td>
+<td>MIT</td>
+<td>High-quality edge</td>
+</tr>
+</tbody>
+</table>
+<p>*Memory estimates assume FP32. Use FP16/BF16 for ~50% reduction.</p>
+<p><strong>Recommended for Atropos testing:</strong>
+- Start with <code>gpt2</code> (fastest load, widely compatible)
+- Use <code>gpt2-medium</code> for more realistic edge scenarios
+- Try <code>pythia-160m</code> for research/interpretability work</p>
+<h3 id="medium-models-1-7b-parameters">Medium Models (1-7B parameters)</h3>
+<p>Best for: Small to medium server deployments, cost-effective cloud inference, startup workloads.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Memory*</th>
+<th>License</th>
+<th>Strengths</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gpt2-xl</strong></td>
+<td>1.5B</td>
+<td>6.0 GB</td>
+<td>MIT</td>
+<td>Reliable baseline</td>
+</tr>
+<tr>
+<td><strong>TinyLlama/TinyLlama-1.1B</strong></td>
+<td>1.1B</td>
+<td>4.4 GB</td>
+<td>Apache 2.0</td>
+<td>Modern architecture, efficient</td>
+</tr>
+<tr>
+<td><strong>bigscience/bloom-1b7</strong></td>
+<td>1.7B</td>
+<td>6.8 GB</td>
+<td>BigScience RAIL</td>
+<td>Multilingual</td>
+</tr>
+<tr>
+<td><strong>facebook/opt-1.3b</strong></td>
+<td>1.3B</td>
+<td>5.2 GB</td>
+<td>Apache 2.0</td>
+<td>Research, reproducibility</td>
+</tr>
+<tr>
+<td><strong>EleutherAI/pythia-1.4b</strong></td>
+<td>1.4B</td>
+<td>5.6 GB</td>
+<td>Apache 2.0</td>
+<td>Training stability research</td>
+</tr>
+<tr>
+<td><strong>EleutherAI/pythia-2.8b</strong></td>
+<td>2.8B</td>
+<td>11.2 GB</td>
+<td>Apache 2.0</td>
+<td>Mid-size research</td>
+</tr>
+<tr>
+<td><strong>openlm-research/open_llama_3b</strong></td>
+<td>3B</td>
+<td>12.0 GB</td>
+<td>Apache 2.0</td>
+<td>Llama architecture</td>
+</tr>
+<tr>
+<td><strong>stabilityai/stablelm-3b-4e1t</strong></td>
+<td>3B</td>
+<td>12.0 GB</td>
+<td>CC BY-SA-4.0</td>
+<td>Long context</td>
+</tr>
+</tbody>
+</table>
+<p>*Memory estimates assume FP32. Use FP16/BF16 for ~50% reduction.</p>
+<p><strong>Recommended for Atropos testing:</strong>
+- <code>gpt2-xl</code> as a baseline (widely tested)
+- <code>TinyLlama-1.1B</code> for modern efficiency comparisons
+- <code>pythia-2.8b</code> for research on scaling effects</p>
+<h3 id="large-models-7-13b-parameters">Large Models (7-13B parameters)</h3>
+<p>Best for: Production APIs, enterprise deployments, high-quality applications.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Memory*</th>
+<th>License</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>meta-llama/Llama-2-7b</strong></td>
+<td>7B</td>
+<td>28 GB</td>
+<td>Llama 2 License</td>
+<td>Requires approval</td>
+</tr>
+<tr>
+<td><strong>mistralai/Mistral-7B-v0.1</strong></td>
+<td>7B</td>
+<td>28 GB</td>
+<td>Apache 2.0</td>
+<td>High performance</td>
+</tr>
+<tr>
+<td><strong>HuggingFaceTB/SmolLM-1.7B</strong></td>
+<td>1.7B</td>
+<td>6.8 GB</td>
+<td>Apache 2.0</td>
+<td>Actually medium, but efficient</td>
+</tr>
+<tr>
+<td><strong>microsoft/Phi-3-mini-4k-instruct</strong></td>
+<td>3.8B</td>
+<td>15 GB</td>
+<td>MIT</td>
+<td>Strong small model</td>
+</tr>
+<tr>
+<td><strong>tiiuae/falcon-7b</strong></td>
+<td>7B</td>
+<td>28 GB</td>
+<td>Apache 2.0</td>
+<td>RefinedWeb training</td>
+</tr>
+<tr>
+<td><strong>mosaicml/mpt-7b</strong></td>
+<td>7B</td>
+<td>28 GB</td>
+<td>Apache 2.0</td>
+<td>ALiBi, FlashAttention</td>
+</tr>
+</tbody>
+</table>
+<p>*Memory estimates assume FP16. FP32 would be 2x.</p>
+<p><strong>Note:</strong> Many 7B+ models require:
+- HuggingFace login: <code>huggingface-cli login</code>
+- Model access approval (Llama 2, some others)
+- Significant GPU memory (16GB+ for FP16, 32GB+ for FP32)</p>
+<h2 id="code-specific-models">Code-Specific Models</h2>
+<p>For code completion and generation scenarios:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Params</th>
+<th>Language</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>microsoft/codegpt-small</strong></td>
+<td>124M</td>
+<td>Python</td>
+<td>Entry-level code completion</td>
+</tr>
+<tr>
+<td><strong>Salesforce/codet5-small</strong></td>
+<td>60M</td>
+<td>Multi-language</td>
+<td>Code translation, summarization</td>
+</tr>
+<tr>
+<td><strong>t5-small</strong></td>
+<td>60M</td>
+<td>Multi-language</td>
+<td>General seq2seq</td>
+</tr>
+<tr>
+<td><strong>t5-base</strong></td>
+<td>220M</td>
+<td>Multi-language</td>
+<td>Stronger seq2seq</td>
+</tr>
+<tr>
+<td><strong>bigcode/starcoder2-3b</strong></td>
+<td>3B</td>
+<td>600+ languages</td>
+<td>Code generation</td>
+</tr>
+<tr>
+<td><strong>microsoft/Phi-3-mini-4k-instruct</strong></td>
+<td>3.8B</td>
+<td>Multi-language</td>
+<td>Code + general</td>
+</tr>
+<tr>
+<td><strong>codellama/CodeLlama-7b-hf</strong></td>
+<td>7B</td>
+<td>Code</td>
+<td>Specialized code model</td>
+</tr>
+</tbody>
+</table>
+<h2 id="testing-model-loading">Testing Model Loading</h2>
+<p>Use the built-in model tester to verify models work on your hardware:</p>
+<pre class="codehilite"><code class="language-bash"># Test recommended models on CPU
+atropos test-models --device cpu --max-params 1.0
+
+# Test specific models on GPU
+atropos test-models \
+    --device cuda \
+    --models gpt2 gpt2-medium facebook/opt-125m \
+    --max-params 1.0 \
+    --catalog models-catalog.yaml
+
+# Test a wide range and generate catalog
+atropos test-models \
+    --device cuda \
+    --max-params 7.0 \
+    --output test-results.json \
+    --catalog models-catalog.yaml
+</code></pre>
+
+<h2 id="selecting-models-for-your-scenario">Selecting Models for Your Scenario</h2>
+<h3 id="decision-flowchart">Decision Flowchart</h3>
+<ol>
+<li><strong>What's your deployment target?</strong></li>
+<li>Mobile/edge → &lt; 1B models</li>
+<li>Small server (1-2 GPUs) → 1-7B models</li>
+<li>
+<p>Large server/cluster → 7B+ models</p>
+</li>
+<li>
+<p><strong>What's your latency requirement?</strong></p>
+</li>
+<li>&lt; 100ms → &lt; 1B models or heavy optimization</li>
+<li>&lt; 500ms → 1-3B models</li>
+<li>&lt; 1s → 3-7B models</li>
+<li>
+<p>Batch/async → Any size</p>
+</li>
+<li>
+<p><strong>What's your quality requirement?</strong></p>
+</li>
+<li>Research/prototyping → Any model</li>
+<li>Production MVP → 1-3B with fine-tuning</li>
+<li>
+<p>Production quality → 7B+ or optimized 3B</p>
+</li>
+<li>
+<p><strong>License constraints?</strong></p>
+</li>
+<li>Commercial use → Apache 2.0, MIT models</li>
+<li>Research only → Academic licenses</li>
+<li>Check specific model licenses before deployment</li>
+</ol>
+<h3 id="example-selections">Example Selections</h3>
+<h4 id="scenario-startup-mvp">Scenario: Startup MVP</h4>
+<ul>
+<li><strong>Budget:</strong> Limited</li>
+<li><strong>Hardware:</strong> Single A10G (24GB)</li>
+<li><strong>Goal:</strong> Deploy code assistant</li>
+<li><strong>Recommendation:</strong> <code>bigcode/starcoder2-3b</code> or <code>microsoft/Phi-3-mini-4k-instruct</code></li>
+<li><strong>Atropos preset:</strong> <code>medium-coder</code></li>
+</ul>
+<h4 id="scenario-enterprise-api">Scenario: Enterprise API</h4>
+<ul>
+<li><strong>Budget:</strong> High</li>
+<li><strong>Hardware:</strong> A100 cluster</li>
+<li><strong>Goal:</strong> General-purpose LLM API</li>
+<li><strong>Recommendation:</strong> <code>mistralai/Mistral-7B-v0.1</code> (Apache 2.0)</li>
+<li><strong>Atropos preset:</strong> <code>large-coder</code></li>
+</ul>
+<h4 id="scenario-edge-device">Scenario: Edge Device</h4>
+<ul>
+<li><strong>Budget:</strong> Minimal</li>
+<li><strong>Hardware:</strong> CPU or Jetson</li>
+<li><strong>Goal:</strong> On-device inference</li>
+<li><strong>Recommendation:</strong> <code>TinyLlama/TinyLlama-1.1B-v1.0</code></li>
+<li><strong>Atropos preset:</strong> <code>edge-coder</code></li>
+</ul>
+<h2 id="hardware-requirements">Hardware Requirements</h2>
+<h3 id="minimum-requirements-by-model-size">Minimum Requirements by Model Size</h3>
+<table>
+<thead>
+<tr>
+<th>Model Size</th>
+<th>CPU RAM</th>
+<th>GPU VRAM (FP32)</th>
+<th>GPU VRAM (FP16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 500M</td>
+<td>4 GB</td>
+<td>2 GB</td>
+<td>1 GB</td>
+</tr>
+<tr>
+<td>500M - 1B</td>
+<td>8 GB</td>
+<td>4 GB</td>
+<td>2 GB</td>
+</tr>
+<tr>
+<td>1B - 3B</td>
+<td>16 GB</td>
+<td>12 GB</td>
+<td>6 GB</td>
+</tr>
+<tr>
+<td>3B - 7B</td>
+<td>32 GB</td>
+<td>28 GB</td>
+<td>14 GB</td>
+</tr>
+<tr>
+<td>7B - 13B</td>
+<td>64 GB</td>
+<td>52 GB</td>
+<td>26 GB</td>
+</tr>
+</tbody>
+</table>
+<h3 id="recommended-gpus">Recommended GPUs</h3>
+<table>
+<thead>
+<tr>
+<th>Model Size</th>
+<th>Entry</th>
+<th>Good</th>
+<th>Optimal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 1B</td>
+<td>CPU</td>
+<td>GTX 1660</td>
+<td>RTX 3060</td>
+</tr>
+<tr>
+<td>1-3B</td>
+<td>RTX 3060</td>
+<td>RTX 3090</td>
+<td>A10G</td>
+</tr>
+<tr>
+<td>3-7B</td>
+<td>RTX 3090</td>
+<td>A10G</td>
+<td>A100 40GB</td>
+</tr>
+<tr>
+<td>7-13B</td>
+<td>A10G</td>
+<td>A100 40GB</td>
+<td>A100 80GB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="validating-with-atropos">Validating with Atropos</h2>
+<p>Once you've selected models, validate your projections:</p>
+<pre class="codehilite"><code class="language-bash"># 1. Test the model loads
+atropos test-models --models your-model --device cuda
+
+# 2. Create scenario from model
+atropos scenario models-catalog.yaml --strategy structured_pruning
+
+# 3. Run validation against real model
+atropos validate your-scenario --model your-model --device cuda
+
+# 4. Calibrate if needed
+atropos calibrate your-scenario.yaml telemetry.json
+</code></pre>
+
+<h2 id="contributing-tested-models">Contributing Tested Models</h2>
+<p>If you test a model successfully:</p>
+<ol>
+<li>
+<p>Run the test suite:
+   <code>bash
+   atropos test-models --models your-model --catalog my-catalog.yaml</code></p>
+</li>
+<li>
+<p>Share your catalog entry with:</p>
+</li>
+<li>Model ID</li>
+<li>Hardware used</li>
+<li>Load time</li>
+<li>Inference latency</li>
+<li>
+<p>Memory footprint</p>
+</li>
+<li>
+<p>Submit to the Atropos model registry (if public)</p>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="out-of-memory-errors">Out of Memory Errors</h3>
+<pre class="codehilite"><code class="language-bash"># Test smaller models first
+atropos test-models --max-params 1.0
+
+# Use CPU offloading
+atropos test-models --device cpu --max-params 3.0
+
+# Test with quantization (if supported)
+# Add --load-in-8bit or --load-in-4bit if implemented
+</code></pre>
+
+<h3 id="slow-loading">Slow Loading</h3>
+<ul>
+<li>Use models with <code>safetensors</code> format (faster loading)</li>
+<li>Cache models locally: <code>export HF_HOME=/fast/storage</code></li>
+<li>Use smaller variants first</li>
+</ul>
+<h3 id="access-denied-gated-models">Access Denied (Gated Models)</h3>
+<pre class="codehilite"><code class="language-bash"># Login to HuggingFace
+huggingface-cli login
+
+# Request access on model page
+# Wait for approval (usually instant for most models)
+</code></pre>
+
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="../model-testing-guide/">Model Testing Guide</a> - Detailed testing procedures</li>
+<li><a href="../telemetry-collection-guide/">Telemetry Collection Guide</a> - Measuring real performance</li>
+<li><a href="cli-reference.md">CLI Reference</a> - All Atropos commands</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

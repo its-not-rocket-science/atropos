@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/api/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Python API - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Python API";
+        var mkdocs_page_input_path = "api.md";
+        var mkdocs_page_url = "/atropos/api/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Python API</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#core-models">Core Models</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#deploymentscenario">DeploymentScenario</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#optimizationstrategy">OptimizationStrategy</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#calculations">Calculations</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#estimate_outcome">estimate_outcome</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#combine_strategies">combine_strategies</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#batch-processing">Batch Processing</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Python API</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="python-api">Python API</h1>
+<h2 id="core-models">Core Models</h2>
+<h3 id="deploymentscenario"><code>DeploymentScenario</code></h3>
+<p>Represents a deployment configuration.</p>
+<pre class="codehilite"><code class="language-python">from atropos import DeploymentScenario
+
+scenario = DeploymentScenario(
+    name=&quot;my-deployment&quot;,
+    parameters_b=34.0,              # Model size in billions
+    memory_gb=14.0,                  # Memory usage
+    throughput_toks_per_sec=40.0,    # Current throughput
+    power_watts=320.0,               # Power draw
+    requests_per_day=50000,          # Daily requests
+    tokens_per_request=1200,         # Tokens per request
+    electricity_cost_per_kwh=0.15,   # Electricity cost
+    annual_hardware_cost_usd=24000.0,# Hardware cost
+    one_time_project_cost_usd=27000.0 # Project cost
+)
+</code></pre>
+
+<h3 id="optimizationstrategy"><code>OptimizationStrategy</code></h3>
+<p>Defines optimization parameters.</p>
+<pre class="codehilite"><code class="language-python">from atropos import OptimizationStrategy
+
+strategy = OptimizationStrategy(
+    name=&quot;my-strategy&quot;,
+    parameter_reduction_fraction=0.30,
+    memory_reduction_fraction=0.22,
+    throughput_improvement_fraction=0.20,
+    power_reduction_fraction=0.14,
+    quality_risk=&quot;medium&quot;
+)
+</code></pre>
+
+<h2 id="calculations">Calculations</h2>
+<h3 id="estimate_outcome"><code>estimate_outcome</code></h3>
+<p>Calculate the outcome of applying a strategy to a scenario.</p>
+<pre class="codehilite"><code class="language-python">from atropos import estimate_outcome
+
+outcome = estimate_outcome(scenario, strategy)
+
+print(f&quot;Annual savings: ${outcome.annual_total_savings_usd}&quot;)
+print(f&quot;Break-even: {outcome.break_even_years} years&quot;)
+</code></pre>
+
+<h3 id="combine_strategies"><code>combine_strategies</code></h3>
+<p>Combine two strategies (e.g., pruning + quantization).</p>
+<pre class="codehilite"><code class="language-python">from atropos import combine_strategies
+from atropos.presets import QUANTIZATION_BONUS
+
+combined = combine_strategies(strategy, QUANTIZATION_BONUS)
+outcome = estimate_outcome(scenario, combined)
+</code></pre>
+
+<h2 id="batch-processing">Batch Processing</h2>
+<pre class="codehilite"><code class="language-python">from atropos.batch import batch_process
+
+results = batch_process(
+    &quot;scenarios/&quot;,
+    [&quot;mild_pruning&quot;, &quot;structured_pruning&quot;],
+    output_file=&quot;results.csv&quot;
+)
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../cli/" class="btn btn-neutral float-left" title="CLI Usage"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../examples/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../cli/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../examples/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
