@@ -165,6 +165,11 @@ def main():
         default="cpu",
         help="Device to run pruning on (default: cpu)",
     )
+    parser.add_argument(
+        "--skip-sparsegpt",
+        action="store_true",
+        help="Skip SparseGPT pruning tests (Wanda only)",
+    )
     args = parser.parse_args()
 
     # Build test cases from selected models
@@ -188,7 +193,7 @@ def main():
 
     results = {}
     for model_name, model_id in test_cases:
-        success = test_model(model_name, model_id, device)
+        success = test_model(model_name, model_id, device, args.skip_sparsegpt)
         results[model_name] = success
 
     print(f"\n{'=' * 60}")

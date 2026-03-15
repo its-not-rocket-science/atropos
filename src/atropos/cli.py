@@ -503,7 +503,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.sort_by == "savings":
                 outcomes.sort(key=lambda o: o.annual_total_savings_usd, reverse=reverse)
             elif args.sort_by == "breakeven":
-                outcomes.sort(key=lambda o: (o.break_even_years or float("inf")), reverse=reverse)
+                outcomes.sort(key=lambda o: o.break_even_years or float("inf"), reverse=reverse)
             elif args.sort_by == "risk":
                 risk_order = {"low": 0, "medium": 1, "high": 2}
                 outcomes.sort(key=lambda o: risk_order[o.quality_risk], reverse=reverse)

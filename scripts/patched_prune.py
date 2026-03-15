@@ -443,8 +443,8 @@ def prune_wanda_patched(
             import lib.prune as prune_module
 
             original_prepare = prune_module.prepare_calibration_input
-            prune_module.prepare_calibration_input = (
-                lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
+            prune_module.prepare_calibration_input = lambda m, d, dev: (
+                prepare_calibration_input_patched(m, d, dev, arch)
             )
             layers = model.model.layers
             # Additionally, for GPT2 we need to wrap layer forwards to ignore position_ids
@@ -515,8 +515,8 @@ def prune_sparsegpt_patched(
             import lib.prune as prune_module
 
             original_prepare = prune_module.prepare_calibration_input
-            prune_module.prepare_calibration_input = (
-                lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
+            prune_module.prepare_calibration_input = lambda m, d, dev: (
+                prepare_calibration_input_patched(m, d, dev, arch)
             )
             try:
                 return original_prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m)
@@ -529,8 +529,8 @@ def prune_sparsegpt_patched(
             import lib.prune as prune_module
 
             original_prepare = prune_module.prepare_calibration_input
-            prune_module.prepare_calibration_input = (
-                lambda m, d, dev: prepare_calibration_input_patched(m, d, dev, arch)
+            prune_module.prepare_calibration_input = lambda m, d, dev: (
+                prepare_calibration_input_patched(m, d, dev, arch)
             )
             try:
                 return original_prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m)
