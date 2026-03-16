@@ -42,41 +42,80 @@ from lib.prune_opt import (
 
 
 def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
-    """Patched version of get_wikitext2 that tokenizes per document to avoid huge concatenation."""
-    print(f"[PATCH] Using patched get_wikitext2 with nsamples={nsamples}")
+    """Patched version of get_wikitext2 that tokenizes per document to avoid huge concatenation.
+
+    Falls back to original concatenation method for seqlen > 512.
+    """
+    print(f"[PATCH] Using patched get_wikitext2 with nsamples={nsamples}, seqlen={seqlen}")
     import random
+    import sys
+    sys.stdout.flush()
 
     from datasets import load_dataset
 
     # Load train and test datasets
+    print("[PATCH] Loading training dataset...")
+    sys.stdout.flush()
     traindata = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+    print(f"[PATCH] Training dataset loaded: {len(traindata)} documents")
+    sys.stdout.flush()
     testdata = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
+    print(f"[PATCH] Test dataset loaded: {len(testdata)} documents")
+    sys.stdout.flush()
 
-    # Tokenize each training document separately
-    print(f"[PATCH] Tokenizing {len(traindata)} training documents...")
+    # For large seqlen, use original concatenation method
+    if seqlen > 512:
+        print(f"[PATCH] seqlen={seqlen} > 512, using original concatenation method")
+        # Tokenize all training text together (original method)
+        print("[PATCH] Concatenating all training text...")
+        sys.stdout.flush()
+        trainenc = tokenizer(" ".join(traindata["text"]), return_tensors="pt")
+        testenc = tokenizer("\n\n".join(testdata["text"]), return_tensors="pt")
+
+        # Generate samples from concatenated training tokens
+        random.seed(seed)
+        trainloader = []
+        for _ in range(nsamples):
+            i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
+            j = i + seqlen
+            inp = trainenc.input_ids[:, i:j]
+            tar = inp.clone()
+            tar[:, :-1] = -100
+            trainloader.append((inp, tar))
+
+        print(f"[PATCH] Generated {len(trainloader)} samples using concatenation")
+        return trainloader, testenc
+
+    # For smaller seqlen, use per-document tokenization with limited documents
+    max_docs = 500  # Limit to first N documents for speed
+    min_char_length = seqlen * 4  # Heuristic: tokens < chars, skip very short docs
+    print(f"[PATCH] Scanning first {max_docs} documents for length >={seqlen} tokens...")
     train_tokenized = []
     total_tokens = 0
-
-    # Process in batches to avoid memory issues
-    batch_size = 100
-    batch_count = 0
-    for i in range(0, len(traindata), batch_size):
-        batch_count += 1
-        if batch_count % 10 == 0:
-            print(f"[PATCH] Processed {i} documents...")
-        batch = traindata[i : i + batch_size]["text"]
-        # Tokenize each document individually
-        for j, text in enumerate(batch):
-            if not text or text.strip() == "":
-                continue  # Skip empty documents
-            try:
-                enc = tokenizer(text, padding=False, truncation=False, return_tensors="pt")
-                if enc.input_ids.shape[1] >= seqlen:
-                    train_tokenized.append(enc.input_ids[0])
-                    total_tokens += enc.input_ids.shape[1]
-            except Exception as e:
-                print(f"[PATCH] Warning: Failed to tokenize document {i + j}: {e}")
-                continue
+    processed = 0
+    for i in range(min(max_docs, len(traindata))):
+        processed += 1
+        if processed % 100 == 0:
+            print(f"[PATCH] Processed {processed} documents...")
+            sys.stdout.flush()
+        text = traindata[i]["text"]
+        if not text or text.strip() == "":
+            continue  # Skip empty documents
+        # Skip very short documents by character count (heuristic)
+        if len(text) < min_char_length:
+            continue
+        try:
+            enc = tokenizer(text, padding=False, truncation=False, return_tensors="pt")
+            if enc.input_ids.shape[1] >= seqlen:
+                train_tokenized.append(enc.input_ids[0])
+                total_tokens += enc.input_ids.shape[1]
+                # Stop early if we have enough documents (e.g., 10)
+                if len(train_tokenized) >= 10:
+                    print(f"[PATCH] Found {len(train_tokenized)} suitable documents, stopping scan")
+                    break
+        except Exception as e:
+            print(f"[PATCH] Warning: Failed to tokenize document {i}: {e}")
+            continue
 
     print(
         f"[PATCH] Tokenized {len(train_tokenized)} documents with >={seqlen} tokens, "
@@ -84,7 +123,39 @@ def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
     )
 
     if len(train_tokenized) == 0:
-        raise ValueError(f"No documents with length >= {seqlen} tokens")
+        # Fallback to concatenation of first N documents
+        print(f"[PATCH] No documents >= {seqlen} tokens, falling back to concatenation method")
+        concat_max_docs = 1000
+        print(f"[PATCH] Concatenating first {concat_max_docs} documents...")
+        concat_texts = []
+        for i in range(min(concat_max_docs, len(traindata))):
+            text = traindata[i]["text"]
+            if text and text.strip():
+                concat_texts.append(text)
+        if not concat_texts:
+            raise ValueError("No non-empty documents found for concatenation")
+        trainenc = tokenizer(" ".join(concat_texts), return_tensors="pt")
+        print(f"[PATCH] Concatenated tokens: {trainenc.input_ids.shape[1]}")
+        # Generate samples from concatenated tokens
+        random.seed(seed)
+        trainloader = []
+        for _ in range(nsamples):
+            if trainenc.input_ids.shape[1] <= seqlen:
+                # Not enough tokens, pad or repeat (should not happen with enough docs)
+                raise ValueError(
+                    f"Concatenated tokens length {trainenc.input_ids.shape[1]} <= seqlen {seqlen}"
+                )
+            i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
+            j = i + seqlen
+            inp = trainenc.input_ids[:, i:j]
+            tar = inp.clone()
+            tar[:, :-1] = -100
+            trainloader.append((inp, tar))
+        print(f"[PATCH] Generated {len(trainloader)} samples using concatenation")
+        # Tokenize test data (concatenated for compatibility)
+        print("[PATCH] Tokenizing test data...")
+        testenc = tokenizer("\n\n".join(testdata["text"]), return_tensors="pt")
+        return trainloader, testenc
 
     # Tokenize test data (concatenated for compatibility)
     print("[PATCH] Tokenizing test data...")
@@ -296,6 +367,37 @@ def get_layer_container(model: torch.nn.Module, arch: str) -> torch.nn.Module:
         raise ValueError(f"Unsupported architecture: {arch}")
 
 
+def fix_gptj_rotary_mismatch(model: torch.nn.Module) -> None:
+    """Fix rotary_dim > head_dim mismatch in GPT-J models by slicing embed_positions."""
+    if not hasattr(model, "transformer") or not hasattr(model.transformer, "h"):
+        return
+    head_dim = model.config.hidden_size // model.config.num_attention_heads
+    rotary_dim = model.config.rotary_dim
+    if rotary_dim <= head_dim:
+        return
+    print(f"[DEBUG GPTJ] Fixing rotary mismatch: rotary_dim={rotary_dim}, head_dim={head_dim}")
+    # Update config
+    model.config.rotary_dim = head_dim
+    # Update each attention layer
+    for layer in model.transformer.h:
+        attn = layer.attn
+        attn.rotary_dim = head_dim
+        # Slice embed_positions buffer
+        if hasattr(attn, "embed_positions"):
+            ep = attn.embed_positions
+            if isinstance(ep, torch.Tensor):
+                # Slice last dimension from rotary_dim to head_dim
+                if ep.shape[-1] == rotary_dim:
+                    attn.embed_positions = ep[:, :head_dim]
+                else:
+                    print(
+                        f"[DEBUG GPTJ] Warning: embed_positions shape {ep.shape} "
+                        f"does not match rotary_dim {rotary_dim}"
+                    )
+            else:
+                print("[DEBUG GPTJ] Warning: embed_positions is not a tensor")
+
+
 def adapt_model_for_pruning(
     model: torch.nn.Module,
     arch: str | None = None,
@@ -308,6 +410,10 @@ def adapt_model_for_pruning(
     """
     if arch is None:
         arch = get_model_architecture(model)
+
+    # Fix GPT-J rotary dimension mismatch
+    if arch == "gptj":
+        fix_gptj_rotary_mismatch(model)
 
     original = {}
 
@@ -322,6 +428,15 @@ def adapt_model_for_pruning(
         else:
             model.seqlen = 2048  # default
         original["seqlen"] = None  # didn't exist
+    else:
+        # seqlen already exists, store original value
+        if "seqlen" not in original:
+            original["seqlen"] = model.seqlen
+
+    # Cap seqlen for wikitext2 compatibility (no documents >= 1024 tokens)
+    if model.seqlen > 256 and arch != "opt":
+        print(f"[DEBUG] Capping seqlen from {model.seqlen} to 256 for wikitext2 compatibility")
+        model.seqlen = 256
 
     # Ensure hf_device_map exists
     if not hasattr(model, "hf_device_map"):
@@ -415,7 +530,24 @@ def prepare_calibration_input_patched(
             super().__init__()
             self.module = module
 
-        def forward(self, inp, **kwargs):
+        def forward(self, *args, **kwargs):
+            print(
+                f"[DEBUG] Catcher.forward called, i={cache['i']}, args len={len(args)}, "
+                f"kwargs keys: {list(kwargs.keys())}"
+            )
+            # Extract input tensor: first positional argument or common keyword
+            if len(args) > 0:
+                inp = args[0]
+            elif "hidden_states" in kwargs:
+                inp = kwargs["hidden_states"]
+            elif "input" in kwargs:
+                inp = kwargs["input"]
+            elif "inp" in kwargs:
+                inp = kwargs["inp"]
+            elif "x" in kwargs:
+                inp = kwargs["x"]
+            else:
+                raise ValueError("Catcher cannot find input tensor in args or kwargs")
             inps[cache["i"]] = inp
             cache["i"] += 1
             cache["attention_mask"] = kwargs["attention_mask"]
@@ -524,40 +656,32 @@ def wrap_bloom_layer_forwards(layers):
 
         # Capture layer and build_alibi_tensor in closure
         def make_wrapped(orig, lyr):
-            printed = [False]  # mutable container for closure
-
             def wrapped(hidden_states, attention_mask, **kwargs):
                 # Remove position_ids if present
                 kwargs.pop("position_ids", None)
-                # Compute alibi tensor from attention_mask
-                # attention_mask shape may be (batch, 1, 1, seq_len) or (batch, seq_len)
-                # build_alibi_tensor expects attention_mask shape (batch, seq_len)
-                if attention_mask.dim() == 4:
-                    batch_size = attention_mask.shape[0]
-                    seq_length = attention_mask.shape[-1]
-                    # Create token-wise mask of all ones (no padding)
-                    attention_mask_2d = torch.ones(
-                        batch_size,
-                        seq_length,
-                        dtype=attention_mask.dtype,
-                        device=attention_mask.device,
+                # Check if alibi already provided (e.g., from model forward)
+                if "alibi" not in kwargs:
+                    # Compute alibi tensor from attention_mask
+                    # attention_mask shape may be (batch, 1, 1, seq_len) or (batch, seq_len)
+                    # build_alibi_tensor expects attention_mask shape (batch, seq_len)
+                    if attention_mask.dim() == 4:
+                        batch_size = attention_mask.shape[0]
+                        seq_length = attention_mask.shape[-1]
+                        # Create token-wise mask of all ones (no padding)
+                        attention_mask_2d = torch.ones(
+                            batch_size,
+                            seq_length,
+                            dtype=attention_mask.dtype,
+                            device=attention_mask.device,
+                        )
+                    else:
+                        attention_mask_2d = attention_mask
+                    alibi = build_alibi_tensor(
+                        attention_mask_2d, lyr.self_attention.num_heads, hidden_states.dtype
                     )
-                else:
-                    attention_mask_2d = attention_mask
-                if not printed[0]:
-                    print(
-                        f"[DEBUG] BLOOM wrapper: attention_mask shape {attention_mask.shape}, "
-                        f"attention_mask_2d shape {attention_mask_2d.shape}, "
-                        f"num_heads {lyr.self_attention.num_heads}"
-                    )
-                    printed[0] = True
-                alibi = build_alibi_tensor(
-                    attention_mask_2d, lyr.self_attention.num_heads, hidden_states.dtype
-                )
-                if not printed[0]:
-                    print(f"[DEBUG] BLOOM wrapper: alibi shape {alibi.shape}")
+                    kwargs["alibi"] = alibi
                 # Pass alibi to layer forward
-                return orig(hidden_states, attention_mask=attention_mask, alibi=alibi, **kwargs)
+                return orig(hidden_states, attention_mask=attention_mask, **kwargs)
 
             return wrapped
 
@@ -580,9 +704,9 @@ def wrap_gptj_layer_forwards(layers):
         original_forward = layer.forward
         # Find rotary_emb in attention or attn
         rotary_emb = None
-        if hasattr(layer, 'attention') and hasattr(layer.attention, 'rotary_emb'):
+        if hasattr(layer, "attention") and hasattr(layer.attention, "rotary_emb"):
             rotary_emb = layer.attention.rotary_emb
-        elif hasattr(layer, 'attn') and hasattr(layer.attn, 'rotary_emb'):
+        elif hasattr(layer, "attn") and hasattr(layer.attn, "rotary_emb"):
             rotary_emb = layer.attn.rotary_emb
         else:
             # No rotary_emb found, skip wrapping for this layer
@@ -602,6 +726,7 @@ def wrap_gptj_layer_forwards(layers):
                     cos, sin = rot.forward(dummy, position_ids)
                     kwargs["position_embeddings"] = (cos, sin)
                 return orig(*args, **kwargs)
+
             return wrapped
 
         layer.forward = make_wrapped(original_forward, rotary_emb)
@@ -643,10 +768,16 @@ def prune_wanda_patched(
             import lib.prune as prune_module
 
             original_prepare = prune_module.prepare_calibration_input
+            print(f"[DEBUG] Monkey-patching prepare_calibration_input for arch={arch}")
             prune_module.prepare_calibration_input = lambda m, d, dev: (
                 prepare_calibration_input_patched(m, d, dev, arch)
             )
+            print("[DEBUG] Monkey-patch applied")
             layers = model.model.layers
+            # Monkey-patch get_wikitext2 to avoid huge concatenation
+            import lib.data
+            original_get_wikitext2 = lib.data.get_wikitext2
+            lib.data.get_wikitext2 = get_wikitext2_patched
             # Additionally, for GPT2 we need to wrap layer forwards to ignore position_ids
             # and patch find_layers to include Conv1D
             if arch == "gpt2":
@@ -691,6 +822,7 @@ def prune_wanda_patched(
                     unpatch_find_layers(original_find_layers)
                 if original_wrapped_pair is not None:
                     unpatch_wrapped_gpt(original_wrapped_pair)
+                lib.data.get_wikitext2 = original_get_wikitext2
     finally:
         restore_model_attrs(model, original)
 
@@ -813,6 +945,7 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     print(f"[DEBUG] prune_wanda_gpt2 called with args: {args}")
     # Import inside function to avoid circular imports
     print("[DEBUG] Importing lib.data...")
+    import lib.data
     import torch
     from lib.data import get_loaders
     from lib.layerwrapper import WrappedGPT
@@ -827,11 +960,10 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     layers = model.model.layers
     original_forwards = wrap_layer_forwards(layers)
 
-    # Don't monkey-patch - use original get_wikitext2 which concatenates documents
-    # original_get_wikitext2 = lib.data.get_wikitext2
-    # lib.data.get_wikitext2 = get_wikitext2_patched
-    # print(f"[DEBUG] Patched get_wikitext2")
-    print("[DEBUG] Using original get_wikitext2 (concatenates all documents)")
+    # Monkey-patch get_wikitext2 to use per-document tokenization
+    original_get_wikitext2 = lib.data.get_wikitext2
+    lib.data.get_wikitext2 = get_wikitext2_patched
+    print("[DEBUG] Patched get_wikitext2")
 
     try:
         if device is None:
@@ -986,6 +1118,7 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
             unpatch_find_layers(original_find_layers)
         if original_wrapped_pair is not None:
             unpatch_wrapped_gpt(original_wrapped_pair)
+        lib.data.get_wikitext2 = original_get_wikitext2
 
 
 def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):

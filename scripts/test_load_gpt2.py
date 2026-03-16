@@ -4,16 +4,16 @@
 import sys
 from pathlib import Path
 
-# Add external/wanda to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "wanda"))
-
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_name = "gpt2"
+# Add external/wanda to path
+sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "wanda"))
+
+MODEL_NAME = "gpt2"
 print("Loading model...")
 model = AutoModelForCausalLM.from_pretrained(
-    model_name,
+    MODEL_NAME,
     torch_dtype=torch.float16,
     low_cpu_mem_usage=True,
 )
@@ -23,10 +23,10 @@ print("Model eval.")
 
 # Try loading tokenizer with use_fast=False first, fall back to default
 try:
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
 except ValueError:
     # Some tokenizers (e.g., GPTNeoX) don't support use_fast=False
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 print("Tokenizer loaded.")
 
 # Set pad token if not already set

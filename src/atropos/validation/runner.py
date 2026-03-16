@@ -225,7 +225,6 @@ class ModelValidator:
         This generates realistic measurements based on the scenario.
         """
         # Use scenario values with small random variance
-        import random
 
         def variance(x: float, pct: float) -> float:
             return x * (1 + random.uniform(-pct, pct))

@@ -10,9 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "wanda"))
 import torch
 from patched_prune import (
     check_sparsity_patched,
-    prune_sparsegpt_patched,
-    prune_wanda_patched,
     get_model_architecture,
+    prune_wanda_patched,
 )
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -43,10 +42,11 @@ def test_bloom(model_id: str = "bigscience/bloom-560m", device: torch.device = N
 
         # Create args
         import argparse
+
         args = argparse.Namespace(
             model=model_id,
             seed=0,
-            nsamples=2,  # minimal calibration samples
+            nsamples=1,  # minimal calibration samples
             sparsity_ratio=0.1,
             sparsity_type="unstructured",
             use_variant=False,
@@ -84,6 +84,7 @@ def test_bloom(model_id: str = "bigscience/bloom-560m", device: torch.device = N
     except Exception as e:
         print(f"[FAIL] Error testing BLOOM: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
