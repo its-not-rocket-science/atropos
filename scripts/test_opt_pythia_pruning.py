@@ -17,7 +17,9 @@ from patched_prune import (
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def test_model(model_name: str, model_id: str, device: torch.device = None, skip_sparsegpt: bool = False):
+def test_model(
+    model_name: str, model_id: str, device: torch.device = None, skip_sparsegpt: bool = False
+):
     """Test pruning on a single model."""
     print(f"\n{'=' * 60}")
     print(f"Testing {model_name} ({model_id})")
@@ -40,7 +42,7 @@ def test_model(model_name: str, model_id: str, device: torch.device = None, skip
         except ValueError:
             # Some tokenizers (e.g., GPTNeoX) don't support use_fast=False
             tokenizer = AutoTokenizer.from_pretrained(model_id)
-        print(f"Tokenizer loaded")
+        print("Tokenizer loaded")
 
         # Set pad token if not already set
         if tokenizer.pad_token is None:
