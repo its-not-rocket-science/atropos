@@ -44,8 +44,9 @@ from lib.prune_opt import (
 def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
     """Patched version of get_wikitext2 that tokenizes per document to avoid huge concatenation."""
     print(f"[PATCH] Using patched get_wikitext2 with nsamples={nsamples}")
-    from datasets import load_dataset
     import random
+
+    from datasets import load_dataset
 
     # Load train and test datasets
     traindata = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
@@ -63,7 +64,7 @@ def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
         batch_count += 1
         if batch_count % 10 == 0:
             print(f"[PATCH] Processed {i} documents...")
-        batch = traindata[i:i+batch_size]["text"]
+        batch = traindata[i : i + batch_size]["text"]
         # Tokenize each document individually
         for j, text in enumerate(batch):
             if not text or text.strip() == "":
@@ -74,16 +75,19 @@ def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
                     train_tokenized.append(enc.input_ids[0])
                     total_tokens += enc.input_ids.shape[1]
             except Exception as e:
-                print(f"[PATCH] Warning: Failed to tokenize document {i+j}: {e}")
+                print(f"[PATCH] Warning: Failed to tokenize document {i + j}: {e}")
                 continue
 
-    print(f"[PATCH] Tokenized {len(train_tokenized)} documents with >={seqlen} tokens, total {total_tokens} tokens")
+    print(
+        f"[PATCH] Tokenized {len(train_tokenized)} documents with >={seqlen} tokens, "
+        f"total {total_tokens} tokens"
+    )
 
     if len(train_tokenized) == 0:
         raise ValueError(f"No documents with length >= {seqlen} tokens")
 
     # Tokenize test data (concatenated for compatibility)
-    print(f"[PATCH] Tokenizing test data...")
+    print("[PATCH] Tokenizing test data...")
     testenc = tokenizer("\n\n".join(testdata["text"]), return_tensors="pt")
 
     # Generate samples from tokenized documents
@@ -380,6 +384,7 @@ def prepare_calibration_input_patched(
 
     Returns (inps, outs, attention_mask, position_ids) where position_ids may be None.
     """
+    print(f"[DEBUG] prepare_calibration_input_patched called with arch={arch}")
     if arch is None:
         arch = get_model_architecture(model)
 
@@ -512,12 +517,15 @@ def wrap_bloom_layer_forwards(layers):
     """Wrap forward methods of BLOOM layers to handle alibi and ignore position_ids."""
     print(f"[DEBUG] wrap_bloom_layer_forwards: wrapping {len(layers)} layers")
     from transformers.models.bloom.modeling_bloom import build_alibi_tensor
+
     original_forwards = []
     for layer in layers:
         original_forward = layer.forward
+
         # Capture layer and build_alibi_tensor in closure
         def make_wrapped(orig, lyr):
             printed = [False]  # mutable container for closure
+
             def wrapped(hidden_states, attention_mask, **kwargs):
                 # Remove position_ids if present
                 kwargs.pop("position_ids", None)
@@ -528,24 +536,80 @@ def wrap_bloom_layer_forwards(layers):
                     batch_size = attention_mask.shape[0]
                     seq_length = attention_mask.shape[-1]
                     # Create token-wise mask of all ones (no padding)
-                    attention_mask_2d = torch.ones(batch_size, seq_length, dtype=attention_mask.dtype, device=attention_mask.device)
+                    attention_mask_2d = torch.ones(
+                        batch_size,
+                        seq_length,
+                        dtype=attention_mask.dtype,
+                        device=attention_mask.device,
+                    )
                 else:
                     attention_mask_2d = attention_mask
                 if not printed[0]:
-                    print(f"[DEBUG] BLOOM wrapper: attention_mask shape {attention_mask.shape}, attention_mask_2d shape {attention_mask_2d.shape}, num_heads {lyr.self_attention.num_heads}")
+                    print(
+                        f"[DEBUG] BLOOM wrapper: attention_mask shape {attention_mask.shape}, "
+                        f"attention_mask_2d shape {attention_mask_2d.shape}, "
+                        f"num_heads {lyr.self_attention.num_heads}"
+                    )
                     printed[0] = True
-                alibi = build_alibi_tensor(attention_mask_2d, lyr.self_attention.num_heads, hidden_states.dtype)
+                alibi = build_alibi_tensor(
+                    attention_mask_2d, lyr.self_attention.num_heads, hidden_states.dtype
+                )
                 if not printed[0]:
                     print(f"[DEBUG] BLOOM wrapper: alibi shape {alibi.shape}")
                 # Pass alibi to layer forward
                 return orig(hidden_states, attention_mask=attention_mask, alibi=alibi, **kwargs)
+
             return wrapped
+
         layer.forward = make_wrapped(original_forward, layer)
         original_forwards.append(original_forward)
     return original_forwards
 
 
 def unwrap_bloom_layer_forwards(layers, original_forwards):
+    """Restore original forward methods."""
+    for layer, original in zip(layers, original_forwards, strict=True):
+        layer.forward = original
+
+
+def wrap_gptj_layer_forwards(layers):
+    """Wrap forward methods of GPT-J layers to compute position_embeddings if missing."""
+    print(f"[DEBUG] wrap_gptj_layer_forwards: wrapping {len(layers)} layers")
+    original_forwards = []
+    for layer in layers:
+        original_forward = layer.forward
+        # Find rotary_emb in attention or attn
+        rotary_emb = None
+        if hasattr(layer, 'attention') and hasattr(layer.attention, 'rotary_emb'):
+            rotary_emb = layer.attention.rotary_emb
+        elif hasattr(layer, 'attn') and hasattr(layer.attn, 'rotary_emb'):
+            rotary_emb = layer.attn.rotary_emb
+        else:
+            # No rotary_emb found, skip wrapping for this layer
+            original_forwards.append(original_forward)
+            continue
+
+        # Capture rotary_emb in closure
+        def make_wrapped(orig, rot):
+            def wrapped(*args, **kwargs):
+                if (
+                    kwargs.get("position_embeddings") is None
+                    and kwargs.get("position_ids") is not None
+                ):
+                    position_ids = kwargs["position_ids"]
+                    # rotary_emb.forward expects x (dummy) and position_ids
+                    dummy = torch.zeros(1, dtype=rot.inv_freq.dtype, device=position_ids.device)
+                    cos, sin = rot.forward(dummy, position_ids)
+                    kwargs["position_embeddings"] = (cos, sin)
+                return orig(*args, **kwargs)
+            return wrapped
+
+        layer.forward = make_wrapped(original_forward, rotary_emb)
+        original_forwards.append(original_forward)
+    return original_forwards
+
+
+def unwrap_gptj_layer_forwards(layers, original_forwards):
     """Restore original forward methods."""
     for layer, original in zip(layers, original_forwards, strict=True):
         layer.forward = original
@@ -566,7 +630,7 @@ def prune_wanda_patched(
     print(f"[DEBUG] prune_wanda_patched detected architecture: {arch}")
 
     # Adapt model attributes
-    print(f"[DEBUG] Adapting model for pruning...")
+    print("[DEBUG] Adapting model for pruning...")
     model, original = adapt_model_for_pruning(model, arch)
     print(f"[DEBUG] Model adapted, original attrs: {list(original.keys())}")
 
@@ -597,6 +661,10 @@ def prune_wanda_patched(
                 original_forwards = wrap_bloom_layer_forwards(layers)
                 original_find_layers = None
                 original_wrapped_pair = None
+            elif arch == "gptj":
+                original_forwards = wrap_gptj_layer_forwards(layers)
+                original_find_layers = None
+                original_wrapped_pair = None
             else:
                 original_forwards = None
                 original_find_layers = None
@@ -604,10 +672,10 @@ def prune_wanda_patched(
             print(f"[DEBUG] Starting pruning for arch={arch}")
             try:
                 if arch == "gpt2":
-                    print(f"[DEBUG] Calling prune_wanda_gpt2")
+                    print("[DEBUG] Calling prune_wanda_gpt2")
                     return prune_wanda_gpt2(args, model, tokenizer, device, prune_n, prune_m)
                 else:
-                    print(f"[DEBUG] Calling original_prune_wanda")
+                    print("[DEBUG] Calling original_prune_wanda")
                     return original_prune_wanda(args, model, tokenizer, device, prune_n, prune_m)
             finally:
                 prune_module.prepare_calibration_input = original_prepare
@@ -617,6 +685,8 @@ def prune_wanda_patched(
                     unwrap_gpt_neox_layer_forwards(layers, original_forwards)
                 elif arch == "bloom":
                     unwrap_bloom_layer_forwards(layers, original_forwards)
+                elif arch == "gptj":
+                    unwrap_gptj_layer_forwards(layers, original_forwards)
                 if original_find_layers is not None:
                     unpatch_find_layers(original_find_layers)
                 if original_wrapped_pair is not None:
@@ -682,6 +752,20 @@ def prune_sparsegpt_patched(
             finally:
                 prune_module.prepare_calibration_input = original_prepare
                 unwrap_bloom_layer_forwards(layers, original_forwards)
+        elif arch == "gptj":
+            # GPT-J needs position_embeddings computed for rotary embeddings
+            original_forwards = wrap_gptj_layer_forwards(layers)
+            import lib.prune as prune_module
+
+            original_prepare = prune_module.prepare_calibration_input
+            prune_module.prepare_calibration_input = lambda m, d, dev: (
+                prepare_calibration_input_patched(m, d, dev, arch)
+            )
+            try:
+                return original_prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m)
+            finally:
+                prune_module.prepare_calibration_input = original_prepare
+                unwrap_gptj_layer_forwards(layers, original_forwards)
         else:
             # For other architectures (LLaMA), SparseGPT uses "
             "prepare_calibration_input internally"
@@ -728,161 +812,180 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     print("[INFO] Using custom GPT2 pruning with Conv1D support")
     print(f"[DEBUG] prune_wanda_gpt2 called with args: {args}")
     # Import inside function to avoid circular imports
-    print(f"[DEBUG] Importing lib.data...")
+    print("[DEBUG] Importing lib.data...")
     import torch
-    import lib.data
     from lib.data import get_loaders
     from lib.layerwrapper import WrappedGPT
-    from lib.prune import find_layers, prepare_calibration_input
+    from lib.prune import find_layers
     from transformers.pytorch_utils import Conv1D
-    print(f"[DEBUG] Imports done.")
+
+    print("[DEBUG] Imports done.")
+
+    # Apply GPT2-specific patches
+    original_find_layers = patch_find_layers_for_gpt2()
+    original_wrapped_pair = patch_wrapped_gpt_for_conv1d()
+    layers = model.model.layers
+    original_forwards = wrap_layer_forwards(layers)
 
     # Don't monkey-patch - use original get_wikitext2 which concatenates documents
     # original_get_wikitext2 = lib.data.get_wikitext2
     # lib.data.get_wikitext2 = get_wikitext2_patched
     # print(f"[DEBUG] Patched get_wikitext2")
-    print(f"[DEBUG] Using original get_wikitext2 (concatenates all documents)")
+    print("[DEBUG] Using original get_wikitext2 (concatenates all documents)")
 
-    if device is None:
-        device = torch.device("cuda:0")
-
-    use_cache = model.config.use_cache
-    model.config.use_cache = False
-
-    print("loading calibration data")
-    print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
     try:
-        dataloader, _ = get_loaders(
-            "wikitext2",
-            nsamples=args.nsamples,
-            seed=args.seed,
-            seqlen=model.seqlen,
-            tokenizer=tokenizer,
-        )
-        print("dataset loading complete")
-        print(f"[DEBUG] Dataloader obtained")
-    except Exception as e:
-        print(f"[ERROR] Failed to load dataloader: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
-    with torch.no_grad():
-        inps, outs, attention_mask, position_ids = prepare_calibration_input(
-            model, dataloader, device
-        )
+        if device is None:
+            device = torch.device("cuda:0")
 
-    layers = model.model.layers
-    for i in range(len(layers)):
-        layer = layers[i]
-        subset = find_layers(layer)
+        use_cache = model.config.use_cache
+        model.config.use_cache = False
 
-        if f"model.layers.{i}" in model.hf_device_map:
-            dev = model.hf_device_map[f"model.layers.{i}"]
-            inps, outs, attention_mask, position_ids = (
-                inps.to(dev),
-                outs.to(dev),
-                attention_mask.to(dev),
-                position_ids.to(dev),
+        print("loading calibration data")
+        print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
+        try:
+            dataloader, _ = get_loaders(
+                "wikitext2",
+                nsamples=args.nsamples,
+                seed=args.seed,
+                seqlen=model.seqlen,
+                tokenizer=tokenizer,
+            )
+            print("dataset loading complete")
+            print("[DEBUG] Dataloader obtained")
+        except Exception as e:
+            print(f"[ERROR] Failed to load dataloader: {e}")
+            import traceback
+
+            traceback.print_exc()
+            raise
+        with torch.no_grad():
+            inps, outs, attention_mask, position_ids = prepare_calibration_input_patched(
+                model, dataloader, device, arch="gpt2"
             )
 
-        wrapped_layers = {}
-        for name in subset:
-            wrapped_layers[name] = WrappedGPT(subset[name])
+        layers = model.model.layers
+        for i in range(len(layers)):
+            layer = layers[i]
+            subset = find_layers(layer)
 
-        def add_batch(name):
-            def tmp(_, inp, out, wl=wrapped_layers, n=name):  # noqa: B023
-                wl[n].add_batch(inp[0].data, out.data)
+            if f"model.layers.{i}" in model.hf_device_map:
+                dev = model.hf_device_map[f"model.layers.{i}"]
+                inps, outs, attention_mask, position_ids = (
+                    inps.to(dev),
+                    outs.to(dev),
+                    attention_mask.to(dev),
+                    position_ids.to(dev),
+                )
 
-            return tmp  # noqa: B023
+            wrapped_layers = {}
+            for name in subset:
+                wrapped_layers[name] = WrappedGPT(subset[name])
 
-        handles = []
-        for name in wrapped_layers:
-            handles.append(subset[name].register_forward_hook(add_batch(name)))
-        for j in range(args.nsamples):
-            with torch.no_grad():
-                outs[j] = layer(
-                    inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids
-                )[0]
-        for h in handles:
-            h.remove()
+            def add_batch(name):
+                def tmp(_, inp, out, wl=wrapped_layers, n=name):  # noqa: B023
+                    wl[n].add_batch(inp[0].data, out.data)
 
-        for name in subset:
-            print(f"pruning layer {i} name {name}")
-            layer_module = subset[name]
-            weight = layer_module.weight.data
-            is_conv1d = isinstance(layer_module, Conv1D)
+                return tmp  # noqa: B023
 
-            # For Conv1D, transpose weight to (output, input) for metric calculation
-            if is_conv1d:
-                weight_t = weight.t()  # (output, input)
-            else:
-                weight_t = weight  # (output, input) already for Linear
+            handles = []
+            for name in wrapped_layers:
+                handles.append(subset[name].register_forward_hook(add_batch(name)))
+            for j in range(args.nsamples):
+                with torch.no_grad():
+                    outs[j] = layer(
+                        inps[j].unsqueeze(0),
+                        attention_mask=attention_mask,
+                        position_ids=position_ids,
+                    )[0]
+            for h in handles:
+                h.remove()
 
-            # scaler_row corresponds to input dimension (columns in WrappedGPT)
-            scaler = wrapped_layers[name].scaler_row
-            w_metric = torch.abs(weight_t) * torch.sqrt(scaler.reshape((1, -1)))
+            for name in subset:
+                print(f"pruning layer {i} name {name}")
+                layer_module = subset[name]
+                weight = layer_module.weight.data
+                is_conv1d = isinstance(layer_module, Conv1D)
 
-            w_mask = torch.zeros_like(w_metric) == 1
-            if prune_n != 0:
-                # structured n:m sparsity
-                for ii in range(w_metric.shape[1]):
-                    if ii % prune_m == 0:
-                        tmp = w_metric[:, ii : (ii + prune_m)].float()
-                        w_mask.scatter_(
-                            1, ii + torch.topk(tmp, prune_n, dim=1, largest=False)[1], True
-                        )
-            else:
-                sort_res = torch.sort(w_metric, dim=-1, stable=True)
+                # For Conv1D, transpose weight to (output, input) for metric calculation
+                if is_conv1d:
+                    weight_t = weight.t()  # (output, input)
+                else:
+                    weight_t = weight  # (output, input) already for Linear
 
-                if args.use_variant:
-                    # wanda variant
-                    tmp_metric = torch.cumsum(sort_res[0], dim=1)
-                    sum_before = w_metric.sum(dim=1)
+                # scaler_row corresponds to input dimension (columns in WrappedGPT)
+                scaler = wrapped_layers[name].scaler_row
+                w_metric = torch.abs(weight_t) * torch.sqrt(scaler.reshape((1, -1)))
 
-                    alpha = 0.4
-                    alpha_hist = [0.0, 0.8]
-                    from lib.prune import return_given_alpha
+                w_mask = torch.zeros_like(w_metric) == 1
+                if prune_n != 0:
+                    # structured n:m sparsity
+                    for ii in range(w_metric.shape[1]):
+                        if ii % prune_m == 0:
+                            tmp = w_metric[:, ii : (ii + prune_m)].float()
+                            w_mask.scatter_(
+                                1, ii + torch.topk(tmp, prune_n, dim=1, largest=False)[1], True
+                            )
+                else:
+                    sort_res = torch.sort(w_metric, dim=-1, stable=True)
 
-                    w_mask, cur_sparsity = return_given_alpha(
-                        alpha, sort_res, w_metric, tmp_metric, sum_before
-                    )
-                    while (torch.abs(cur_sparsity - args.sparsity_ratio) > 0.001) and (
-                        alpha_hist[1] - alpha_hist[0] >= 0.001
-                    ):
-                        if cur_sparsity > args.sparsity_ratio:
-                            alpha_new = (alpha + alpha_hist[0]) / 2.0
-                            alpha_hist[1] = alpha
-                        else:
-                            alpha_new = (alpha + alpha_hist[1]) / 2.0
-                            alpha_hist[0] = alpha
+                    if args.use_variant:
+                        # wanda variant
+                        tmp_metric = torch.cumsum(sort_res[0], dim=1)
+                        sum_before = w_metric.sum(dim=1)
 
-                        alpha = alpha_new
+                        alpha = 0.4
+                        alpha_hist = [0.0, 0.8]
+                        from lib.prune import return_given_alpha
+
                         w_mask, cur_sparsity = return_given_alpha(
                             alpha, sort_res, w_metric, tmp_metric, sum_before
                         )
-                    print(f"alpha found {alpha} sparsity {cur_sparsity:.6f}")
-                else:
-                    # unstructured pruning
-                    indices = sort_res[1][:, : int(w_metric.shape[1] * args.sparsity_ratio)]
-                    w_mask.scatter_(1, indices, True)
+                        while (torch.abs(cur_sparsity - args.sparsity_ratio) > 0.001) and (
+                            alpha_hist[1] - alpha_hist[0] >= 0.001
+                        ):
+                            if cur_sparsity > args.sparsity_ratio:
+                                alpha_new = (alpha + alpha_hist[0]) / 2.0
+                                alpha_hist[1] = alpha
+                            else:
+                                alpha_new = (alpha + alpha_hist[1]) / 2.0
+                                alpha_hist[0] = alpha
 
-            # If Conv1D, transpose mask back to (input, output)
-            if is_conv1d:
-                w_mask = w_mask.t()  # (input, output)
+                            alpha = alpha_new
+                            w_mask, cur_sparsity = return_given_alpha(
+                                alpha, sort_res, w_metric, tmp_metric, sum_before
+                            )
+                        print(f"alpha found {alpha} sparsity {cur_sparsity:.6f}")
+                    else:
+                        # unstructured pruning
+                        indices = sort_res[1][:, : int(w_metric.shape[1] * args.sparsity_ratio)]
+                        w_mask.scatter_(1, indices, True)
 
-            # Apply mask to original weight
-            weight[w_mask] = 0
+                # If Conv1D, transpose mask back to (input, output)
+                if is_conv1d:
+                    w_mask = w_mask.t()  # (input, output)
 
-        for j in range(args.nsamples):
-            with torch.no_grad():
-                outs[j] = layer(
-                    inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids
-                )[0]
-        inps, outs = outs, inps
+                # Apply mask to original weight
+                weight[w_mask] = 0
 
-    model.config.use_cache = use_cache
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+            for j in range(args.nsamples):
+                with torch.no_grad():
+                    outs[j] = layer(
+                        inps[j].unsqueeze(0),
+                        attention_mask=attention_mask,
+                        position_ids=position_ids,
+                    )[0]
+            inps, outs = outs, inps
+
+        model.config.use_cache = use_cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    finally:
+        # Restore patches
+        unwrap_layer_forwards(layers, original_forwards)
+        if original_find_layers is not None:
+            unpatch_find_layers(original_find_layers)
+        if original_wrapped_pair is not None:
+            unpatch_wrapped_gpt(original_wrapped_pair)
 
 
 def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
@@ -940,10 +1043,11 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
             tokenizer=tokenizer,
         )
         print("dataset loading complete")
-        print(f"[DEBUG] Dataloader obtained")
+        print("[DEBUG] Dataloader obtained")
     except Exception as e:
         print(f"[ERROR] Failed to load dataloader: {e}")
         import traceback
+
         traceback.print_exc()
         raise
 
