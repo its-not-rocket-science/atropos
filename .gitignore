@@ -54,3 +54,4 @@ CLAUDE.md
 
 test_data/models/
 test_data/pruned_models/
+test_output/

@@ -170,20 +170,21 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 
 **Note:** Validation requires both original and pruned models in `test_data/`. Run `download_test_models.py` and `prune_models.py` first if models are missing.
 
-### 5. Advanced Pruning Frameworks ⏳
+### 5. Advanced Pruning Frameworks ✅
 
 **Goal:** Integrate and compare state-of-the-art pruning frameworks (Wanda, SparseGPT) against our PyTorch magnitude-based approach.
 
 **Tasks:**
 - [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
 - [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
-- [ ] Run comparison: magnitude vs Wanda vs SparseGPT
+- [x] Run comparison: magnitude vs Wanda vs SparseGPT - comprehensive comparison script created
 - [ ] Measure quality/speed trade-offs
 - [ ] Update Atropos strategies with framework-specific recommendations
 
 **Deliverables:**
 - [x] `scripts/wanda_pruning.py` — Wanda integration (created, compatibility resolved via patched_prune.py)
 - [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, compatibility resolved via patched_prune.py)
+- [x] `scripts/compare_pruning_frameworks.py` — Comprehensive comparison of magnitude, wanda-patched, sparsegpt-patched
 - [ ] `docs/framework-comparison.md` — Comparison report
 - [ ] Updated presets with framework-specific values
 
