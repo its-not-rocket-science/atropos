@@ -185,7 +185,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] `scripts/wanda_pruning.py` — Wanda integration (created, compatibility resolved via patched_prune.py)
 - [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, compatibility resolved via patched_prune.py)
 - [x] `scripts/compare_pruning_frameworks.py` — Comprehensive comparison of magnitude, wanda-patched, sparsegpt-patched
-- [ ] `docs/framework-comparison.md` — Comparison report
+- [x] `docs/framework-comparison.md` — Comparison report (created)
 - [ ] Updated presets with framework-specific values
 
 ---
