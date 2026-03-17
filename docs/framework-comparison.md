@@ -183,6 +183,15 @@ result = framework.prune(
 )
 ```
 
+### Framework-Specific Strategy Presets
+
+New optimization strategy presets have been added to Atropos for each pruning framework:
+- `magnitude_pruning`: PyTorch native unstructured pruning (3% memory reduction at 10% sparsity)
+- `wanda_pruning`: Wanda patched framework (9% memory reduction at 10% sparsity)
+- `sparsegpt_pruning`: SparseGPT patched framework (9.5% memory reduction at 10% sparsity)
+
+These presets can be used with the `atropos preset` CLI command or referenced in scenario YAML files.
+
 ## Limitations and Notes
 
 1. **Calibration Data**: Wanda and SparseGPT require calibration data (Wikitext2 by default)

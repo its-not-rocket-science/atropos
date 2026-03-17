@@ -109,6 +109,31 @@ STRATEGIES: dict[str, OptimizationStrategy] = {
         power_reduction_fraction=0.05,
         quality_risk="medium",
     ),
+    # Framework-specific pruning strategies (based on framework comparison)
+    "magnitude_pruning": OptimizationStrategy(
+        name="magnitude_pruning",
+        parameter_reduction_fraction=0.10,
+        memory_reduction_fraction=0.03,  # ~3% actual from GPT2 testing (unstructured)
+        throughput_improvement_fraction=0.02,
+        power_reduction_fraction=0.01,
+        quality_risk="low",
+    ),
+    "wanda_pruning": OptimizationStrategy(
+        name="wanda_pruning",
+        parameter_reduction_fraction=0.10,
+        memory_reduction_fraction=0.09,  # ~9% actual from GPT2 testing
+        throughput_improvement_fraction=0.08,
+        power_reduction_fraction=0.05,
+        quality_risk="medium",
+    ),
+    "sparsegpt_pruning": OptimizationStrategy(
+        name="sparsegpt_pruning",
+        parameter_reduction_fraction=0.10,
+        memory_reduction_fraction=0.095,  # ~9.5% actual from GPT2 testing
+        throughput_improvement_fraction=0.10,
+        power_reduction_fraction=0.06,
+        quality_risk="low",
+    ),
 }
 
 QUANTIZATION_BONUS = OptimizationStrategy(
