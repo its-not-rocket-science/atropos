@@ -14,6 +14,7 @@ Atropos is a Python CLI tool for estimating ROI (performance, energy, cost, brea
 - make sure mypy src passes (no lines too long etc)
 - Do not modify the type ignore comment on line 133 of src/atropos/validation/runner.py
 - Run ruff format --check before marking code as done
+- Never add "Co-Authored-By:" or similar attribution lines to commit messages
 
 ## Development Commands
 
