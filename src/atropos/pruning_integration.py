@@ -624,12 +624,156 @@ class WandaPatchedFramework(PruningFramework):
             return 180
 
 
+class SparseGPTPatchedFramework(PruningFramework):
+    """Integration with patched SparseGPT for multi-architecture pruning."""
+
+    name = "sparsegpt-patched"
+    description = "Patched SparseGPT for GPT2, BLOOM, GPT-J, OPT, Pythia architectures"
+
+    def _check_availability(self) -> bool:
+        """Check if patched SparseGPT is available."""
+        try:
+            # Add scripts directory to path
+            import sys
+            from pathlib import Path
+
+            scripts_dir = Path(__file__).parent.parent.parent / "scripts"
+            sys.path.insert(0, str(scripts_dir))
+            # Try to import patched_prune
+            import patched_prune
+
+            # Ensure required functions exist
+            assert hasattr(patched_prune, "prune_sparsegpt_patched")
+            assert hasattr(patched_prune, "check_sparsity_patched")
+            # Also need external/wanda
+            wanda_dir = Path(__file__).parent.parent.parent / "external" / "wanda"
+            if not wanda_dir.exists():
+                raise RuntimeError("Wanda submodule not found. Run: git submodule update --init")
+            sys.path.insert(0, str(wanda_dir))
+            # Clean up path modifications (they remain for this session)
+            return True
+        except ImportError as e:
+            raise RuntimeError(
+                "Patched SparseGPT not available. Ensure scripts/patched_prune.py exists "
+                "and external/wanda submodule is initialized."
+            ) from e
+
+    def prune(
+        self,
+        model_name: str,
+        output_path: Path,
+        target_sparsity: float,
+        **kwargs: Any,
+    ) -> PruningResult:
+        """Prune model using patched SparseGPT."""
+        try:
+            import argparse
+            import sys
+            from pathlib import Path
+
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
+            # Add scripts and wanda to path
+            scripts_dir = Path(__file__).parent.parent.parent / "scripts"
+            sys.path.insert(0, str(scripts_dir))
+            wanda_dir = Path(__file__).parent.parent.parent / "external" / "wanda"
+            sys.path.insert(0, str(wanda_dir))
+
+            from patched_prune import check_sparsity_patched, prune_sparsegpt_patched
+
+            print(f"Loading model: {model_name}")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                device_map="auto",
+            )
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            if tokenizer.pad_token is None:
+                tokenizer.pad_token = tokenizer.eos_token
+
+            original_params = sum(p.numel() for p in model.parameters())
+
+            # Determine device
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            model.to(device)
+
+            # Create args namespace similar to test script
+            args = argparse.Namespace(
+                model=model_name,
+                seed=kwargs.get("seed", 0),
+                nsamples=kwargs.get("nsamples", 1),
+                sparsity_ratio=target_sparsity,
+                sparsity_type=kwargs.get("sparsity_type", "unstructured"),
+                use_variant=kwargs.get("use_variant", False),
+                save=str(output_path),
+                save_model=str(output_path),
+                cache_dir=kwargs.get("cache_dir", None),
+            )
+
+            # Check sparsity before
+            sparsity_before = check_sparsity_patched(model)
+
+            # Perform pruning
+            print(f"Applying patched SparseGPT with target sparsity: {target_sparsity:.2%}")
+            prune_sparsegpt_patched(
+                args,
+                model,
+                tokenizer,
+                device,
+                prune_n=kwargs.get("prune_n", 0),
+                prune_m=kwargs.get("prune_m", 0),
+            )
+
+            # Check sparsity after
+            sparsity_after = check_sparsity_patched(model)
+            pruned_params = sum(p.numel() for p in model.parameters())
+
+            # Save pruned model
+            output_path.mkdir(parents=True, exist_ok=True)
+            model.save_pretrained(output_path)
+            tokenizer.save_pretrained(output_path)
+
+            return PruningResult(
+                success=True,
+                original_params=original_params,
+                pruned_params=pruned_params,
+                sparsity_achieved=sparsity_after,
+                output_path=output_path,
+                metadata={
+                    "framework": "sparsegpt-patched",
+                    "sparsity_before": sparsity_before,
+                    "sparsity_after": sparsity_after,
+                    "device": str(device),
+                },
+            )
+
+        except Exception as e:
+            return PruningResult(
+                success=False,
+                error_message=str(e),
+            )
+
+    def estimate_pruning_time(self, model_params_b: float) -> float:
+        """Estimate pruning time based on model size."""
+        # SparseGPT is one-shot and relatively fast, but patched version might be slower
+        if model_params_b <= 1:
+            return 10
+        elif model_params_b <= 7:
+            return 25
+        elif model_params_b <= 13:
+            return 50
+        else:
+            return 100
+
+
 # Registry of available frameworks
 PRUNING_FRAMEWORKS: dict[str, type[PruningFramework]] = {
     "llm-pruner": LLMPrunerFramework,
     "wanda": WandaFramework,
     "sparsegpt": SparseGPTFramework,
     "wanda-patched": WandaPatchedFramework,
+    "sparsegpt-patched": SparseGPTPatchedFramework,
 }
 
 
