@@ -49,6 +49,7 @@ def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
     print(f"[PATCH] Using patched get_wikitext2 with nsamples={nsamples}, seqlen={seqlen}")
     import random
     import sys
+
     sys.stdout.flush()
 
     from datasets import load_dataset
@@ -776,6 +777,7 @@ def prune_wanda_patched(
             layers = model.model.layers
             # Monkey-patch get_wikitext2 to avoid huge concatenation
             import lib.data
+
             original_get_wikitext2 = lib.data.get_wikitext2
             lib.data.get_wikitext2 = get_wikitext2_patched
             # Additionally, for GPT2 we need to wrap layer forwards to ignore position_ids

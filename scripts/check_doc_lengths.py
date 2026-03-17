@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Check document lengths in wikitext2."""
 
+import sys
+
 from datasets import load_dataset
 from transformers import AutoTokenizer
-import sys
 
 print("Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained("gpt2")

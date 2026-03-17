@@ -9,19 +9,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "wanda"))
 
 import torch
 from patched_prune import (
-    get_model_architecture,
     adapt_model_for_pruning,
-    restore_model_attrs,
     fix_gptj_rotary_mismatch,
+    get_model_architecture,
+    restore_model_attrs,
 )
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def test_model_compatibility(model_id: str, arch: str):
     """Test that model can be adapted for pruning."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing compatibility: {model_id}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     try:
         # Load model
@@ -64,13 +64,13 @@ def test_model_compatibility(model_id: str, arch: str):
         dummy_input = torch.randint(0, tokenizer.vocab_size, (1, 16), dtype=torch.long)
         with torch.no_grad():
             try:
-                outputs = adapted(dummy_input)
+                _ = adapted(dummy_input)
                 print("Forward pass successful")
             except Exception as e:
                 print(f"Forward pass failed: {e}")
                 # Some models require attention_mask, try again
                 attention_mask = torch.ones_like(dummy_input)
-                outputs = adapted(dummy_input, attention_mask=attention_mask)
+                _ = adapted(dummy_input, attention_mask=attention_mask)
                 print("Forward pass with attention_mask successful")
 
         # Restore original attributes
@@ -100,6 +100,7 @@ def test_model_compatibility(model_id: str, arch: str):
     except Exception as e:
         print(f"[FAIL] {model_id} compatibility test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -120,7 +121,7 @@ def main():
         if not test_model_compatibility(model_id, arch):
             success = False
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if success:
         print("All compatibility tests passed!")
         sys.exit(0)

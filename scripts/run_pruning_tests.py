@@ -3,9 +3,8 @@
 
 import subprocess
 import sys
-import threading
-import time
 from pathlib import Path
+
 
 def run_with_timeout(cmd, timeout_sec=1800):  # 30 minutes
     """Run command with timeout, returns (success, output)."""
@@ -32,6 +31,7 @@ def run_with_timeout(cmd, timeout_sec=1800):  # 30 minutes
         print(f"[ERROR] Error: {e}")
         return False, str(e)
 
+
 def main():
     script_dir = Path(__file__).parent
     tests = [
@@ -41,9 +41,9 @@ def main():
 
     overall = True
     for name, script in tests:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Testing {name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         if not script.exists():
             print(f"Script not found: {script}")
             overall = False
@@ -51,14 +51,21 @@ def main():
 
         # Use small model for GPT-J to speed up
         if "gptj" in script.name.lower():
-            cmd = [sys.executable, str(script), "--model", "Milos/slovak-gpt-j-162M", "--device", "cpu"]
+            cmd = [
+                sys.executable,
+                str(script),
+                "--model",
+                "Milos/slovak-gpt-j-162M",
+                "--device",
+                "cpu",
+            ]
         else:
             cmd = [sys.executable, str(script)]
 
         success, output = run_with_timeout(cmd, timeout_sec=1800)  # 30 minutes
 
         # Print last 20 lines of output
-        lines = output.strip().split('\n')
+        lines = output.strip().split("\n")
         if len(lines) > 20:
             print("\n... (output truncated) ...")
             for line in lines[-20:]:
@@ -69,13 +76,14 @@ def main():
         if not success:
             overall = False
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if overall:
         print("All tests passed!")
         sys.exit(0)
     else:
         print("Some tests failed.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

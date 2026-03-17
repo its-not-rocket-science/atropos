@@ -6,9 +6,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "external" / "wanda"))
 
+import time
+
 from patched_prune import get_wikitext2_patched
 from transformers import AutoTokenizer
-import time
 
 print("Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -24,4 +25,5 @@ try:
 except Exception as e:
     print(f"Error: {e}")
     import traceback
+
     traceback.print_exc()

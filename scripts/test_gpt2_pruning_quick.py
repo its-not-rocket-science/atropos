@@ -2,7 +2,6 @@
 """Quick test for GPT2 pruning with patched functions."""
 
 import sys
-sys.stdout.flush()
 from pathlib import Path
 
 # Add external/wanda to path
@@ -96,6 +95,7 @@ def test_gpt2(model_id: str = "gpt2", device: torch.device = None):
     except Exception as e:
         print(f"[FAIL] Error testing GPT2: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

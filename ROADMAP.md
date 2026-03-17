@@ -6,7 +6,7 @@
 - ✅ add CSV-to-markdown report generation
 - ✅ expand comparison and sensitivity CLI output
 - ✅ publish documentation pages
-- [ ] stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT)
+- [x] stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT) - compatibility extended to GPT2, BLOOM, GPT-J, OPT, Pythia via patched_prune.py
   - Comprehensive test coverage across diverse model architectures
   - Clear documentation on limitations, dependencies, and failure modes
   - Validation suite to confirm model/environment compatibility
@@ -175,15 +175,15 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 **Goal:** Integrate and compare state-of-the-art pruning frameworks (Wanda, SparseGPT) against our PyTorch magnitude-based approach.
 
 **Tasks:**
-- [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility issues with non-LLaMA models
-- [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility issues with non-LLaMA models
+- [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
+- [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
 - [ ] Run comparison: magnitude vs Wanda vs SparseGPT
 - [ ] Measure quality/speed trade-offs
 - [ ] Update Atropos strategies with framework-specific recommendations
 
 **Deliverables:**
-- [x] `scripts/wanda_pruning.py` — Wanda integration (created, needs debugging for non-LLaMA models)
-- [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, needs debugging for non-LLaMA models)
+- [x] `scripts/wanda_pruning.py` — Wanda integration (created, compatibility resolved via patched_prune.py)
+- [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, compatibility resolved via patched_prune.py)
 - [ ] `docs/framework-comparison.md` — Comparison report
 - [ ] Updated presets with framework-specific values
 
