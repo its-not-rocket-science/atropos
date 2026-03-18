@@ -21,13 +21,20 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict, cast
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
+
+
+class PromptDict(TypedDict):
+    name: str
+    prompt: str
+    expected_keywords: list[str]
+
 
 # Simple code completion prompts for evaluation
-EVAL_PROMPTS = [
+EVAL_PROMPTS: list[PromptDict] = [
     {
         "name": "hello_function",
         "prompt": 'def hello_world():\n    """Print hello world"""\n    ',
@@ -122,7 +129,9 @@ class BenchmarkReport:
         }
 
 
-def calculate_perplexity(model, tokenizer, text: str, device: str = "cpu") -> float:
+def calculate_perplexity(
+    model: PreTrainedModel, tokenizer: PreTrainedTokenizer, text: str, device: str = "cpu"
+) -> float:
     """Calculate perplexity of a text under the model."""
     encodings = tokenizer(text, return_tensors="pt")
     input_ids = encodings.input_ids.to(device)
@@ -136,8 +145,8 @@ def calculate_perplexity(model, tokenizer, text: str, device: str = "cpu") -> fl
 
 
 def evaluate_completion(
-    model,
-    tokenizer,
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
     prompt: str,
     expected_keywords: list[str],
     device: str = "cpu",
@@ -193,7 +202,7 @@ def benchmark_model(
         print("  Loading model...", end=" ", flush=True)
 
         # Load model
-        load_kwargs = {"torch_dtype": torch.float32}
+        load_kwargs: dict[str, Any] = {"torch_dtype": torch.float32}
         if cache_dir and not is_pruned:
             load_kwargs["cache_dir"] = cache_dir
 
@@ -276,13 +285,14 @@ def run_benchmarks(
     device: str = "cpu",
 ) -> BenchmarkReport:
     """Run benchmarks on all models."""
-    models = models or BENCHMARK_MODELS
+    if models is None:
+        models = BENCHMARK_MODELS
 
     # Build list of models to benchmark (baseline + pruned variants)
-    benchmark_configs = []
+    benchmark_configs: list[dict[str, Any]] = []
 
     for model_info in models:
-        model_id = model_info["model_id"]
+        model_id: str = cast(str, model_info["model_id"])
 
         # Add baseline
         benchmark_configs.append(

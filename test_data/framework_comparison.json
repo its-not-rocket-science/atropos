@@ -1,0 +1,49 @@
+{
+  "total_tests": 2,
+  "successful": 2,
+  "failed": 0,
+  "duration_sec": 529.089586,
+  "start_time": "2026-03-18T01:20:47.204128",
+  "end_time": "2026-03-18T01:29:36.293714",
+  "config": {
+    "models": [
+      "gpt2"
+    ],
+    "frameworks": [
+      "wanda-patched",
+      "sparsegpt-patched"
+    ],
+    "target_sparsity": 0.1,
+    "nsamples": 1,
+    "seed": 0,
+    "device": "cpu"
+  },
+  "results": [
+    {
+      "model": "gpt2",
+      "framework": "wanda-patched",
+      "status": "success",
+      "target_sparsity": 0.1,
+      "achieved_sparsity": 0.09928385416666667,
+      "original_params": 124439808,
+      "pruned_params": 124439808,
+      "pruning_time_sec": 152.56901955604553,
+      "output_path": "test_data\\framework_comparison\\wanda-patched\\gpt2\\gpt2_wanda_patched",
+      "error_message": "",
+      "timestamp": "2026-03-18T01:20:47.205125"
+    },
+    {
+      "model": "gpt2",
+      "framework": "sparsegpt-patched",
+      "status": "success",
+      "target_sparsity": 0.1,
+      "achieved_sparsity": 0.10000360747914255,
+      "original_params": 124439808,
+      "pruned_params": 124439808,
+      "pruning_time_sec": 376.04583501815796,
+      "output_path": "test_data\\framework_comparison\\sparsegpt-patched\\gpt2\\gpt2_sparsegpt_patched",
+      "error_message": "",
+      "timestamp": "2026-03-18T01:23:20.245884"
+    }
+  ]
+}

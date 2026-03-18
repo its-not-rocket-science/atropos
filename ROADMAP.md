@@ -178,7 +178,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 - [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
 - [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
 - [x] Run comparison: magnitude vs Wanda vs SparseGPT - comprehensive comparison script created
-- [ ] Measure quality/speed trade-offs
+- [x] Measure quality/speed trade-offs
 - [x] Update Atropos strategies with framework-specific recommendations
 
 **Deliverables:**

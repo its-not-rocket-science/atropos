@@ -1,0 +1,92 @@
+{
+  "total_tests": 3,
+  "successful": 3,
+  "failed": 0,
+  "duration_sec": 85.648807,
+  "start_time": "2026-03-18T15:42:33.321100",
+  "end_time": "2026-03-18T15:43:58.969907",
+  "config": {
+    "models": [
+      "gpt2"
+    ],
+    "frameworks": [
+      "magnitude",
+      "wanda-patched",
+      "sparsegpt-patched"
+    ],
+    "pruned_dir": "test_data\\framework_comparison",
+    "cache_dir": "test_data\\models",
+    "device": "cpu"
+  },
+  "results": [
+    {
+      "model": "gpt2",
+      "framework": "magnitude",
+      "status": "success",
+      "target_sparsity": 0.0,
+      "achieved_sparsity": 0.0,
+      "original_params": 0,
+      "pruned_params": 0,
+      "pruning_time_sec": 0.0,
+      "pruning_output_path": "test_data\\framework_comparison\\magnitude\\gpt2\\gpt2_magnitude",
+      "baseline_perplexity": 105.63886505701608,
+      "pruned_perplexity": 105.23533021338453,
+      "perplexity_change_pct": -0.3819946791493348,
+      "baseline_completion_score": 0.6833333333333333,
+      "pruned_completion_score": 0.4833333333333333,
+      "completion_score_change_pct": -20.000000000000007,
+      "baseline_inference_time_ms": 2725.3912448883057,
+      "pruned_inference_time_ms": 2801.179552078247,
+      "inference_speedup_pct": -2.7808230224592005,
+      "quality_speed_ratio": null,
+      "error_message": "",
+      "timestamp": "2026-03-18T15:42:33.321100"
+    },
+    {
+      "model": "gpt2",
+      "framework": "wanda-patched",
+      "status": "success",
+      "target_sparsity": 0.1,
+      "achieved_sparsity": 0.09928385416666667,
+      "original_params": 124439808,
+      "pruned_params": 124439808,
+      "pruning_time_sec": 152.56901955604553,
+      "pruning_output_path": "test_data\\framework_comparison\\wanda-patched\\gpt2\\gpt2_wanda_patched",
+      "baseline_perplexity": 105.63886505701608,
+      "pruned_perplexity": 104.6979099936339,
+      "perplexity_change_pct": -0.8907281073819927,
+      "baseline_completion_score": 0.75,
+      "pruned_completion_score": 0.5833333333333333,
+      "completion_score_change_pct": -16.666666666666675,
+      "baseline_inference_time_ms": 2464.434337615967,
+      "pruned_inference_time_ms": 2415.1092529296875,
+      "inference_speedup_pct": 2.0014769285350558,
+      "quality_speed_ratio": -0.4450354109422309,
+      "error_message": "",
+      "timestamp": "2026-03-18T15:43:05.201856"
+    },
+    {
+      "model": "gpt2",
+      "framework": "sparsegpt-patched",
+      "status": "success",
+      "target_sparsity": 0.1,
+      "achieved_sparsity": 0.10000360747914255,
+      "original_params": 124439808,
+      "pruned_params": 124439808,
+      "pruning_time_sec": 376.04583501815796,
+      "pruning_output_path": "test_data\\framework_comparison\\sparsegpt-patched\\gpt2\\gpt2_sparsegpt_patched",
+      "baseline_perplexity": 105.63886505701608,
+      "pruned_perplexity": 109.9074623263109,
+      "perplexity_change_pct": 4.040745105497826,
+      "baseline_completion_score": 0.65,
+      "pruned_completion_score": 0.65,
+      "completion_score_change_pct": 0.0,
+      "baseline_inference_time_ms": 2446.4983463287354,
+      "pruned_inference_time_ms": 2396.167039871216,
+      "inference_speedup_pct": 2.057279398248836,
+      "quality_speed_ratio": 1.9641207261091145,
+      "error_message": "",
+      "timestamp": "2026-03-18T15:43:32.287368"
+    }
+  ]
+}
