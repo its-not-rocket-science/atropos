@@ -56,3 +56,4 @@ test_data/models/
 test_data/pruned_models/
 test_data/framework_comparison/
 test_output/
+.cache/
