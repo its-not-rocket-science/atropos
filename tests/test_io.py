@@ -30,7 +30,7 @@ def test_load_valid_yaml() -> None:
         f.flush()
         scenario = load_scenario(f.name)
     assert scenario.name == "test-scenario"
-    assert scenario.parameters_b == 34.0
+    assert scenario.parameters_b == pytest.approx(34.0, rel=1e-9)
     Path(f.name).unlink()
 
 

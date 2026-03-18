@@ -37,7 +37,6 @@ dev = [
   "mypy>=1.10",
   "build>=1.2.0",
   "types-PyYAML>=6.0.12",
-  "wanda>=0.1.0",
 ]
 
 [project.scripts]
@@ -53,6 +52,9 @@ where = ["src"]
 minversion = "8.0"
 addopts = "-q --cov=atropos --cov-report=term-missing"
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests that require external dependencies (skip in CI)",
+]
 
 [tool.ruff]
 line-length = 100

@@ -88,10 +88,10 @@ class TestExtractScenarioParams:
         )
         params = extract_scenario_params(telemetry)
 
-        assert params["parameters_b"] == 7.0
-        assert params["memory_gb"] == 16.0
-        assert params["throughput_toks_per_sec"] == 40.0
-        assert params["power_watts"] == 320.0
+        assert params["parameters_b"] == pytest.approx(7.0, rel=1e-9)
+        assert params["memory_gb"] == pytest.approx(16.0, rel=1e-9)
+        assert params["throughput_toks_per_sec"] == pytest.approx(40.0, rel=1e-9)
+        assert params["power_watts"] == pytest.approx(320.0, rel=1e-9)
         assert params["requests_per_day"] == 50000
         assert params["tokens_per_request"] == 1000
 
@@ -107,7 +107,7 @@ class TestExtractScenarioParams:
         params = extract_scenario_params(telemetry)
 
         # Should estimate power as ~10W per GB
-        assert params["power_watts"] == 160.0
+        assert params["power_watts"] == pytest.approx(160.0, rel=1e-9)
 
     def test_default_parameters(self):
         """Test default values for missing parameters."""
@@ -120,7 +120,7 @@ class TestExtractScenarioParams:
         )
         params = extract_scenario_params(telemetry)
 
-        assert params["parameters_b"] == 7.0  # Default value
+        assert params["parameters_b"] == pytest.approx(7.0, rel=1e-9)  # Default value
         assert params["requests_per_day"] == 50000  # Default value
 
 
@@ -143,11 +143,11 @@ class TestVLLMTelemetryParser:
         result = parser.parse(data)
 
         assert result.source == "vllm"
-        assert result.parameters_b == 7.0
-        assert result.memory_gb == 14.0
-        assert result.throughput_toks_per_sec == 45.5
-        assert result.latency_ms_per_request == 22.0
-        assert result.tokens_per_request == 1000.0
+        assert result.parameters_b == pytest.approx(7.0, rel=1e-9)
+        assert result.memory_gb == pytest.approx(14.0, rel=1e-9)
+        assert result.throughput_toks_per_sec == pytest.approx(45.5, rel=1e-9)
+        assert result.latency_ms_per_request == pytest.approx(22.0, rel=1e-9)
+        assert result.tokens_per_request == pytest.approx(1000.0, rel=1e-9)
 
     def test_parse_vllm_string_json(self):
         """Test parsing vLLM JSON from string."""
@@ -164,8 +164,8 @@ class TestVLLMTelemetryParser:
         parser = VLLMTelemetryParser()
         result = parser.parse(json_str)
 
-        assert result.parameters_b == 34.0
-        assert result.throughput_toks_per_sec == 30.0
+        assert result.parameters_b == pytest.approx(34.0, rel=1e-9)
+        assert result.throughput_toks_per_sec == pytest.approx(30.0, rel=1e-9)
 
     def test_vllm_model_name_parsing(self):
         """Test extracting parameters from various model names."""
@@ -188,7 +188,9 @@ class TestVLLMTelemetryParser:
                 },
             }
             result = parser.parse(data)
-            assert result.parameters_b == expected_params, f"Failed for {model_name}"
+            assert result.parameters_b == pytest.approx(expected_params, rel=1e-9), (
+                f"Failed for {model_name}"
+            )
 
     def test_vllm_parse_file(self, tmp_path: Path):
         """Test parsing vLLM from file."""
@@ -208,8 +210,8 @@ class TestVLLMTelemetryParser:
         parser = VLLMTelemetryParser()
         result = parser.parse_file(json_file)
 
-        assert result.throughput_toks_per_sec == 50.0
-        assert result.memory_gb == 16.0
+        assert result.throughput_toks_per_sec == pytest.approx(50.0, rel=1e-9)
+        assert result.memory_gb == pytest.approx(16.0, rel=1e-9)
 
 
 class TestTritonTelemetryParser:
@@ -236,9 +238,9 @@ class TestTritonTelemetryParser:
         result = parser.parse(data)
 
         assert result.source == "triton"
-        assert result.memory_gb == 16.0
-        assert result.parameters_b == 7.0
-        assert result.tokens_per_request == 4000.0  # batch_size * 1000
+        assert result.memory_gb == pytest.approx(16.0, rel=1e-9)
+        assert result.parameters_b == pytest.approx(7.0, rel=1e-9)
+        assert result.tokens_per_request == pytest.approx(4000.0, rel=1e-9)  # batch_size * 1000
 
     def test_triton_missing_model_stats(self):
         """Test error when model_stats is missing."""
@@ -260,10 +262,10 @@ class TestCSVTelemetryParser:
         result = parser.parse(csv_data)
 
         assert result.source == "csv"
-        assert result.memory_gb == 16.0
-        assert result.throughput_toks_per_sec == 40.0
-        assert result.latency_ms_per_request == 25.0
-        assert result.tokens_per_request == 1000.0
+        assert result.memory_gb == pytest.approx(16.0, rel=1e-9)
+        assert result.throughput_toks_per_sec == pytest.approx(40.0, rel=1e-9)
+        assert result.latency_ms_per_request == pytest.approx(25.0, rel=1e-9)
+        assert result.tokens_per_request == pytest.approx(1000.0, rel=1e-9)
 
     def test_parse_csv_with_mapping(self):
         """Test parsing CSV with field mapping."""
@@ -278,8 +280,8 @@ class TestCSVTelemetryParser:
         parser = CSVTelemetryParser(field_mapping=mapping)
         result = parser.parse(csv_data)
 
-        assert result.memory_gb == 32.0
-        assert result.throughput_toks_per_sec == 80.0
+        assert result.memory_gb == pytest.approx(32.0, rel=1e-9)
+        assert result.throughput_toks_per_sec == pytest.approx(80.0, rel=1e-9)
 
     def test_csv_invalid_data(self):
         """Test error for invalid CSV data."""
@@ -311,7 +313,7 @@ class TestGenericJSONTelemetryParser:
         result = parser.parse(data)
 
         assert result.source == "generic_json"
-        assert result.memory_gb == 16.0
+        assert result.memory_gb == pytest.approx(16.0, rel=1e-9)
 
     def test_parse_with_field_mapping(self):
         """Test parsing with field mapping."""
@@ -330,8 +332,8 @@ class TestGenericJSONTelemetryParser:
         parser = GenericJSONTelemetryParser(field_mapping=mapping)
         result = parser.parse(data)
 
-        assert result.memory_gb == 16.0
-        assert result.throughput_toks_per_sec == 40.0
+        assert result.memory_gb == pytest.approx(16.0, rel=1e-9)
+        assert result.throughput_toks_per_sec == pytest.approx(40.0, rel=1e-9)
 
     def test_missing_required_fields(self):
         """Test error for missing required fields."""
@@ -392,8 +394,8 @@ class TestTelemetryToScenario:
 
         assert isinstance(scenario, DeploymentScenario)
         assert scenario.name == "my-deployment"
-        assert scenario.parameters_b == 7.0
-        assert scenario.memory_gb == 16.0
+        assert scenario.parameters_b == pytest.approx(7.0, rel=1e-9)
+        assert scenario.memory_gb == pytest.approx(16.0, rel=1e-9)
 
     def test_conversion_with_overrides(self):
         """Test conversion with parameter overrides."""
@@ -411,5 +413,5 @@ class TestTelemetryToScenario:
             requests_per_day=100000,
         )
 
-        assert scenario.electricity_cost_per_kwh == 0.20
+        assert scenario.electricity_cost_per_kwh == pytest.approx(0.20, rel=1e-9)
         assert scenario.requests_per_day == 100000

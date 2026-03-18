@@ -3,6 +3,9 @@
 install:
 	pip install -e .[dev]
 
+setup-wanda:
+	python scripts/setup_wanda.py
+
 test:
 	pytest tests/ -v --cov=atropos --cov-report=term-missing
 

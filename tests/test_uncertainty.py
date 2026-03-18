@@ -1,5 +1,7 @@
 """Tests for Monte Carlo uncertainty analysis."""
 
+import os
+
 import pytest
 
 from atropos.calculations import estimate_outcome
@@ -10,6 +12,20 @@ from atropos.core.uncertainty import (
     run_monte_carlo,
 )
 from atropos.models import DeploymentScenario, OptimizationStrategy
+
+
+def get_num_simulations(default: int) -> int:
+    """Get number of simulations from environment variable or default.
+
+    Reads ATROPOS_CI_TEST_SIMULATIONS environment variable for CI optimization.
+    """
+    env_value = os.getenv("ATROPOS_CI_TEST_SIMULATIONS")
+    if env_value is not None:
+        try:
+            return int(env_value)
+        except ValueError:
+            pass
+    return default
 
 
 @pytest.fixture
@@ -78,6 +94,7 @@ class TestRunMonteCarlo:
 
     def test_basic_simulation(self, sample_scenario, sample_strategy):
         """Test basic Monte Carlo simulation."""
+        num_simulations = get_num_simulations(100)
         distributions = [
             ParameterDistribution(
                 param_name="memory_reduction_fraction",
@@ -91,18 +108,19 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=100,
+            num_simulations=num_simulations,
             seed=42,
         )
 
         assert isinstance(result, MonteCarloResult)
         assert result.scenario_name == "test-scenario"
         assert result.strategy_name == "test-strategy"
-        assert result.num_simulations == 100
-        assert len(result.all_outcomes) == 100
+        assert result.num_simulations == num_simulations
+        assert len(result.all_outcomes) == num_simulations
 
     def test_reproducibility_with_seed(self, sample_scenario, sample_strategy):
         """Test that same seed produces same results."""
+        num_simulations = get_num_simulations(50)
         distributions = [
             ParameterDistribution(
                 param_name="memory_reduction_fraction",
@@ -116,7 +134,7 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=50,
+            num_simulations=num_simulations,
             seed=123,
         )
 
@@ -125,7 +143,7 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=50,
+            num_simulations=num_simulations,
             seed=123,
         )
 
@@ -134,6 +152,7 @@ class TestRunMonteCarlo:
 
     def test_statistical_percentiles(self, sample_scenario, sample_strategy):
         """Test that percentiles are ordered correctly."""
+        num_simulations = get_num_simulations(200)
         distributions = [
             ParameterDistribution(
                 param_name="throughput_improvement_fraction",
@@ -147,7 +166,7 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=200,
+            num_simulations=num_simulations,
             seed=42,
         )
 
@@ -159,6 +178,7 @@ class TestRunMonteCarlo:
 
     def test_multiple_parameters(self, sample_scenario, sample_strategy):
         """Test varying multiple parameters simultaneously."""
+        num_simulations = get_num_simulations(100)
         distributions = [
             ParameterDistribution(
                 param_name="memory_reduction_fraction",
@@ -177,16 +197,17 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=100,
+            num_simulations=num_simulations,
             seed=42,
         )
 
-        assert result.num_simulations == 100
+        assert result.num_simulations == num_simulations
         # Standard deviation should be larger with multiple varying params
         assert result.savings_std >= 0
 
     def test_scenario_parameter_variation(self, sample_scenario, sample_strategy):
         """Test varying scenario parameters."""
+        num_simulations = get_num_simulations(100)
         distributions = [
             ParameterDistribution(
                 param_name="requests_per_day",
@@ -200,11 +221,11 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=100,
+            num_simulations=num_simulations,
             seed=42,
         )
 
-        assert result.num_simulations == 100
+        assert result.num_simulations == num_simulations
         # All outcomes should have valid savings values
         assert all(
             isinstance(o.annual_total_savings_usd, (int, float)) for o in result.all_outcomes
@@ -212,6 +233,7 @@ class TestRunMonteCarlo:
 
     def test_probability_calculations(self, sample_scenario, sample_strategy):
         """Test probability calculations."""
+        num_simulations = get_num_simulations(100)
         distributions = [
             ParameterDistribution(
                 param_name="memory_reduction_fraction",
@@ -225,7 +247,7 @@ class TestRunMonteCarlo:
             strategy=sample_strategy,
             distributions=distributions,
             estimator=estimate_outcome,
-            num_simulations=100,
+            num_simulations=num_simulations,
             seed=42,
         )
 
@@ -243,6 +265,7 @@ class TestROICalculatorMonteCarlo:
 
     def test_monte_carlo_analysis(self, sample_scenario, sample_strategy):
         """Test monte_carlo_analysis method."""
+        num_simulations = get_num_simulations(50)
         calculator = ROICalculator()
         calculator.register_scenario(sample_scenario)
         calculator.register_strategy(sample_strategy)
@@ -259,7 +282,7 @@ class TestROICalculatorMonteCarlo:
             scenario_name="test-scenario",
             strategy_name="test-strategy",
             distributions=distributions,
-            num_simulations=50,
+            num_simulations=num_simulations,
             seed=42,
         )
 

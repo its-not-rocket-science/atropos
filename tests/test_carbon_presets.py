@@ -21,32 +21,32 @@ class TestGetCarbonIntensity:
     def test_get_us_carbon_intensity(self):
         """Test getting US carbon intensity."""
         intensity = get_carbon_intensity("US")
-        assert intensity == 0.38
+        assert intensity == pytest.approx(0.38, rel=1e-9)
 
     def test_get_germany_carbon_intensity(self):
         """Test getting Germany carbon intensity."""
         intensity = get_carbon_intensity("DE")
-        assert intensity == 0.38
+        assert intensity == pytest.approx(0.38, rel=1e-9)
 
     def test_get_france_carbon_intensity(self):
         """Test getting France carbon intensity (low nuclear)."""
         intensity = get_carbon_intensity("FR")
-        assert intensity == 0.05
+        assert intensity == pytest.approx(0.05, rel=1e-9)
 
     def test_get_cloud_region(self):
         """Test getting carbon intensity for cloud region."""
         intensity = get_carbon_intensity("us-east-1")
-        assert intensity == 0.38  # Maps to US
+        assert intensity == pytest.approx(0.38, rel=1e-9)  # Maps to US
 
     def test_get_eu_west_region(self):
         """Test getting carbon intensity for EU region."""
         intensity = get_carbon_intensity("eu-west-1")
-        assert intensity == 0.26  # Ireland
+        assert intensity == pytest.approx(0.26, rel=1e-9)  # Ireland
 
     def test_unknown_region_fallback(self):
         """Test fallback to global average for unknown region."""
         intensity = get_carbon_intensity("XX")
-        assert intensity == GLOBAL_AVERAGE
+        assert intensity == pytest.approx(GLOBAL_AVERAGE, rel=1e-9)
 
     def test_unknown_region_no_fallback(self):
         """Test error for unknown region when fallback disabled."""
@@ -122,13 +122,13 @@ class TestGetRegionalCo2eSavings:
         """Test CO2e calculation."""
         # 1000 kWh in US (0.38 kg/kWh) = 380 kg CO2e
         co2e = get_regional_co2e_savings(1000, "US")
-        assert co2e == 380.0
+        assert co2e == pytest.approx(380.0, rel=1e-9)
 
     def test_calculate_france_co2e(self):
         """Test CO2e calculation for France (low carbon)."""
         # 1000 kWh in France (0.05 kg/kWh) = 50 kg CO2e
         co2e = get_regional_co2e_savings(1000, "FR")
-        assert co2e == 50.0
+        assert co2e == pytest.approx(50.0, rel=1e-9)
 
 
 class TestCompareRegionalImpact:
@@ -140,9 +140,9 @@ class TestCompareRegionalImpact:
         results = compare_regional_impact(1000, regions)
 
         assert len(results) == 3
-        assert results["US"] == 380.0
-        assert results["FR"] == 50.0
-        assert results["DE"] == 380.0
+        assert results["US"] == pytest.approx(380.0, rel=1e-9)
+        assert results["FR"] == pytest.approx(50.0, rel=1e-9)
+        assert results["DE"] == pytest.approx(380.0, rel=1e-9)
 
     def test_compare_all_regions(self):
         """Test comparing impact across all regions."""

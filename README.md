@@ -39,6 +39,26 @@ source .venv/bin/activate
 pip install -e .[dev]
 ```
 
+## Pruning Framework Setup
+
+Atropos includes integrations with pruning frameworks (LLM-Pruner, Wanda, SparseGPT) via the `external/` submodule.
+
+### Wanda Pruning
+
+The `external/wanda` submodule requires specific dependency versions that may conflict with Atropos' main dependencies. For pruning experiments, you can install these dependencies using the setup script:
+
+```bash
+python scripts/setup_wanda.py
+```
+
+Alternatively, use the Makefile target: `make setup-wanda`.
+
+Or install manually following `external/wanda/INSTALL.md`. Consider using a separate environment.
+
+### Other Frameworks
+
+LLM-Pruner and SparseGPT dependencies are included in the main `pyproject.toml`.
+
 ## Quick start
 
 Run a preset:
