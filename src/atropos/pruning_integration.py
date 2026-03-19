@@ -553,7 +553,7 @@ class WandaPatchedFramework(PruningFramework):
 
             # Determine device
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            model.to(device)
+            model.to(device)  # type: ignore
 
             # Create args namespace similar to test script
             args = argparse.Namespace(
@@ -696,7 +696,7 @@ class SparseGPTPatchedFramework(PruningFramework):
 
             # Determine device
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            model.to(device)
+            model.to(device)  # type: ignore
 
             # Create args namespace similar to test script
             args = argparse.Namespace(

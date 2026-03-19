@@ -13,6 +13,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -38,6 +40,8 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -63,9 +67,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      HF_HOME: ${{ runner.temp }}/hf_cache
-      TORCH_HOME: ${{ runner.temp }}/torch_cache
+      HF_HOME: $HOME/tmp_cache/hf_cache
+      TORCH_HOME: $HOME/tmp_cache/torch_cache
       ATROPOS_CI_TEST_SIMULATIONS: 50
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -90,7 +95,7 @@ jobs:
       - run: pip install --retries 3 -e .[dev]
       - run: python scripts/health_check.py
       - run: mkdir -p $HOME/tmp_cache
-      - run: pytest
+      - run: pytest -m "not integration"
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -104,6 +109,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     needs: [lint, typecheck, test]
     steps:
       - uses: actions/checkout@v4

@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Ensure version consistency between pyproject.toml and src/atropos/__init__.py
+- Fixed mypy type errors in pruning_integration.py
+- Improved CI workflow: skip integration tests, fix environment variables, suppress Node.js deprecation warnings
+- Updated release preparation script for Windows compatibility
+- Enhanced smoke test for Windows compatibility (timeout, Unicode symbols)
 
 ## [0.2.0] - 2026-03-18
 

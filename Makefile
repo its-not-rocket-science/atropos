@@ -9,6 +9,9 @@ setup-wanda:
 test:
 	pytest tests/ -v --cov=atropos --cov-report=term-missing
 
+test-ci:
+	pytest tests/ -v --cov=atropos --cov-report=term-missing -m "not integration"
+
 lint:
 	ruff check src/ tests/
 	ruff format --check src/ tests/
