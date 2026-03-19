@@ -1,0 +1,27 @@
+{
+  "total_models": 1,
+  "successful": 1,
+  "failed": 0,
+  "duration_sec": 6.249001,
+  "output_dir": "test_data\\quantized_test",
+  "start_time": "2026-03-19T14:22:58.594764",
+  "end_time": "2026-03-19T14:23:04.843765",
+  "results": [
+    {
+      "model_id": "gpt2",
+      "method": "dynamic",
+      "status": "success",
+      "original_params": 124439808,
+      "original_size_mb": 486.7002410888672,
+      "quantized_size_mb": 486.7002410888672,
+      "memory_reduction_pct": 0.0,
+      "inference_time_ms_before": 44.831109046936035,
+      "inference_time_ms_after": 34.97328758239746,
+      "speedup_pct": 21.98879678443356,
+      "quantization_time_sec": 1.547877550125122,
+      "output_path": "test_data\\quantized_test\\gpt2_dynamic",
+      "error_message": "",
+      "timestamp": "2026-03-19T14:22:58.594764"
+    }
+  ]
+}

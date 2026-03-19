@@ -135,7 +135,7 @@ def count_parameters(model: torch.nn.Module) -> tuple[int, int]:
     non_zero = 0
     for param in model.parameters():
         total += param.numel()
-        non_zero += (param != 0).sum().item()
+        non_zero += (param != 0).sum().item()  # type: ignore[assignment]
     return total, non_zero
 
 
@@ -165,7 +165,7 @@ def apply_magnitude_pruning(
 
     # Apply global unstructured pruning
     if parameters_to_prune:
-        prune.global_unstructured(
+        prune.global_unstructured(  # type: ignore[no-untyped-call]
             parameters_to_prune,
             pruning_method=prune.L1Unstructured,
             amount=target_sparsity,
@@ -173,7 +173,7 @@ def apply_magnitude_pruning(
 
         # Make pruning permanent
         for module, param_name in parameters_to_prune:
-            prune.remove(module, param_name)
+            prune.remove(module, param_name)  # type: ignore[no-untyped-call]
 
 
 def prune_model(
@@ -208,16 +208,17 @@ def prune_model(
         print(f"  Loading {model_id}...", end=" ", flush=True)
 
         # Load model
-        load_kwargs = {
+        load_kwargs: dict[str, Any] = {
             "torch_dtype": torch.float32,
         }
-        if cache_dir:
-            load_kwargs["cache_dir"] = cache_dir
+        cache_dir_str = str(cache_dir) if cache_dir else None
+        if cache_dir_str:
+            load_kwargs["cache_dir"] = cache_dir_str
 
         model = AutoModelForCausalLM.from_pretrained(model_id, **load_kwargs)
         tokenizer = AutoTokenizer.from_pretrained(
             model_id,
-            cache_dir=cache_dir,
+            cache_dir=cache_dir_str,
         )
 
         print("[OK]")
@@ -291,7 +292,7 @@ def prune_all_models(
     strategies = strategies or ["mild_pruning", "structured_pruning"]
 
     # Calculate total operations
-    total = sum(len([s for s in c["strategies"].keys() if s in strategies]) for c in configs)
+    total = sum(len([s for s in c["strategies"].keys() if s in strategies]) for c in configs)  # type: ignore[misc, union-attr]
 
     report = PruningReport(
         total_models=total,
@@ -309,11 +310,12 @@ def prune_all_models(
 
     count = 0
     for config in configs:
-        model_id = config["model_id"]
+        model_id = str(config["model_id"])  # type: ignore[index]
 
-        for strategy_name, sparsity in config["strategies"].items():
+        for strategy_name, sparsity_raw in config["strategies"].items():  # type: ignore[union-attr]
             if strategy_name not in strategies:
                 continue
+            sparsity = float(sparsity_raw)
 
             count += 1
             print(f"\n[{count}/{total}] {model_id} - {strategy_name}")

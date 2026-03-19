@@ -22,7 +22,7 @@
 - ✅ region-specific grid carbon presets
 - [ ] multi-GPU benchmarking support
 - [ ] distributed pruning experiments
-- [ ] quantization + pruning combination analysis
+- [x] quantization + pruning combination analysis
 - [ ] automated hyperparameter tuning for pruning targets
 - [ ] enhance error handling and debugging capabilities
 
@@ -190,17 +190,17 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 
 ---
 
-### 6. Quantization + Pruning Study ⏳
+### 6. Quantization + Pruning Study ✅
 
 **Goal:** Evaluate combined quantization and pruning optimizations.
 
 **Tasks:**
-- [ ] Implement INT8 quantization pipeline
-- [ ] Test pruning + quantization combinations
-- [ ] Measure cumulative savings and quality impact
-- [ ] Document best practices for combined optimization
+- [x] Implement INT8 quantization pipeline
+- [x] Test pruning + quantization combinations
+- [x] Measure cumulative savings and quality impact
+- [x] Document best practices for combined optimization
 
 **Deliverables:**
-- [ ] `scripts/quantize_models.py` — Quantization pipeline
-- [ ] `scripts/combined_optimization.py` — Pruning + quantization
-- [ ] Comparison report showing combined ROI
+- [x] `scripts/quantize_models.py` — Quantization pipeline
+- [x] `scripts/combined_optimization.py` — Pruning + quantization
+- [x] Comparison report showing combined ROI
