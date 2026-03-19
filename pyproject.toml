@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atropos"
-version = "0.2.0"
+version = "0.3.0"
 description = "Estimate performance, energy, cost, and break-even tradeoffs for pruning coding LLM deployments."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,8 +20,12 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
-  "Topic :: Software Development :: Libraries :: Python Modules"
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: System :: Distributed Computing"
 ]
+urls = {Homepage = "https://github.com/its-not-rocket-science/atropos", Documentation = "https://its-not-rocket-science.github.io/atropos/", Repository = "https://github.com/its-not-rocket-science/atropos.git", Issues = "https://github.com/its-not-rocket-science/atropos/issues"}
 dependencies = [
   "PyYAML>=6.0",
   "torch>=2.0",
@@ -36,6 +40,7 @@ dev = [
   "ruff>=0.6.0",
   "mypy>=1.10",
   "build>=1.2.0",
+  "twine>=5.0",
   "types-PyYAML>=6.0.12",
 ]
 

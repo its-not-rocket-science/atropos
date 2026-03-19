@@ -3,6 +3,7 @@
 **Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
 
 📚 [Documentation](https://its-not-rocket-science.github.io/atropos/)
+![PyPI version](https://img.shields.io/pypi/v/atropos) ![Python versions](https://img.shields.io/pypi/pyversions/atropos)
 
 Named after the Fate who cuts the thread, Atropos is built for practical deployment questions:
 
@@ -33,11 +34,19 @@ Named after the Fate who cuts the thread, Atropos is built for practical deploym
 
 ## Installation
 
+### PyPI (stable release)
+```bash
+pip install atropos
+```
+
+### Development installation
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
 ```
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Pruning Framework Setup
 

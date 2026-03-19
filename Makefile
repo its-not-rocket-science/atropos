@@ -1,4 +1,4 @@
-.PHONY: install test lint typecheck format clean build
+.PHONY: install test lint typecheck format clean build release-test release verify-release prepare-release version
 
 install:
 	pip install -e .[dev]
@@ -27,3 +27,21 @@ clean:
 
 build: clean
 	python -m build
+
+release-test: build
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+release: build
+	twine upload dist/*
+
+verify-release: build
+	pip install dist/*.whl
+	python scripts/smoke_test.py
+
+prepare-release:
+	python scripts/prepare_release.py
+
+version:
+	@echo "Current version:"
+	@grep '^version =' pyproject.toml | cut -d '"' -f2
+	@grep '__version__' src/atropos/__init__.py | cut -d '"' -f2
