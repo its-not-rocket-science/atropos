@@ -55,5 +55,9 @@ CLAUDE.md
 test_data/models/
 test_data/pruned_models/
 test_data/framework_comparison/
+test_data/combined_test/
+test_data/combined_test2/
+test_data/combined_test3/
+test_data/quantized_test/
 test_output/
 .cache/
