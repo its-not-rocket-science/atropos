@@ -10,7 +10,7 @@
   - Comprehensive test coverage across diverse model architectures
   - Clear documentation on limitations, dependencies, and failure modes
   - Validation suite to confirm model/environment compatibility
-- [ ] improve CI stability and reliability
+- [x] improve CI stability and reliability
 - [ ] optimize validation script for GPU acceleration
 - [ ] add pruning result visualizations (charts, graphs)
 
