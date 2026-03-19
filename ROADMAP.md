@@ -12,7 +12,7 @@
   - Validation suite to confirm model/environment compatibility
 - [x] improve CI stability and reliability
 - [ ] optimize validation script for GPU acceleration
-- [ ] add pruning result visualizations (charts, graphs)
+- [x] add pruning result visualizations (charts, graphs)
 
 ## Medium term
 

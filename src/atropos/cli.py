@@ -37,6 +37,7 @@ from .telemetry_collector import (
     collect_and_save,
 )
 from .validation import run_validation
+from .visualization import visualize_json
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -412,6 +413,41 @@ def build_parser() -> argparse.ArgumentParser:
         "-c",
         type=Path,
         help="Generate YAML catalog file",
+    )
+
+    # Visualization command
+    visualize_parser = subparsers.add_parser(
+        "visualize",
+        help="Generate interactive visualizations from JSON reports.",
+    )
+    visualize_parser.add_argument(
+        "input",
+        type=Path,
+        help="Path to JSON report file",
+    )
+    visualize_parser.add_argument(
+        "output_dir",
+        type=Path,
+        help="Directory to save visualization files",
+    )
+    visualize_parser.add_argument(
+        "--formats",
+        nargs="+",
+        choices=["html", "png"],
+        default=["html"],
+        help="Output formats (default: html)",
+    )
+    visualize_parser.add_argument(
+        "--report-type",
+        choices=[
+            "auto",
+            "framework-comparison",
+            "tradeoff-analysis",
+            "pruning-report",
+            "validation-report",
+        ],
+        default="auto",
+        help="Report type (default: auto-detect)",
     )
 
     return parser
@@ -1172,6 +1208,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             except Exception as e:
                 print(f"Validation failed: {e}", file=sys.stderr)
                 return 1
+
+        if args.command == "visualize":
+            visualize_json(
+                input_path=args.input,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                report_type=args.report_type,
+            )
+            print(f"Visualizations saved to {args.output_dir}")
+            return 0
 
         if args.command == "test-models":
             # Get models to test

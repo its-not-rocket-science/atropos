@@ -203,22 +203,24 @@ def detect_report_type(data: dict[str, Any]) -> ReportType:
     Returns:
         ReportType enum
     """
-    # Check for framework comparison keys
-    if "results" in data and "config" in data:
-        # Look at first result to differentiate
-        results = data.get("results", [])
-        if results and isinstance(results[0], dict):
-            first = results[0]
-            if "framework" in first:
-                return ReportType.FRAMEWORK_COMPARISON
-            elif "baseline_perplexity" in first:
-                return ReportType.TRADEOFF_ANALYSIS
-            elif "model_id" in first:
-                return ReportType.PRUNING_REPORT
-
     # Validation report has summary and criteria
     if "summary" in data and "criteria" in data:
         return ReportType.VALIDATION_REPORT
+
+    # Check for results
+    if "results" in data:
+        results = data.get("results", [])
+        if results and isinstance(results[0], dict):
+            first = results[0]
+            # Pruning report has output_dir at top level
+            if "output_dir" in data:
+                return ReportType.PRUNING_REPORT
+            # Trade-off analysis has baseline_perplexity
+            elif "baseline_perplexity" in first:
+                return ReportType.TRADEOFF_ANALYSIS
+            # Framework comparison has framework but not baseline_perplexity
+            elif "framework" in first:
+                return ReportType.FRAMEWORK_COMPARISON
 
     return ReportType.UNKNOWN
 
