@@ -71,15 +71,17 @@ def run_command(cmd: list[str], cwd: Path = ROOT) -> bool:
 def run_tests() -> bool:
     """Run full test suite."""
     print("\n=== Running test suite ===")
-    return run_command([
-        "pytest",
-        "tests/",
-        "-v",
-        "--cov=atropos",
-        "--cov-report=term-missing",
-        "-m",
-        "not integration",
-    ])
+    return run_command(
+        [
+            "pytest",
+            "tests/",
+            "-v",
+            "--cov=atropos",
+            "--cov-report=term-missing",
+            "-m",
+            "not integration",
+        ]
+    )
 
 
 def run_linting() -> bool:
