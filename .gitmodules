@@ -1,0 +1,3 @@
+[submodule "external/wanda"]
+	path = external/wanda
+	url = https://github.com/its-not-rocket-science/wanda.git

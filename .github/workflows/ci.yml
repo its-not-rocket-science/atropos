@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache pip packages
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache pip packages
@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache pip packages
@@ -97,11 +97,12 @@ jobs:
       - run: python -m pip install --upgrade pip --retries 3
       - run: pip install --retries 3 torch --index-url https://download.pytorch.org/whl/cpu
       - run: pip install --retries 3 -e .[dev]
+      - run: python scripts/health_check.py
       - run: mkdir -p $HOME/tmp_cache
       - run: pytest -m "not integration"
       - name: Upload test artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifacts-${{ matrix.python-version }}
           path: |
@@ -119,7 +120,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Cache pip packages
@@ -132,7 +133,7 @@ jobs:
       - run: python -m pip install --upgrade pip --retries 3
       - run: pip install --retries 3 build
       - run: python -m build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: dist/
