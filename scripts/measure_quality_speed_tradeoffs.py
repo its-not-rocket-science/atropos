@@ -39,7 +39,6 @@ try:
         BenchmarkResult as QualityResult,
     )
 
-    print(f"DEBUG: Imported EVAL_PROMPTS length = {len(EVAL_PROMPTS)}")
 except ImportError:
     # Define locally if import fails
     EVAL_PROMPTS = []
@@ -343,7 +342,6 @@ def benchmark_model_quality(
         completion_scores = []
         inference_times = []
 
-        print(f"  DEBUG: EVAL_PROMPTS length = {len(EVAL_PROMPTS)}")
         print(f"  Running {len(EVAL_PROMPTS)} evaluation prompts...")
 
         for i, prompt_data in enumerate(EVAL_PROMPTS, 1):

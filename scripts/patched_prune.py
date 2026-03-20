@@ -376,7 +376,6 @@ def fix_gptj_rotary_mismatch(model: torch.nn.Module) -> None:
     rotary_dim = model.config.rotary_dim
     if rotary_dim <= head_dim:
         return
-    print(f"[DEBUG GPTJ] Fixing rotary mismatch: rotary_dim={rotary_dim}, head_dim={head_dim}")
     # Update config
     model.config.rotary_dim = head_dim
     # Update each attention layer
@@ -391,12 +390,7 @@ def fix_gptj_rotary_mismatch(model: torch.nn.Module) -> None:
                 if ep.shape[-1] == rotary_dim:
                     attn.embed_positions = ep[:, :head_dim]
                 else:
-                    print(
-                        f"[DEBUG GPTJ] Warning: embed_positions shape {ep.shape} "
-                        f"does not match rotary_dim {rotary_dim}"
-                    )
-            else:
-                print("[DEBUG GPTJ] Warning: embed_positions is not a tensor")
+                    print(f"does not match rotary_dim {rotary_dim}")
 
 
 def adapt_model_for_pruning(
@@ -436,7 +430,6 @@ def adapt_model_for_pruning(
 
     # Cap seqlen for wikitext2 compatibility (no documents >= 1024 tokens)
     if model.seqlen > 256 and arch != "opt":
-        print(f"[DEBUG] Capping seqlen from {model.seqlen} to 256 for wikitext2 compatibility")
         model.seqlen = 256
 
     # Ensure hf_device_map exists
@@ -500,7 +493,6 @@ def prepare_calibration_input_patched(
 
     Returns (inps, outs, attention_mask, position_ids) where position_ids may be None.
     """
-    print(f"[DEBUG] prepare_calibration_input_patched called with arch={arch}")
     if arch is None:
         arch = get_model_architecture(model)
 
@@ -532,10 +524,7 @@ def prepare_calibration_input_patched(
             self.module = module
 
         def forward(self, *args, **kwargs):
-            print(
-                f"[DEBUG] Catcher.forward called, i={cache['i']}, args len={len(args)}, "
-                f"kwargs keys: {list(kwargs.keys())}"
-            )
+            print(f"kwargs keys: {list(kwargs.keys())}")
             # Extract input tensor: first positional argument or common keyword
             if len(args) > 0:
                 inp = args[0]
@@ -648,7 +637,6 @@ def unwrap_gpt_neox_layer_forwards(layers, original_forwards):
 
 def wrap_bloom_layer_forwards(layers):
     """Wrap forward methods of BLOOM layers to handle alibi and ignore position_ids."""
-    print(f"[DEBUG] wrap_bloom_layer_forwards: wrapping {len(layers)} layers")
     from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
     original_forwards = []
@@ -699,7 +687,6 @@ def unwrap_bloom_layer_forwards(layers, original_forwards):
 
 def wrap_gptj_layer_forwards(layers):
     """Wrap forward methods of GPT-J layers to compute position_embeddings if missing."""
-    print(f"[DEBUG] wrap_gptj_layer_forwards: wrapping {len(layers)} layers")
     original_forwards = []
     for layer in layers:
         original_forward = layer.forward
@@ -753,12 +740,9 @@ def prune_wanda_patched(
     if device is None:
         device = torch.device("cuda:0")
     arch = get_model_architecture(model)
-    print(f"[DEBUG] prune_wanda_patched detected architecture: {arch}")
 
     # Adapt model attributes
-    print("[DEBUG] Adapting model for pruning...")
     model, original = adapt_model_for_pruning(model, arch)
-    print(f"[DEBUG] Model adapted, original attrs: {list(original.keys())}")
 
     try:
         if arch == "opt":
@@ -769,11 +753,9 @@ def prune_wanda_patched(
             import lib.prune as prune_module
 
             original_prepare = prune_module.prepare_calibration_input
-            print(f"[DEBUG] Monkey-patching prepare_calibration_input for arch={arch}")
             prune_module.prepare_calibration_input = lambda m, d, dev: (
                 prepare_calibration_input_patched(m, d, dev, arch)
             )
-            print("[DEBUG] Monkey-patch applied")
             layers = model.model.layers
             # Monkey-patch get_wikitext2 to avoid huge concatenation
             import lib.data
@@ -802,13 +784,10 @@ def prune_wanda_patched(
                 original_forwards = None
                 original_find_layers = None
                 original_wrapped_pair = None
-            print(f"[DEBUG] Starting pruning for arch={arch}")
             try:
                 if arch == "gpt2":
-                    print("[DEBUG] Calling prune_wanda_gpt2")
                     return prune_wanda_gpt2(args, model, tokenizer, device, prune_n, prune_m)
                 else:
-                    print("[DEBUG] Calling original_prune_wanda")
                     return original_prune_wanda(args, model, tokenizer, device, prune_n, prune_m)
             finally:
                 prune_module.prepare_calibration_input = original_prepare
@@ -944,17 +923,13 @@ def check_sparsity_patched(model: torch.nn.Module) -> float:
 def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     """Wanda pruning for GPT2 with Conv1D support."""
     print("[INFO] Using custom GPT2 pruning with Conv1D support")
-    print(f"[DEBUG] prune_wanda_gpt2 called with args: {args}")
     # Import inside function to avoid circular imports
-    print("[DEBUG] Importing lib.data...")
     import lib.data
     import torch
     from lib.data import get_loaders
     from lib.layerwrapper import WrappedGPT
     from lib.prune import find_layers
     from transformers.pytorch_utils import Conv1D
-
-    print("[DEBUG] Imports done.")
 
     # Apply GPT2-specific patches
     original_find_layers = patch_find_layers_for_gpt2()
@@ -965,7 +940,6 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     # Monkey-patch get_wikitext2 to use per-document tokenization
     original_get_wikitext2 = lib.data.get_wikitext2
     lib.data.get_wikitext2 = get_wikitext2_patched
-    print("[DEBUG] Patched get_wikitext2")
 
     try:
         if device is None:
@@ -975,7 +949,6 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
         model.config.use_cache = False
 
         print("loading calibration data")
-        print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
         try:
             dataloader, _ = get_loaders(
                 "wikitext2",
@@ -985,7 +958,6 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
                 tokenizer=tokenizer,
             )
             print("dataset loading complete")
-            print("[DEBUG] Dataloader obtained")
         except Exception as e:
             print(f"[ERROR] Failed to load dataloader: {e}")
             import traceback
@@ -1168,7 +1140,6 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
     model.config.use_cache = False
 
     print("loading calibration data")
-    print(f"[DEBUG] Getting dataloader for wikitext2, nsamples={args.nsamples}")
     try:
         dataloader, _ = get_loaders(
             "wikitext2",
@@ -1178,7 +1149,6 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
             tokenizer=tokenizer,
         )
         print("dataset loading complete")
-        print("[DEBUG] Dataloader obtained")
     except Exception as e:
         print(f"[ERROR] Failed to load dataloader: {e}")
         import traceback
