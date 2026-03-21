@@ -43,7 +43,7 @@ from .visualization import visualize_json
 def build_parser() -> argparse.ArgumentParser:
     """Build and configure the argument parser for the CLI."""
     parser = argparse.ArgumentParser(
-        prog="atropos",
+        prog="atropos-llm",
         description=(
             "Estimate the ROI of pruning and related optimizations for coding LLM deployments."
         ),

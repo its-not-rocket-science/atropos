@@ -17,7 +17,7 @@ To enable publishing, you need to configure the following secrets in your GitHub
 
 ### For PyPI (production)
 1. Go to [PyPI Account Settings > API tokens](https://pypi.org/manage/account/token/)
-2. Create a new API token with scope "Entire account" (for new projects) or restrict to the "atropos" project
+2. Create a new API token with scope "Entire account" (for new projects) or restrict to the "atropos-llm" project
 3. Copy the token value (it will only be shown once)
 4. In your GitHub repository: Settings → Secrets and variables → Actions → New repository secret
 5. Name: `PYPI_API_TOKEN`
@@ -83,17 +83,17 @@ git push origin v0.3.0
 
 **Test PyPI:**
 ```bash
-pip install --index-url https://test.pypi.org/simple/ atropos
+pip install --index-url https://test.pypi.org/simple/ atropos-llm
 ```
 
 **Production PyPI:**
 ```bash
-pip install atropos
+pip install atropos-llm
 ```
 
 Visit:
-- https://test.pypi.org/project/atropos/ (Test PyPI)
-- https://pypi.org/project/atropos/ (Production PyPI)
+- https://test.pypi.org/project/atropos-llm/ (Test PyPI)
+- https://pypi.org/project/atropos-llm/ (Production PyPI)
 
 ### 5. Create GitHub Release
 
