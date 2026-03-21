@@ -28,7 +28,7 @@ This installs:
 ## Verify Installation
 
 ```bash
-atropos --help
+atropos-llm --help
 ```
 
 ## Update

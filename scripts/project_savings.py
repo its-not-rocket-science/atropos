@@ -135,7 +135,7 @@ def run_atropos_preset(
 
     try:
         cmd = [
-            "atropos",
+            "atropos-llm",
             "preset",
             preset,
             "--strategy",

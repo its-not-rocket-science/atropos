@@ -7,7 +7,7 @@
 Represents a deployment configuration.
 
 ```python
-from atropos import DeploymentScenario
+from atropos-llm import DeploymentScenario
 
 scenario = DeploymentScenario(
     name="my-deployment",
@@ -28,7 +28,7 @@ scenario = DeploymentScenario(
 Defines optimization parameters.
 
 ```python
-from atropos import OptimizationStrategy
+from atropos-llm import OptimizationStrategy
 
 strategy = OptimizationStrategy(
     name="my-strategy",
@@ -47,7 +47,7 @@ strategy = OptimizationStrategy(
 Calculate the outcome of applying a strategy to a scenario.
 
 ```python
-from atropos import estimate_outcome
+from atropos-llm import estimate_outcome
 
 outcome = estimate_outcome(scenario, strategy)
 
@@ -60,7 +60,7 @@ print(f"Break-even: {outcome.break_even_years} years")
 Combine two strategies (e.g., pruning + quantization).
 
 ```python
-from atropos import combine_strategies
+from atropos-llm import combine_strategies
 from atropos.presets import QUANTIZATION_BONUS
 
 combined = combine_strategies(strategy, QUANTIZATION_BONUS)

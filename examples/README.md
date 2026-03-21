@@ -10,12 +10,12 @@ The `pipeline-config.yaml` file demonstrates a complete Atropos Pipeline configu
 
 Validate the configuration:
 ```bash
-atropos validate-pipeline-config examples/pipeline-config.yaml
+atropos-llm validate-pipeline-config examples/pipeline-config.yaml
 ```
 
 Run the pipeline (dry-run mode):
 ```bash
-atropos pipeline medium-coder \
+atropos-llm pipeline medium-coder \
     --config examples/pipeline-config.yaml \
     --strategy structured_pruning \
     --dry-run
@@ -23,7 +23,7 @@ atropos pipeline medium-coder \
 
 Run the pipeline for real:
 ```bash
-atropos pipeline medium-coder \
+atropos-llm pipeline medium-coder \
     --config examples/pipeline-config.yaml \
     --strategy structured_pruning \
     --output results.json

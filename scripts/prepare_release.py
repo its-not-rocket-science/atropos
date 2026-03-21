@@ -147,7 +147,7 @@ def print_checklist(version: str) -> None:
     print("5. Monitor GitHub Actions release workflow")
     print("6. Verify package uploaded to PyPI")
     print("7. Create GitHub release from tag")
-    print(f"\n[TEST]  Test installation: pip install atropos=={version}")
+    print(f"\n[TEST]  Test installation: pip install atropos-llm=={version}")
     print(f"\n{'=' * 60}")
 
 

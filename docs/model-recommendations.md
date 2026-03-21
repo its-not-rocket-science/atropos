@@ -98,17 +98,17 @@ Use the built-in model tester to verify models work on your hardware:
 
 ```bash
 # Test recommended models on CPU
-atropos test-models --device cpu --max-params 1.0
+atropos-llm test-models --device cpu --max-params 1.0
 
 # Test specific models on GPU
-atropos test-models \
+atropos-llm test-models \
     --device cuda \
     --models gpt2 gpt2-medium facebook/opt-125m \
     --max-params 1.0 \
     --catalog models-catalog.yaml
 
 # Test a wide range and generate catalog
-atropos test-models \
+atropos-llm test-models \
     --device cuda \
     --max-params 7.0 \
     --output test-results.json \
@@ -190,16 +190,16 @@ Once you've selected models, validate your projections:
 
 ```bash
 # 1. Test the model loads
-atropos test-models --models your-model --device cuda
+atropos-llm test-models --models your-model --device cuda
 
 # 2. Create scenario from model
-atropos scenario models-catalog.yaml --strategy structured_pruning
+atropos-llm scenario models-catalog.yaml --strategy structured_pruning
 
 # 3. Run validation against real model
-atropos validate your-scenario --model your-model --device cuda
+atropos-llm validate your-scenario --model your-model --device cuda
 
 # 4. Calibrate if needed
-atropos calibrate your-scenario.yaml telemetry.json
+atropos-llm calibrate your-scenario.yaml telemetry.json
 ```
 
 ## Contributing Tested Models
@@ -208,7 +208,7 @@ If you test a model successfully:
 
 1. Run the test suite:
    ```bash
-   atropos test-models --models your-model --catalog my-catalog.yaml
+   atropos-llm test-models --models your-model --catalog my-catalog.yaml
    ```
 
 2. Share your catalog entry with:
@@ -226,10 +226,10 @@ If you test a model successfully:
 
 ```bash
 # Test smaller models first
-atropos test-models --max-params 1.0
+atropos-llm test-models --max-params 1.0
 
 # Use CPU offloading
-atropos test-models --device cpu --max-params 3.0
+atropos-llm test-models --device cpu --max-params 3.0
 
 # Test with quantization (if supported)
 # Add --load-in-8bit or --load-in-4bit if implemented

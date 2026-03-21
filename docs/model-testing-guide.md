@@ -128,16 +128,16 @@ print(MODEL_MAPPING.keys())
 ### Basic Test (Fast, Small Model)
 ```bash
 # Test with GPT-2 (124M params) - very fast
-atropos validate edge-coder --model gpt2 --device cpu
+atropos-llm validate edge-coder --model gpt2 --device cpu
 
 # Test with GPT-2 Medium (355M params)
-atropos validate medium-coder --model gpt2-medium --device cpu
+atropos-llm validate medium-coder --model gpt2-medium --device cpu
 ```
 
 ### Realistic Test (Medium Model, GPU)
 ```bash
 # Requires ~2.5GB VRAM
-atropos validate medium-coder \
+atropos-llm validate medium-coder \
     --model TinyLlama/TinyLlama-1.1B-v1.0 \
     --device cuda \
     --strategy structured_pruning
@@ -154,7 +154,7 @@ STRATEGIES=("mild_pruning" "structured_pruning")
 for model in "${MODELS[@]}"; do
     for strategy in "${STRATEGIES[@]}"; do
         echo "Testing $model with $strategy"
-        atropos validate edge-coder \
+        atropos-llm validate edge-coder \
             --model "$model" \
             --strategy "$strategy" \
             --output "results/${model}_${strategy}.md"
@@ -192,7 +192,7 @@ done
 ### Workflow 1: Quick Smoke Test
 ```bash
 # 1. Test basic functionality
-atropos validate edge-coder --model gpt2
+atropos-llm validate edge-coder --model gpt2
 
 # 2. Check if Atropos is in the right ballpark
 # Expect: variance < 20% for memory, < 30% for throughput
@@ -216,10 +216,10 @@ batch_size: 1
 EOF
 
 # 2. Validate against actual model
-atropos validate my_scenario.yaml --model gpt2-medium
+atropos-llm validate my_scenario.yaml --model gpt2-medium
 
 # 3. If variance > 20%, calibrate
-atropos calibrate my_scenario.yaml telemetry.json
+atropos-llm calibrate my_scenario.yaml telemetry.json
 ```
 
 ### Workflow 3: Pruning Effectiveness Study
@@ -241,7 +241,7 @@ print(json.dumps(strategy))
 " > strategy.json
 
     # Run validation
-    atropos validate edge-coder \
+    atropos-llm validate edge-coder \
         --model gpt2 \
         --strategy structured_pruning \
         --output "results/sparsity_${sparsity}.json"
@@ -253,15 +253,15 @@ done
 ### CPU Testing
 ```bash
 # Basic CPU test (works everywhere)
-atropos validate medium-coder --model gpt2 --device cpu
+atropos-llm validate medium-coder --model gpt2 --device cpu
 
 # Monitor resources
 # Linux/Mac:
-time -v atropos validate medium-coder --model gpt2
+time -v atropos-llm validate medium-coder --model gpt2
 
 # Or use psrecord:
 pip install psrecord
-psrecord "atropos validate medium-coder --model gpt2" --plot plot.png
+psrecord "atropos-llm validate medium-coder --model gpt2" --plot plot.png
 ```
 
 ### GPU Testing
@@ -270,7 +270,7 @@ psrecord "atropos validate medium-coder --model gpt2" --plot plot.png
 python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
 # Run with GPU
-atropos validate medium-coder --model gpt2 --device cuda
+atropos-llm validate medium-coder --model gpt2 --device cuda
 
 # Monitor GPU usage
 # Install: pip install gpustat
@@ -326,10 +326,10 @@ rm -rf ~/.cache/huggingface/hub/models--gpt2
 ```bash
 # Use smaller batch size (in scenario config)
 # Use CPU instead
-atropos validate medium-coder --model gpt2 --device cpu
+atropos-llm validate medium-coder --model gpt2 --device cpu
 
 # Or use a smaller model
-atropos validate edge-coder --model gpt2
+atropos-llm validate edge-coder --model gpt2
 ```
 
 ### Slow Execution
@@ -338,7 +338,7 @@ atropos validate edge-coder --model gpt2
 export TRANSFORMERS_MAX_LENGTH=128
 
 # Use quantized model
-atropos validate medium-coder --model "gpt2"  # No quantization yet
+atropos-llm validate medium-coder --model "gpt2"  # No quantization yet
 ```
 
 ## Next Steps

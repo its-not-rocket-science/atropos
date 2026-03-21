@@ -3,7 +3,7 @@
 **Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
 
 📚 [Documentation](https://its-not-rocket-science.github.io/atropos/)
-![PyPI version](https://img.shields.io/pypi/v/atropos) ![Python versions](https://img.shields.io/pypi/pyversions/atropos)
+![PyPI version](https://img.shields.io/pypi/v/atropos-llm) ![Python versions](https://img.shields.io/pypi/pyversions/atropos-llm)
 
 Named after the Fate who cuts the thread, Atropos is built for practical deployment questions:
 
@@ -36,7 +36,7 @@ Named after the Fate who cuts the thread, Atropos is built for practical deploym
 
 ### PyPI (stable release)
 ```bash
-pip install atropos
+pip install atropos-llm
 ```
 
 ### Development installation
@@ -73,80 +73,80 @@ LLM-Pruner and SparseGPT dependencies are included in the main `pyproject.toml`.
 Run a preset:
 
 ```bash
-atropos preset medium-coder --strategy structured_pruning --report text
+atropos-llm preset medium-coder --strategy structured_pruning --report text
 ```
 
 Add quantization:
 
 ```bash
-atropos preset medium-coder --strategy structured_pruning --with-quantization --report text
+atropos-llm preset medium-coder --strategy structured_pruning --with-quantization --report text
 ```
 
 Use a YAML scenario:
 
 ```bash
-atropos scenario examples/medium_coder.yaml --report json
+atropos-llm scenario examples/medium_coder.yaml --report json
 ```
 
 Compare strategies:
 
 ```bash
-atropos compare medium-coder --strategies mild_pruning structured_pruning --format markdown
+atropos-llm compare medium-coder --strategies mild_pruning structured_pruning --format markdown
 ```
 
 Sort comparison by break-even time:
 
 ```bash
-atropos compare medium-coder --strategies mild_pruning structured_pruning --sort-by breakeven --ascending
+atropos-llm compare medium-coder --strategies mild_pruning structured_pruning --sort-by breakeven --ascending
 ```
 
 Batch process a directory of scenarios:
 
 ```bash
-atropos batch examples --strategies mild_pruning structured_pruning --output results.csv
+atropos-llm batch examples --strategies mild_pruning structured_pruning --output results.csv
 ```
 
 Run sensitivity analysis and export to JSON:
 
 ```bash
-atropos sensitivity medium-coder --strategy structured_pruning --param memory_reduction_fraction --format json --output sensitivity.json
+atropos-llm sensitivity medium-coder --strategy structured_pruning --param memory_reduction_fraction --format json --output sensitivity.json
 ```
 
 Convert CSV results to markdown report:
 
 ```bash
-atropos csv-to-markdown results.csv --output report.md
+atropos-llm csv-to-markdown results.csv --output report.md
 ```
 
 Launch the web dashboard:
 
 ```bash
-atropos dashboard --port 8050
+atropos-llm dashboard --port 8050
 ```
 
 Collect telemetry from a running inference server:
 
 ```bash
-atropos collect-telemetry --server-type vllm --url http://localhost:8000 \
+atropos-llm collect-telemetry --server-type vllm --url http://localhost:8000 \
     --duration 60 --output telemetry.json --create-scenario
 ```
 
 Test HuggingFace models for compatibility:
 
 ```bash
-atropos test-models --device cuda --max-params 3.0 --catalog models.yaml
+atropos-llm test-models --device cuda --max-params 3.0 --catalog models.yaml
 ```
 
 Validate projections against a real model:
 
 ```bash
-atropos validate medium-coder --model gpt2 --device cuda
+atropos-llm validate medium-coder --model gpt2 --device cuda
 ```
 
 Run the automated optimization pipeline:
 
 ```bash
-atropos pipeline medium-coder --config pipeline.yaml --strategy structured_pruning
+atropos-llm pipeline medium-coder --config pipeline.yaml --strategy structured_pruning
 ```
 
 ## Strategy model
@@ -229,7 +229,7 @@ pipeline:
 Run the pipeline:
 
 ```bash
-atropos pipeline medium-coder --config pipeline.yaml
+atropos-llm pipeline medium-coder --config pipeline.yaml
 ```
 
 ## Documentation

@@ -96,7 +96,7 @@ def check_atropos() -> bool:
     """Check if Atropos CLI is available."""
     import shutil
 
-    if shutil.which("atropos"):
+    if shutil.which("atropos-llm"):
         print("[OK] Atropos CLI found")
         return True
 
@@ -138,7 +138,7 @@ def run_atropos_validation(
 
     try:
         cmd = [
-            "atropos",
+            "atropos-llm",
             "validate",
             preset,
             "--model",

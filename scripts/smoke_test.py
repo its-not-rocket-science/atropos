@@ -48,19 +48,19 @@ def test_cli_help() -> bool:
     print("\nTesting CLI help...")
     try:
         result = subprocess.run(
-            ["atropos", "--help"],
+            ["atropos-llm", "--help"],
             capture_output=True,
             text=True,
             timeout=30,
         )
         if result.returncode == 0:
-            print("  [OK] atropos --help")
+            print("  [OK] atropos-llm --help")
             return True
         else:
-            print(f"  [FAIL] atropos --help failed: {result.stderr}")
+            print(f"  [FAIL] atropos-llm --help failed: {result.stderr}")
             return False
     except FileNotFoundError:
-        print("  [FAIL] 'atropos' command not found")
+        print("  [FAIL] 'atropos-llm' command not found")
         return False
     except subprocess.TimeoutExpired:
         print("  [FAIL] Command timed out")
@@ -72,19 +72,19 @@ def test_list_presets() -> bool:
     print("\nTesting list-presets...")
     try:
         result = subprocess.run(
-            ["atropos", "list-presets"],
+            ["atropos-llm", "list-presets"],
             capture_output=True,
             text=True,
             timeout=30,
         )
         if result.returncode == 0 and "mild_pruning" in result.stdout:
-            print("  [OK] atropos list-presets")
+            print("  [OK] atropos-llm list-presets")
             return True
         else:
             print(f"  [FAIL] list-presets failed or output unexpected: {result.stderr}")
             return False
     except FileNotFoundError:
-        print("  [FAIL] 'atropos' command not found")
+        print("  [FAIL] 'atropos-llm' command not found")
         return False
     except subprocess.TimeoutExpired:
         print("  [FAIL] Command timed out")

@@ -3,7 +3,7 @@
 ## Basic Analysis
 
 ```python
-from atropos import DeploymentScenario, estimate_outcome
+from atropos-llm import DeploymentScenario, estimate_outcome
 from atropos.presets import SCENARIOS, STRATEGIES
 
 # Use a preset
@@ -17,7 +17,7 @@ print(f"Savings: ${outcome.annual_total_savings_usd:,.0f}")
 ## Custom Scenario
 
 ```python
-from atropos import DeploymentScenario, estimate_outcome
+from atropos-llm import DeploymentScenario, estimate_outcome
 from atropos.presets import STRATEGIES
 
 my_scenario = DeploymentScenario(
@@ -62,7 +62,7 @@ for factor, outcome in results:
 ## Comparing Strategies
 
 ```python
-from atropos import estimate_outcome
+from atropos-llm import estimate_outcome
 from atropos.presets import SCENARIOS, STRATEGIES
 
 scenario = SCENARIOS['medium-coder']

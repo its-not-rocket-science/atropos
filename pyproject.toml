@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "atropos"
+name = "atropos-llm"
 version = "0.3.1"
 description = "Estimate performance, energy, cost, and break-even tradeoffs for pruning coding LLM deployments."
 readme = "README.md"
@@ -45,7 +45,7 @@ dev = [
 ]
 
 [project.scripts]
-atropos = "atropos.cli:main"
+atropos-llm = "atropos.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

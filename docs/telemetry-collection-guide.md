@@ -69,7 +69,7 @@ curl http://localhost:8000/v2/health/ready
 
 ```bash
 # Collect from vLLM for 60 seconds
-atropos collect-telemetry \
+atropos-llm collect-telemetry \
     --server-type vllm \
     --url http://localhost:8000 \
     --duration 60 \
@@ -87,7 +87,7 @@ atropos collect-telemetry \
 
 ```bash
 # Collect and automatically create Atropos scenario
-atropos collect-telemetry \
+atropos-llm collect-telemetry \
     --server-type vllm \
     --url http://localhost:8000 \
     --duration 120 \
@@ -122,14 +122,14 @@ If you used `--create-scenario`, you already have a YAML file:
 
 ```bash
 # Use the generated scenario
-atropos scenario baseline-telemetry.yaml --strategy structured_pruning
+atropos-llm scenario baseline-telemetry.yaml --strategy structured_pruning
 ```
 
 ### Import from JSON File
 
 ```bash
 # Import telemetry JSON to create/update scenario
-atropos import-telemetry \
+atropos-llm import-telemetry \
     baseline-telemetry.json \
     --format json \
     --name "gpt2-baseline" \
@@ -142,7 +142,7 @@ atropos import-telemetry \
 
 ```bash
 # Compare telemetry against Atropos projections
-atropos calibrate \
+atropos-llm calibrate \
     gpt2-scenario.yaml \
     baseline-telemetry.json \
     --format markdown \
@@ -184,7 +184,7 @@ python -m vllm.entrypoints.openai.api_server \
     --port 8000 &
 
 # Collect baseline telemetry
-atropos collect-telemetry \
+atropos-llm collect-telemetry \
     --server-type vllm \
     --url http://localhost:8000 \
     --duration 120 \
@@ -205,7 +205,7 @@ python -m vllm.entrypoints.openai.api_server \
     --port 8000 &
 
 # Collect pruned telemetry
-atropos collect-telemetry \
+atropos-llm collect-telemetry \
     --server-type vllm \
     --url http://localhost:8000 \
     --duration 120 \
@@ -280,7 +280,7 @@ curl http://localhost:8000/v2/health/ready  # Triton
 
 ```bash
 # Increase duration or decrease interval
-atropos collect-telemetry ... --duration 120 --interval 2
+atropos-llm collect-telemetry ... --duration 120 --interval 2
 
 # Check server has GPU available
 # Check model is loaded and ready
@@ -295,7 +295,7 @@ Some servers don't expose memory metrics directly. The collector falls back to e
 watch -n 5 nvidia-smi
 
 # Or manually specify in scenario
-atropos import-telemetry telemetry.json --format json --name "manual" -o scenario.yaml
+atropos-llm import-telemetry telemetry.json --format json --name "manual" -o scenario.yaml
 # Then edit scenario.yaml to set correct memory_gb
 ```
 
@@ -311,7 +311,7 @@ atropos import-telemetry telemetry.json --format json --name "manual" -o scenari
 
 After collecting telemetry:
 
-1. **Validate Projections**: Use `atropos calibrate` to check accuracy
+1. **Validate Projections**: Use `atropos-llm calibrate` to check accuracy
 2. **Update Scenarios**: Adjust scenario parameters based on real data
-3. **Run Pipeline**: Use `atropos pipeline` with real scenarios
+3. **Run Pipeline**: Use `atropos-llm pipeline` with real scenarios
 4. **Share Results**: Export calibration reports to improve Atropos models

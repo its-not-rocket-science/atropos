@@ -427,7 +427,7 @@ def generate_report(
     for m in compatible[:5]:
         if m.params_b:
             lines.append(f"# {m.name} ({m.params_b:.2f}B params)")
-            lines.append(f"atropos validate edge-coder --model {m.name}")
+            lines.append(f"atropos-llm validate edge-coder --model {m.name}")
             lines.append("")
 
     lines.append("```")

@@ -7,7 +7,7 @@
 Show available built-in scenarios and strategies.
 
 ```bash
-atropos list-presets
+atropos-llm list-presets
 ```
 
 ### `preset`
@@ -15,7 +15,7 @@ atropos list-presets
 Run analysis with a built-in scenario.
 
 ```bash
-atropos preset medium-coder --strategy structured_pruning
+atropos-llm preset medium-coder --strategy structured_pruning
 ```
 
 Options:
@@ -28,7 +28,7 @@ Options:
 Run analysis from a YAML scenario file.
 
 ```bash
-atropos scenario my_scenario.yaml --report markdown
+atropos-llm scenario my_scenario.yaml --report markdown
 ```
 
 ### `compare`
@@ -36,7 +36,7 @@ atropos scenario my_scenario.yaml --report markdown
 Compare multiple strategies.
 
 ```bash
-atropos compare medium-coder \
+atropos-llm compare medium-coder \
   --strategies mild_pruning structured_pruning \
   --format markdown
 ```
@@ -52,7 +52,7 @@ Options:
 Process multiple scenario files.
 
 ```bash
-atropos batch scenarios/ \
+atropos-llm batch scenarios/ \
   --strategies mild_pruning structured_pruning \
   --output results.csv
 ```
@@ -62,7 +62,7 @@ atropos batch scenarios/ \
 Run sensitivity analysis on a parameter.
 
 ```bash
-atropos sensitivity medium-coder \
+atropos-llm sensitivity medium-coder \
   --strategy structured_pruning \
   --param memory_reduction_fraction \
   --format json \
@@ -74,5 +74,5 @@ atropos sensitivity medium-coder \
 Convert batch CSV results to markdown report.
 
 ```bash
-atropos csv-to-markdown results.csv --output report.md
+atropos-llm csv-to-markdown results.csv --output report.md
 ```

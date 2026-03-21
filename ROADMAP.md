@@ -35,7 +35,7 @@
 - [ ] production deployment automation
 - [ ] A/B testing framework for model variants
 - [ ] continuous optimization pipeline
-- [ ] PyPI package release
+- [x] PyPI package release
 
 ## Atropos Pipeline
 
@@ -93,9 +93,9 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 
 **Deliverables:**
 - ✅ `src/atropos/telemetry_collector.py` — Active collectors for vLLM, TGI, Triton
-- ✅ `atropos collect-telemetry` CLI command
+- ✅ `atropos-llm collect-telemetry` CLI command
 - ✅ `docs/telemetry-collection-guide.md` — Complete usage documentation
-- ✅ Calibration integration with existing `atropos calibrate` command
+- ✅ Calibration integration with existing `atropos-llm calibrate` command
 
 ### 2. LLM Crawl and Analysis ✅
 
@@ -111,7 +111,7 @@ Practical exercises to validate Atropos projections and demonstrate real-world v
 
 **Deliverables:**
 - ✅ `src/atropos/model_tester.py` — Automated test suite
-- ✅ `atropos test-models` CLI command
+- ✅ `atropos-llm test-models` CLI command
 - ✅ `docs/model-recommendations.md` — Comprehensive model guide
 - ✅ `scripts/model-discovery-crawler.py` — Discovery tool
 - ✅ Curated model lists by size tier and use case

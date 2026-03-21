@@ -22,13 +22,13 @@ pip install -e ".[dashboard]"
 
 ```bash
 # Start dashboard on default port (8050)
-atropos dashboard
+atropos-llm dashboard
 
 # Start on custom host/port
-atropos dashboard --host 0.0.0.0 --port 8080
+atropos-llm dashboard --host 0.0.0.0 --port 8080
 
 # Enable debug mode (auto-reload on code changes)
-atropos dashboard --debug
+atropos-llm dashboard --debug
 ```
 
 Then open your browser to `http://localhost:8050` (or the host/port you specified).
@@ -150,7 +150,7 @@ All charts update immediately when you click **Calculate**. No page reload requi
 **Export Scenario:**
 - Downloads current configuration as YAML
 - Filename: `atropos-scenario-{timestamp}.yaml`
-- Can be reloaded via CLI: `atropos scenario file.yaml`
+- Can be reloaded via CLI: `atropos-llm scenario file.yaml`
 
 ## Advanced Usage
 
@@ -203,7 +203,7 @@ pip install dash plotly pandas
 
 ```bash
 # Use a different port
-atropos dashboard --port 8051
+atropos-llm dashboard --port 8051
 ```
 
 ### Charts Not Displaying
@@ -267,8 +267,8 @@ Requires JavaScript enabled.
 After using the dashboard:
 
 1. **Export promising scenarios** as YAML
-2. **Validate with real models** using `atropos validate`
-3. **Run optimization pipeline** using `atropos pipeline`
+2. **Validate with real models** using `atropos-llm validate`
+3. **Run optimization pipeline** using `atropos-llm pipeline`
 4. **Share configurations** with your team
 
 ## API Integration

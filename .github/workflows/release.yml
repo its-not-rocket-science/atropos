@@ -68,8 +68,8 @@ jobs:
       - name: Smoke test installation
         run: |
           python scripts/smoke_test.py
-          atropos --help
-          atropos list-presets
+          atropos-llm --help
+          atropos-llm list-presets
 
   publish-test-pypi:
     needs: verify

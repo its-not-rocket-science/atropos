@@ -21,7 +21,7 @@ Named after the Fate who cuts the thread, Atropos is built for practical deploym
 ## Example
 
 ```bash
-atropos preset medium-coder --strategy structured_pruning --report text
+atropos-llm preset medium-coder --strategy structured_pruning --report text
 ```
 
 Output:

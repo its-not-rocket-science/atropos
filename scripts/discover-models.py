@@ -174,7 +174,7 @@ def run_atropos_validation(
     try:
         result = subprocess.run(
             [
-                "atropos",
+                "atropos-llm",
                 "validate",
                 scenario,
                 "--model",
@@ -217,7 +217,7 @@ def list_models():
             print(f"  - {model:40s} ({params_str})")
 
     print("\nTo test a specific model:")
-    print("  atropos validate edge-coder --model gpt2")
+    print("  atropos-llm validate edge-coder --model gpt2")
 
 
 def test_models(models: list[str], device: str = "cpu") -> list[ModelInfo]:
