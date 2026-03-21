@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.3.1] - 2026-03-21
+
+### Added
+
+### Changed
+- Bumped GitHub Actions dependencies to latest versions:
+  - actions/checkout from v4 to v6
+  - actions/setup-python from v5 to v6
+  - actions/upload-artifact from v4 to v7
+- Removed debug print statements from pruning and quality measurement scripts
+- Applied consistent code formatting with ruff
+
+### Fixed
+- Fixed CI submodule fetch failures by pushing missing commit to wanda repository
+- Fixed syntax error in patched_prune.py from debug statement removal
 ## [0.3.0] - 2026-03-19
 
 ### Added

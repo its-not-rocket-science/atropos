@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atropos"
-version = "0.3.0"
+version = "0.3.1"
 description = "Estimate performance, energy, cost, and break-even tradeoffs for pruning coding LLM deployments."
 readme = "README.md"
 requires-python = ">=3.10"

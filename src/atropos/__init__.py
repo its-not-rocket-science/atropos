@@ -10,4 +10,4 @@ __all__ = [
     "combine_strategies",
     "estimate_outcome",
 ]
-__version__ = "0.3.0"
+__version__ = "0.3.1"
