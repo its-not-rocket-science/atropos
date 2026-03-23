@@ -10,9 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- Rename package from 'atropos' to 'atropos-llm' due to PyPI name conflict
 
 ### Fixed
+
+## [0.4.0] - 2026-03-23
+
+### Changed
+- Rename package from 'atropos' to 'atropos-llm' due to PyPI name conflict
+- Update CLI program name from 'atropos' to 'atropos-llm'
+- Update documentation, scripts, and GitHub Actions workflow for new package name
+- Update PyPI release guide with new package name and references
 
 ## [0.3.1] - 2026-03-21
 
