@@ -1,7 +1,19 @@
-.PHONY: install test lint typecheck format clean build release-test release verify-release prepare-release version
+.PHONY: install test lint typecheck format clean build release-test release verify-release prepare-release version dev-full
 
 install:
 	pip install -e .[dev]
+
+dev-full:
+	pip install -e .[dev,dashboard,tuning]
+	@echo ""
+	@echo "========================================="
+	@echo "Atropos development environment complete!"
+	@echo "========================================="
+	@echo ""
+	@echo "Optional pruning framework setup:"
+	@echo "  Wanda pruning: make setup-wanda"
+	@echo "  Note: Wanda dependencies may conflict with main Atropos dependencies."
+	@echo "        Consider using a separate environment for pruning experiments."
 
 setup-wanda:
 	python scripts/setup_wanda.py

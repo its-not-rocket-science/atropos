@@ -30,7 +30,7 @@ Atropos provides a comprehensive suite of tools for analyzing and automating LLM
 | Monte Carlo uncertainty analysis | Quantify uncertainty in projections with probabilistic modeling | Advanced Analysis |
 | CSV-to-markdown report generation | Convert batch results to formatted markdown reports | Reporting |
 | Multiple report formats | Generate reports in text, JSON, markdown, or HTML formats | Reporting |
-| Web dashboard | Interactive browser-based dashboard for exploration (run with `dashboard` command) | Interactive Tools |
+| Web dashboard | Interactive browser-based dashboard for exploration (run with `dashboard` command, requires optional `dashboard` dependencies) | Interactive Tools |
 | Telemetry collection | Collect real performance metrics from vLLM/TGI/Triton inference servers | Integration |
 | Model testing suite | Test HuggingFace Hub models for compatibility with `test-models` command | Integration |
 | Pruning framework integrations | Integrated support for LLM-Pruner, Wanda, and SparseGPT frameworks | Integration |
@@ -43,6 +43,17 @@ Atropos provides a comprehensive suite of tools for analyzing and automating LLM
 ### PyPI (stable release)
 ```bash
 pip install atropos-llm
+```
+
+### Optional dependencies
+The web dashboard requires additional dependencies. Install with:
+```bash
+pip install atropos-llm[dashboard]
+```
+
+For hyperparameter tuning functionality:
+```bash
+pip install atropos-llm[tuning]
 ```
 
 ### Development installation

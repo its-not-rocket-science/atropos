@@ -11,7 +11,7 @@
   - Clear documentation on limitations, dependencies, and failure modes
   - Validation suite to confirm model/environment compatibility
 - [x] improve CI stability and reliability
-- [ ] optimize validation script for GPU acceleration
+- ✅ optimize validation script for GPU acceleration
 - ✅ add pruning result visualizations (charts, graphs)
 - ✅ standardize CLI examples to consistently use atropos-llm in all documentation
 - ✅ add feature overview table at top of README for scannability
@@ -19,7 +19,7 @@
 - ✅ add documentation badge linking to hosted docs (GitHub Pages)
 - ✅ add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
 - [ ] make dashboard dependencies optional (pip install atropos-llm[dashboard]) to keep core lightweight
-- [ ] add make dev-full target that sets up dedicated environment with all pruning frameworks
+- ✅ add make dev-full target that sets up dedicated environment with all pruning frameworks
 
 ## Medium term
 

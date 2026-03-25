@@ -30,7 +30,6 @@ dependencies = [
   "PyYAML>=6.0",
   "torch>=2.0",
   "transformers>=4.40",
-  "dash>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +44,11 @@ dev = [
 ]
 tuning = [
   "scikit-optimize>=0.10.0",
+]
+dashboard = [
+  "dash>=2.0",
+  "plotly>=5.0",
+  "pandas>=2.0",
 ]
 
 [project.scripts]

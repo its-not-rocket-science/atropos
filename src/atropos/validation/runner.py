@@ -138,6 +138,10 @@ class ModelValidator:
         model = model.to(self.device)  # type: ignore[arg-type]
         model.eval()
 
+        # Optimize CUDA settings if using GPU
+        if self.device == "cuda":
+            torch.backends.cudnn.benchmark = True
+
         # Count parameters
         param_count = sum(p.numel() for p in model.parameters())
         parameters_b = param_count / 1e9
@@ -158,22 +162,34 @@ class ModelValidator:
         inputs = tokenizer(test_text, return_tensors="pt").to(self.device)
 
         # Warmup
-        with torch.no_grad():
+        with torch.inference_mode():
             _ = model(**inputs)
 
         # Measure throughput
         batch_size = self.scenario.batch_size
-        num_iterations = 10
+        num_iterations = 50 if self.device == "cuda" else 10
 
-        start_time = time.time()
-        with torch.no_grad():
-            for _ in range(num_iterations):
-                _ = model(**inputs)
+        if self.device == "cuda":
+            # Use CUDA events for precise GPU timing
+            start_event = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
+            end_event = torch.cuda.Event(enable_timing=True)  # type: ignore[no-untyped-call]
 
-                if self.device == "cuda":
-                    torch.cuda.synchronize()
+            torch.cuda.synchronize()
+            start_event.record()  # type: ignore[no-untyped-call]
+            with torch.inference_mode():
+                for _ in range(num_iterations):
+                    _ = model(**inputs)
+            end_event.record()  # type: ignore[no-untyped-call]
+            torch.cuda.synchronize()
+            total_time = start_event.elapsed_time(end_event) / 1000.0  # type: ignore[no-untyped-call]  # convert ms to seconds
+        else:
+            # CPU timing
+            start_time = time.time()
+            with torch.inference_mode():
+                for _ in range(num_iterations):
+                    _ = model(**inputs)
+            total_time = time.time() - start_time
 
-        total_time = time.time() - start_time
         avg_time = total_time / num_iterations
 
         # Calculate throughput (tokens per second)

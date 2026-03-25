@@ -8,5 +8,5 @@ try:
     from .app import create_app, run_dashboard
 except ImportError as e:
     raise ImportError(
-        "Dashboard dependencies not installed. Install with: pip install dash plotly pandas"
+        "Dashboard dependencies not installed. Install with: pip install atropos-llm[dashboard]"
     ) from e
