@@ -40,7 +40,6 @@ from .telemetry_collector import (
     collect_and_save,
 )
 from .tuning import HyperparameterTuner, TuningConstraints, TuningResult
-from .validation import run_validation
 from .visualization import visualize_json
 
 
@@ -958,6 +957,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             # Validate telemetry
             issues = validate_telemetry(telemetry)
+            import sys
+
             if issues:
                 print("Telemetry validation issues:", file=sys.stderr)
                 for issue in issues:
@@ -1382,16 +1383,32 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Load scenario and strategy
             scenario_name, scenario = _load_scenario_input(args.scenario)
             strategy = STRATEGIES[args.strategy]
+            import os
+            import sys
 
             print(f"Validating Atropos projections for: {scenario_name}")
+            sys.stdout.flush()
             print(f"Strategy: {args.strategy}")
+            sys.stdout.flush()
             print(f"Device: {args.device}")
+            sys.stdout.flush()
             if args.model:
                 print(f"Model: {args.model}")
+                sys.stdout.flush()
             print()
+            sys.stdout.flush()
+
+            # Speed up torch import on Windows by disabling CUDA detection for CPU runs
+
+            if args.device == "cpu":
+                os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
             # Run validation
+            print("Loading validation module...")
+            sys.stdout.flush()
             try:
+                from .validation import run_validation
+
                 validation_result = run_validation(
                     scenario=scenario,
                     strategy=strategy,
