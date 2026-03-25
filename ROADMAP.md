@@ -13,6 +13,13 @@
 - [x] improve CI stability and reliability
 - [ ] optimize validation script for GPU acceleration
 - [x] add pruning result visualizations (charts, graphs)
+- [ ] standardize CLI examples to consistently use atropos-llm in all documentation
+- [ ] add feature overview table at top of README for scannability
+- [ ] create CONTRIBUTING.md with PR workflow, coding standards, and testing requirements
+- [ ] add documentation badge linking to hosted docs (GitHub Pages)
+- [ ] add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
+- [ ] make dashboard dependencies optional (pip install atropos-llm[dashboard]) to keep core lightweight
+- [ ] add make dev-full target that sets up dedicated environment with all pruning frameworks
 
 ## Medium term
 
@@ -36,6 +43,33 @@
 - [ ] A/B testing framework for model variants
 - [ ] continuous optimization pipeline
 - [x] PyPI package release
+
+## Version Planning
+
+**v0.5.0**
+- Multi-GPU benchmarking support
+- Distributed pruning experiments
+- Optimize validation script for GPU acceleration
+
+**v0.6.0**
+- Production deployment automation
+- A/B testing framework for model variants
+
+**v0.7.0**
+- Continuous optimization pipeline
+
+**v1.0.0**
+- Stable API
+- Comprehensive documentation
+- Enterprise features (SSO, audit logging, team management)
+
+## Future Exploration
+
+- Model compression beyond pruning (knowledge distillation, low-rank adaptation)
+- Hardware-specific optimization profiles (NVIDIA vs AMD vs AWS Inferentia)
+- Integration with more deployment platforms (TensorRT-LLM, ONNX Runtime, Apple MLX)
+- Real-time optimization suggestions based on live telemetry
+- Automated optimization across multiple model variants (Pareto frontier analysis)
 
 ## Atropos Pipeline
 
