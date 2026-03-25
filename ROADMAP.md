@@ -16,8 +16,8 @@
 - ✅ standardize CLI examples to consistently use atropos-llm in all documentation
 - ✅ add feature overview table at top of README for scannability
 - ✅ create CONTRIBUTING.md with PR workflow, coding standards, and testing requirements
-- [ ] add documentation badge linking to hosted docs (GitHub Pages)
-- [ ] add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
+- ✅ add documentation badge linking to hosted docs (GitHub Pages)
+- ✅ add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
 - [ ] make dashboard dependencies optional (pip install atropos-llm[dashboard]) to keep core lightweight
 - [ ] add make dev-full target that sets up dedicated environment with all pruning frameworks
 

@@ -3,7 +3,7 @@
 **Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
 
 📚 [Documentation](https://its-not-rocket-science.github.io/atropos/)
-![PyPI version](https://img.shields.io/pypi/v/atropos-llm) ![Python versions](https://img.shields.io/pypi/pyversions/atropos-llm)
+![PyPI version](https://img.shields.io/pypi/v/atropos-llm) ![Python versions](https://img.shields.io/pypi/pyversions/atropos-llm) [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://its-not-rocket-science.github.io/atropos/)
 
 Named after the Fate who cuts the thread, Atropos is built for practical deployment questions:
 

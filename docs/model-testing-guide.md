@@ -17,6 +17,8 @@ This guide helps you find and test neural networks and LLMs to validate Atropos 
 | `EleutherAI/pythia-160m` | 160M | Research model | `pip install transformers` |
 | `EleutherAI/pythia-410m` | 410M | Research model | `pip install transformers` |
 
+> **Note on GPT-2 models**: GPT-2 variants (124M-1.5B parameters) are suitable for pipeline testing and quick validation, but their architecture and performance characteristics are not representative of modern 7B+ parameter models used in production. Use them for workflow testing, not for projecting real-world performance of larger models.
+
 ### Code-Specific Models (For Coding LLM scenarios)
 | Model | Params | Use Case |
 |-------|--------|----------|
