@@ -43,6 +43,9 @@ dev = [
   "twine>=5.0",
   "types-PyYAML>=6.0.12",
 ]
+tuning = [
+  "scikit-optimize>=0.10.0",
+]
 
 [project.scripts]
 atropos-llm = "atropos.cli:main"

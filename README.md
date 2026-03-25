@@ -106,10 +106,23 @@ Batch process a directory of scenarios:
 atropos-llm batch examples --strategies mild_pruning structured_pruning --output results.csv
 ```
 
+Hyperparameter tuning for optimal pruning targets:
+
+```bash
+atropos-llm tune medium-coder --max-memory 10.0 --min-throughput 30.0
+```
+
 Run sensitivity analysis and export to JSON:
 
 ```bash
 atropos-llm sensitivity medium-coder --strategy structured_pruning --param memory_reduction_fraction --format json --output sensitivity.json
+```
+
+Verbose and debug logging:
+
+```bash
+atropos-llm --verbose preset medium-coder
+atropos-llm --debug tune medium-coder
 ```
 
 Convert CSV results to markdown report:

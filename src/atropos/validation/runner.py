@@ -11,6 +11,8 @@ from torch.nn.utils import prune
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 from ..calculations import estimate_outcome
+from ..exceptions import ImportErrorException
+from ..logging_config import get_logger
 from .models import ComparisonMetric, MeasuredMetrics, ValidationResult
 
 if TYPE_CHECKING:
@@ -22,6 +24,9 @@ def _compute_variance(projected: float, measured: float) -> float:
     if projected == 0:
         return float("inf") if measured != 0 else 0.0
     return ((measured - projected) / projected) * 100
+
+
+logger = get_logger("validation")
 
 
 class ModelValidator:
@@ -126,7 +131,7 @@ class ModelValidator:
         """
 
         # Load model and tokenizer
-        print(f"Loading model: {model_name}")
+        logger.info("Loading model: %s", model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         loaded_model = AutoModelForCausalLM.from_pretrained(model_name)
         model = cast(PreTrainedModel, loaded_model)
@@ -204,8 +209,10 @@ class ModelValidator:
         Returns:
             Pruned model.
         """
-
         target_sparsity = self.strategy.parameter_reduction_fraction
+        logger.debug(
+            "Applying pruning with method '%s' at %.1f%% sparsity", method, target_sparsity * 100
+        )
 
         if method == "magnitude":
             # Apply magnitude-based pruning to linear layers
@@ -224,6 +231,7 @@ class ModelValidator:
 
         This generates realistic measurements based on the scenario.
         """
+        logger.debug("Simulating baseline measurement for model: %s", model_name)
         # Use scenario values with small random variance
 
         def variance(x: float, pct: float) -> float:
@@ -244,6 +252,7 @@ class ModelValidator:
 
     def _simulate_optimized_measurement(self, model_name: str) -> MeasuredMetrics:
         """Simulate optimized measurement when real model unavailable."""
+        logger.debug("Simulating optimized measurement for model: %s", model_name)
 
         def variance(x: float, pct: float) -> float:
             return x * (1 + random.uniform(-pct, pct))
@@ -288,11 +297,11 @@ class ModelValidator:
             ValidationResult with comparison analysis.
         """
         # Measure baseline
-        print("Measuring baseline model...")
+        logger.info("Measuring baseline model...")
         baseline = self.measure_baseline(model_name)
 
         # Measure optimized
-        print("Measuring optimized model...")
+        logger.info("Measuring optimized model...")
         optimized = self.measure_optimized(model_name, pruning_method)
 
         # Build comparisons
@@ -397,10 +406,6 @@ class ModelValidator:
                 f"❌ Only {accurate_count}/{total_count} metrics within tolerance. "
                 "Significant variance detected - scenario may need recalibration."
             )
-
-
-class ImportErrorException(Exception):  # noqa: N818
-    """Exception raised when required packages not installed."""
 
 
 def run_validation(

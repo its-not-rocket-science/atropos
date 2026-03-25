@@ -14,7 +14,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .logging_config import get_logger
 from .telemetry import TelemetryData
+
+logger = get_logger("telemetry")
 
 
 @dataclass
@@ -582,6 +585,6 @@ def collect_and_save(
             "collection_metadata": result.metadata,
         }
         output_path.write_text(json.dumps(data, indent=2))
-        print(f"Telemetry saved to {output_path}")
+        logger.info("Telemetry saved to %s", output_path)
 
     return result

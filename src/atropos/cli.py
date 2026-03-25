@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -15,8 +16,10 @@ from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
 from .config import AtroposConfig
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
+from .exceptions import AtroposError
 from .integrations import TRACKERS, get_tracker, run_to_scenario
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
+from .logging_config import SHOW_TRACEBACK, setup_logging
 from .model_tester import (
     generate_catalog,
     get_recommended_test_models,
@@ -36,6 +39,7 @@ from .telemetry_collector import (
     CollectionConfig,
     collect_and_save,
 )
+from .tuning import HyperparameterTuner, TuningConstraints, TuningResult
 from .validation import run_validation
 from .visualization import visualize_json
 
@@ -47,6 +51,28 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Estimate the ROI of pruning and related optimizations for coding LLM deployments."
         ),
+    )
+    # Global logging and debugging flags
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose output (INFO level logging)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output (DEBUG level logging)",
+    )
+    parser.add_argument(
+        "--traceback",
+        action="store_true",
+        help="Show full traceback for exceptions",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        help="Write logs to specified file (overrides ATROPOS_LOG_FILE)",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -145,6 +171,61 @@ def build_parser() -> argparse.ArgumentParser:
     mc_parser.add_argument("--output", "-o", type=Path, help="Output file path")
     mc_parser.add_argument(
         "--format", choices=["text", "json", "csv"], default="text", help="Output format"
+    )
+
+    # Hyperparameter tuning command
+    tune_parser = subparsers.add_parser(
+        "tune",
+        help="Automatically tune pruning strategy hyperparameters for optimal ROI.",
+    )
+    tune_parser.add_argument("scenario", help="Scenario name or path to YAML")
+    tune_parser.add_argument(
+        "--max-memory",
+        type=float,
+        help="Maximum memory constraint in GB",
+    )
+    tune_parser.add_argument(
+        "--min-throughput",
+        type=float,
+        help="Minimum throughput constraint in tokens/sec",
+    )
+    tune_parser.add_argument(
+        "--max-latency",
+        type=float,
+        help="Maximum latency constraint in ms per request",
+    )
+    tune_parser.add_argument(
+        "--max-power",
+        type=float,
+        help="Maximum power constraint in watts",
+    )
+    tune_parser.add_argument(
+        "--max-risk",
+        choices=["low", "medium", "high"],
+        default="medium",
+        help="Maximum acceptable quality risk (default: medium)",
+    )
+    tune_parser.add_argument(
+        "--use-quantization",
+        action="store_true",
+        help="Include quantization in optimization",
+    )
+    tune_parser.add_argument(
+        "--fast-pruning",
+        action="store_true",
+        help="Prefer fast pruning frameworks",
+    )
+    tune_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Output file path for tuned strategy (YAML format)",
+    )
+    tune_parser.add_argument(
+        "--format",
+        choices=["text", "json", "yaml"],
+        default="text",
+        help="Output format (default: text)",
     )
 
     csv_md_parser = subparsers.add_parser(
@@ -482,9 +563,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     Returns:
         Exit code (0 for success, 1 for user errors, 2 for unexpected errors).
     """
+    # Initial logging setup with defaults (before parsing args)
+    setup_logging()
     try:
         parser = build_parser()
         args = parser.parse_args(argv)
+
+        # Configure logging based on command-line flags
+        setup_logging(
+            verbose=args.verbose,
+            debug=args.debug,
+            traceback=args.traceback,
+            log_file=args.log_file,
+        )
 
         if args.command == "list-presets":
             print("Deployment Scenarios:")
@@ -726,6 +817,125 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"\nSaved report to {args.output}")
             return 0
 
+        if args.command == "tune":
+            # Load scenario
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+
+            # Build tuning constraints from command-line arguments
+            constraints = TuningConstraints(
+                max_memory_gb=args.max_memory,
+                min_throughput_toks_per_sec=args.min_throughput,
+                max_latency_ms_per_request=args.max_latency,
+                max_power_watts=args.max_power,
+                max_quality_risk=args.max_risk,
+                use_quantization=args.use_quantization,
+                prefer_fast_pruning=args.fast_pruning,
+            )
+
+            # Run hyperparameter tuning
+            logger = logging.getLogger(__name__)
+            logger.info("Starting hyperparameter tuning for scenario: %s", scenario_name)
+            tuner = HyperparameterTuner(scenario=scenario, constraints=constraints)
+            tuning_result: TuningResult = tuner.tune()
+
+            # Output results
+            if args.format == "json":
+                import json
+
+                output_data = {
+                    "scenario": scenario_name,
+                    "strategy": {
+                        "name": tuning_result.strategy.name,
+                        "parameter_reduction_fraction": (
+                            tuning_result.strategy.parameter_reduction_fraction
+                        ),
+                        "memory_reduction_fraction": (
+                            tuning_result.strategy.memory_reduction_fraction
+                        ),
+                        "throughput_improvement_fraction": (
+                            tuning_result.strategy.throughput_improvement_fraction
+                        ),
+                        "power_reduction_fraction": tuning_result.strategy.power_reduction_fraction,
+                        "quality_risk": tuning_result.strategy.quality_risk,
+                    },
+                    "recommended_framework": tuning_result.recommended_framework,
+                    "quality_risk": tuning_result.quality_risk,
+                    "expected_metrics": {
+                        "memory_gb": tuning_result.expected_memory_gb,
+                        "throughput_toks_per_sec": tuning_result.expected_throughput_toks_per_sec,
+                        "latency_ms_per_request": tuning_result.expected_latency_ms_per_request,
+                        "power_watts": tuning_result.expected_power_watts,
+                    },
+                    "tuning_metadata": tuning_result.tuning_metadata,
+                }
+                content = json.dumps(output_data, indent=2)
+            elif args.format == "yaml":
+                import yaml
+
+                output_data = {
+                    "scenario": scenario_name,
+                    "strategy": {
+                        "name": tuning_result.strategy.name,
+                        "parameter_reduction_fraction": (
+                            tuning_result.strategy.parameter_reduction_fraction
+                        ),
+                        "memory_reduction_fraction": (
+                            tuning_result.strategy.memory_reduction_fraction
+                        ),
+                        "throughput_improvement_fraction": (
+                            tuning_result.strategy.throughput_improvement_fraction
+                        ),
+                        "power_reduction_fraction": tuning_result.strategy.power_reduction_fraction,
+                        "quality_risk": tuning_result.strategy.quality_risk,
+                    },
+                    "recommended_framework": tuning_result.recommended_framework,
+                    "quality_risk": tuning_result.quality_risk,
+                    "expected_metrics": {
+                        "memory_gb": tuning_result.expected_memory_gb,
+                        "throughput_toks_per_sec": tuning_result.expected_throughput_toks_per_sec,
+                        "latency_ms_per_request": tuning_result.expected_latency_ms_per_request,
+                        "power_watts": tuning_result.expected_power_watts,
+                    },
+                    "tuning_metadata": tuning_result.tuning_metadata,
+                }
+                content = yaml.dump(output_data, default_flow_style=False)
+            else:  # text format
+                content = (
+                    f"Hyperparameter Tuning Results\n"
+                    f"{'=' * 50}\n"
+                    f"Scenario: {scenario_name}\n"
+                    f"Strategy: {tuning_result.strategy.name}\n"
+                    f"\n"
+                    f"Optimization Strategy Parameters:\n"
+                    f"  Parameter reduction: "
+                    f"{tuning_result.strategy.parameter_reduction_fraction:.1%}\n"
+                    f"  Memory reduction: {tuning_result.strategy.memory_reduction_fraction:.1%}\n"
+                    f"  Throughput improvement: "
+                    f"{tuning_result.strategy.throughput_improvement_fraction:.1%}\n"
+                    f"  Power reduction: {tuning_result.strategy.power_reduction_fraction:.1%}\n"
+                    f"  Quality risk: {tuning_result.strategy.quality_risk}\n"
+                    f"\n"
+                    f"Recommended Framework: {tuning_result.recommended_framework}\n"
+                    f"\n"
+                    f"Expected Metrics After Optimization:\n"
+                    f"  Memory: {tuning_result.expected_memory_gb:.2f} GB\n"
+                    f"  Throughput: "
+                    f"{tuning_result.expected_throughput_toks_per_sec:.0f} tokens/sec\n"
+                    f"  Latency: {tuning_result.expected_latency_ms_per_request:.1f} ms/request\n"
+                    f"  Power: {tuning_result.expected_power_watts:.0f} W\n"
+                    f"\n"
+                    f"Model Architecture: "
+                    f"{tuning_result.tuning_metadata.get('architecture', 'unknown')}\n"
+                )
+
+            if args.output:
+                args.output.write_text(content)
+                logger.info("Tuning results saved to %s", args.output)
+            else:
+                print(content)
+
+            return 0
+
         if args.command == "csv-to-markdown":
             markdown = csv_to_markdown(args.input, args.output)
             if args.output:
@@ -953,12 +1163,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
 
             except RuntimeError as e:
-                print(f"Error: {e}", file=sys.stderr)
-                print("Install the required package:", file=sys.stderr)
+                logging.error(f"{e}", exc_info=SHOW_TRACEBACK)
+                logging.warning("Install the required package:")
                 if args.tracker == "wandb":
-                    print("  pip install wandb", file=sys.stderr)
+                    logging.warning("  pip install wandb")
                 elif args.tracker == "mlflow":
-                    print("  pip install mlflow", file=sys.stderr)
+                    logging.warning("  pip install mlflow")
                 return 1
 
         if args.command == "list-carbon-presets":
@@ -1040,8 +1250,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run_dashboard(host=args.host, port=args.port, debug=args.debug)
                 return 0
             except ImportError:
-                print("Error: Dashboard dependencies not installed", file=sys.stderr)
-                print("Install with: pip install dash plotly pandas", file=sys.stderr)
+                logging.error("Dashboard dependencies not installed", exc_info=SHOW_TRACEBACK)
+                logging.warning("Install with: pip install dash plotly pandas")
                 return 1
 
         if args.command == "calibrate":
@@ -1165,7 +1375,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"  Deployment: {'auto' if deploy else 'manual'}")
                 return 0
             except Exception as e:
-                print(f"Configuration error: {e}", file=sys.stderr)
+                logging.error(f"Configuration error: {e}", exc_info=SHOW_TRACEBACK)
                 return 1
 
         if args.command == "validate":
@@ -1206,7 +1416,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
                 return 0
             except Exception as e:
-                print(f"Validation failed: {e}", file=sys.stderr)
+                logging.error(f"Validation failed: {e}", exc_info=SHOW_TRACEBACK)
                 return 1
 
         if args.command == "visualize":
@@ -1246,16 +1456,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"Unsupported command: {args.command}")
         return 2
     except FileNotFoundError as e:
-        print(f"Error: File not found - {e}", file=sys.stderr)
+        logging.error(f"File not found: {e}", exc_info=SHOW_TRACEBACK)
         return 1
     except ValueError as e:
-        print(f"Error: Invalid input - {e}", file=sys.stderr)
+        logging.error(f"Invalid input: {e}", exc_info=SHOW_TRACEBACK)
         return 1
     except KeyError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logging.error(f"{e}", exc_info=SHOW_TRACEBACK)
+        return 1
+    except AtroposError as e:
+        logging.error(f"{e}", exc_info=SHOW_TRACEBACK)
         return 1
     except Exception as e:
-        print(f"Unexpected error: {e}", file=sys.stderr)
+        logging.error(f"Unexpected error: {e}", exc_info=SHOW_TRACEBACK)
         return 1
 
 
