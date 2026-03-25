@@ -53,9 +53,9 @@ make build       # python -m build
 
 Run CLI locally:
 ```bash
-atropos preset medium-coder --strategy structured_pruning --report text
-atropos scenario examples/medium_coder.yaml --report json
-atropos compare medium-coder --strategies mild_pruning structured_pruning --format markdown
+atropos-llm preset medium-coder --strategy structured_pruning --report text
+atropos-llm scenario examples/medium_coder.yaml --report json
+atropos-llm compare medium-coder --strategies mild_pruning structured_pruning --format markdown
 ```
 
 ## Architecture

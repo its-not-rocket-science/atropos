@@ -6,16 +6,16 @@
 - ✅ add CSV-to-markdown report generation
 - ✅ expand comparison and sensitivity CLI output
 - ✅ publish documentation pages
-- [x] stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT) - compatibility extended to GPT2, BLOOM, GPT-J, OPT, Pythia via patched_prune.py
+- ✅ stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT) - compatibility extended to GPT2, BLOOM, GPT-J, OPT, Pythia via patched_prune.py
   - Comprehensive test coverage across diverse model architectures
   - Clear documentation on limitations, dependencies, and failure modes
   - Validation suite to confirm model/environment compatibility
 - [x] improve CI stability and reliability
 - [ ] optimize validation script for GPU acceleration
-- [x] add pruning result visualizations (charts, graphs)
-- [ ] standardize CLI examples to consistently use atropos-llm in all documentation
-- [ ] add feature overview table at top of README for scannability
-- [ ] create CONTRIBUTING.md with PR workflow, coding standards, and testing requirements
+- ✅ add pruning result visualizations (charts, graphs)
+- ✅ standardize CLI examples to consistently use atropos-llm in all documentation
+- ✅ add feature overview table at top of README for scannability
+- ✅ create CONTRIBUTING.md with PR workflow, coding standards, and testing requirements
 - [ ] add documentation badge linking to hosted docs (GitHub Pages)
 - [ ] add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
 - [ ] make dashboard dependencies optional (pip install atropos-llm[dashboard]) to keep core lightweight
@@ -29,9 +29,9 @@
 - ✅ region-specific grid carbon presets
 - [ ] multi-GPU benchmarking support
 - [ ] distributed pruning experiments
-- [x] quantization + pruning combination analysis
-- [x] automated hyperparameter tuning for pruning targets
-- [x] enhance error handling and debugging capabilities (structured logging, debug/verbose modes, traceback flag, error context)
+- ✅ quantization + pruning combination analysis
+- ✅ automated hyperparameter tuning for pruning targets
+- ✅ enhance error handling and debugging capabilities (structured logging, debug/verbose modes, traceback flag, error context)
 
 ## Long term
 
@@ -42,7 +42,7 @@
 - [ ] production deployment automation
 - [ ] A/B testing framework for model variants
 - [ ] continuous optimization pipeline
-- [x] PyPI package release
+- ✅ PyPI package release
 
 ## Version Planning
 
