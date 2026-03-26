@@ -8,16 +8,17 @@ import pytest
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Add external/wanda to path
+# Add external/wanda and scripts to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "external" / "wanda"))
+sys.path.insert(0, str(project_root / "scripts"))
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(os.getenv("CI") == "true", reason="Requires external dependencies")
 def test_wanda_pruning_gpt2(tmp_path: Path):
     """Test Wanda pruning with GPT2 model."""
-    from lib.prune import prune_wanda
+    from patched_prune import prune_wanda_patched
 
     model_path = (
         project_root
@@ -63,4 +64,4 @@ def test_wanda_pruning_gpt2(tmp_path: Path):
     device = torch.device("cpu")
 
     # Should not raise exception
-    prune_wanda(args, model, tokenizer, device, prune_n=0, prune_m=0)
+    prune_wanda_patched(args, model, tokenizer, device, prune_n=0, prune_m=0)
