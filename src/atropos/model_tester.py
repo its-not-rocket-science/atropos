@@ -280,9 +280,9 @@ def run_test_suite(
     print("\n" + "=" * 60)
     print("Test Suite Summary")
     print(f"Total: {result.total_models}")
-    print(f"Successful: {result.successful} ✅")
-    print(f"Failed: {result.failed} ❌")
-    print(f"Skipped: {result.skipped} ⏭️")
+    print(f"Successful: {result.successful} [OK]")
+    print(f"Failed: {result.failed} [FAIL]")
+    print(f"Skipped: {result.skipped} [SKIP]")
     print(f"Duration: {result.duration_sec:.1f}s")
 
     # Save results

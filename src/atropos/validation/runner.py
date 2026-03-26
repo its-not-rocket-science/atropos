@@ -6,10 +6,6 @@ import random
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-import torch
-from torch.nn.utils import prune
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
-
 from ..calculations import estimate_outcome
 from ..exceptions import ImportErrorException
 from ..logging_config import get_logger
@@ -108,7 +104,7 @@ class ModelValidator:
         elif params_b <= 7.0:
             return "gpt2-xl"  # 1.5B params
         else:
-            return "meta-llama/Llama-2-7b-hf"  # Fallback to requesting Llama
+            return "gpt2-xl"  # Fallback to largest publicly available GPT-2 variant
 
     def _measure_real_model(
         self,
@@ -129,6 +125,10 @@ class ModelValidator:
         Raises:
             ImportErrorException: If required packages not installed.
         """
+
+        # Import required modules (deferred to avoid Windows CUDA deadlock)
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
         # Load model and tokenizer
         logger.info("Loading model: %s", model_name)
@@ -225,6 +225,10 @@ class ModelValidator:
         Returns:
             Pruned model.
         """
+        # Import required modules (deferred to avoid Windows CUDA deadlock)
+        import torch
+        from torch.nn.utils import prune
+
         target_sparsity = self.strategy.parameter_reduction_fraction
         logger.debug(
             "Applying pruning with method '%s' at %.1f%% sparsity", method, target_sparsity * 100
@@ -409,17 +413,17 @@ class ModelValidator:
 
         if accurate_count == total_count:
             return (
-                f"✅ All {total_count} metrics within tolerance. "
+                f"[PASS] All {total_count} metrics within tolerance. "
                 "Atropos projections are accurate for this scenario."
             )
         elif accurate_count >= total_count // 2:
             return (
-                f"⚠️ {accurate_count}/{total_count} metrics within tolerance. "
+                f"[WARN] {accurate_count}/{total_count} metrics within tolerance. "
                 "Atropos projections are reasonably accurate but may need calibration."
             )
         else:
             return (
-                f"❌ Only {accurate_count}/{total_count} metrics within tolerance. "
+                f"[FAIL] Only {accurate_count}/{total_count} metrics within tolerance. "
                 "Significant variance detected - scenario may need recalibration."
             )
 
