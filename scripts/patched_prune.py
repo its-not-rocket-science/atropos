@@ -40,6 +40,28 @@ from lib.prune_opt import (
     prune_wanda as original_prune_wanda_opt,
 )
 
+# Distributed utilities
+try:
+    # Add project root to path for importing atropos modules
+    import sys
+    from pathlib import Path
+
+    project_root = Path(__file__).parent.parent
+    sys.path.insert(0, str(project_root))
+    from src.atropos.distributed_utils import (
+        DistributedConfig,
+        split_calibration_samples,
+        synchronize_metric,
+    )
+
+    DISTRIBUTED_AVAILABLE = True
+except ImportError:
+    DISTRIBUTED_AVAILABLE = False
+    # Create dummy objects for type checking
+    DistributedConfig = None  # type: ignore
+    synchronize_metric = None  # type: ignore
+    split_calibration_samples = None  # type: ignore
+
 
 def get_wikitext2_patched(nsamples, seed, seqlen, tokenizer):
     """Patched version of get_wikitext2 that tokenizes per document to avoid huge concatenation.
@@ -735,6 +757,7 @@ def prune_wanda_patched(
     device: torch.device | None = None,
     prune_n: int = 0,
     prune_m: int = 0,
+    **kwargs: Any,
 ) -> None:
     """Architecture-aware wrapper for prune_wanda."""
     if device is None:
@@ -746,7 +769,14 @@ def prune_wanda_patched(
 
     try:
         if arch == "opt":
-            return original_prune_wanda_opt(args, model, tokenizer, device, prune_n, prune_m)
+            # For OPT architecture, distributed pruning not yet supported
+            try:
+                return original_prune_wanda_opt(
+                    args, model, tokenizer, device, prune_n, prune_m, **kwargs
+                )
+            except TypeError:
+                # Fall back to original signature if kwargs not supported
+                return original_prune_wanda_opt(args, model, tokenizer, device, prune_n, prune_m)
         else:
             # For non-OPT, we need to use patched prepare_calibration_input
             # We'll temporarily replace the function in the module
@@ -786,9 +816,21 @@ def prune_wanda_patched(
                 original_wrapped_pair = None
             try:
                 if arch == "gpt2":
-                    return prune_wanda_gpt2(args, model, tokenizer, device, prune_n, prune_m)
+                    return prune_wanda_gpt2(
+                        args, model, tokenizer, device, prune_n, prune_m, **kwargs
+                    )
                 else:
-                    return original_prune_wanda(args, model, tokenizer, device, prune_n, prune_m)
+                    # For non-GPT2 architectures, distributed pruning not yet supported
+                    # but pass kwargs for future compatibility
+                    try:
+                        return original_prune_wanda(
+                            args, model, tokenizer, device, prune_n, prune_m, **kwargs
+                        )
+                    except TypeError:
+                        # Fall back to original signature if kwargs not supported
+                        return original_prune_wanda(
+                            args, model, tokenizer, device, prune_n, prune_m
+                        )
             finally:
                 prune_module.prepare_calibration_input = original_prepare
                 if arch == "gpt2":
@@ -815,6 +857,7 @@ def prune_sparsegpt_patched(
     device: torch.device | None = None,
     prune_n: int = 0,
     prune_m: int = 0,
+    **kwargs: Any,
 ) -> None:
     """Architecture-aware wrapper for prune_sparsegpt."""
     if device is None:
@@ -827,13 +870,24 @@ def prune_sparsegpt_patched(
 
     try:
         if arch == "opt":
-            return original_prune_sparsegpt_opt(args, model, tokenizer, device, prune_n, prune_m)
+            # For OPT architecture, distributed pruning not yet supported
+            try:
+                return original_prune_sparsegpt_opt(
+                    args, model, tokenizer, device, prune_n, prune_m, **kwargs
+                )
+            except TypeError:
+                # Fall back to original signature if kwargs not supported
+                return original_prune_sparsegpt_opt(
+                    args, model, tokenizer, device, prune_n, prune_m
+                )
         elif arch == "gpt2":
             # GPT2 requires custom SparseGPT pruning due to Conv1D layers and missing position_ids
             original_forwards = wrap_layer_forwards(layers)
             original_find_layers = patch_find_layers_for_gpt2()
             try:
-                return prune_sparsegpt_gpt2(args, model, tokenizer, device, prune_n, prune_m)
+                return prune_sparsegpt_gpt2(
+                    args, model, tokenizer, device, prune_n, prune_m, **kwargs
+                )
             finally:
                 unwrap_layer_forwards(layers, original_forwards)
                 unpatch_find_layers(original_find_layers)
@@ -920,7 +974,7 @@ def check_sparsity_patched(model: torch.nn.Module) -> float:
         restore_model_attrs(model, original)
 
 
-def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
+def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0, **kwargs):
     """Wanda pruning for GPT2 with Conv1D support."""
     print("[INFO] Using custom GPT2 pruning with Conv1D support")
     # Import inside function to avoid circular imports
@@ -930,6 +984,24 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
     from lib.layerwrapper import WrappedGPT
     from lib.prune import find_layers
     from transformers.pytorch_utils import Conv1D
+
+    # Import distributed utilities if available
+    try:
+        import sys
+        from pathlib import Path
+
+        project_root = Path(__file__).parent.parent
+        sys.path.insert(0, str(project_root))
+        from src.atropos.distributed_utils import (
+            split_calibration_samples,
+            synchronize_metric,
+        )
+
+        distributed_available = True
+    except ImportError:
+        distributed_available = False
+        synchronize_metric = None  # noqa: F841
+        split_calibration_samples = None
 
     # Apply GPT2-specific patches
     original_find_layers = patch_find_layers_for_gpt2()
@@ -945,18 +1017,61 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
         if device is None:
             device = torch.device("cuda:0")
 
+        # Distributed parameters
+        rank = kwargs.get("rank", 0)
+        world_size = kwargs.get("world_size", 1)
+        _distributed_config = kwargs.get("distributed_config")  # unused for now
+
+        # Adjust nsamples for distributed data parallelism
+        if world_size > 1 and rank is not None and distributed_available:
+            total_nsamples = args.nsamples
+            start_idx, per_rank_nsamples = split_calibration_samples(
+                args.nsamples, rank, world_size
+            )
+            print(
+                f"[Distributed] Rank {rank}/{world_size}: processing {per_rank_nsamples} "
+                f"of {total_nsamples} calibration samples (starting at {start_idx})"
+            )
+        else:
+            total_nsamples = args.nsamples
+            per_rank_nsamples = args.nsamples
+            start_idx = 0
+        # Set args.nsamples to per-rank count for loop iterations
+        args.nsamples = per_rank_nsamples
+
         use_cache = model.config.use_cache
         model.config.use_cache = False
 
         print("loading calibration data")
         try:
-            dataloader, _ = get_loaders(
+            # Load total_nsamples batches
+            full_dataloader, _ = get_loaders(
                 "wikitext2",
-                nsamples=args.nsamples,
+                nsamples=total_nsamples,
                 seed=args.seed,
                 seqlen=model.seqlen,
                 tokenizer=tokenizer,
             )
+
+            # Create wrapper that skips start_idx batches and yields per_rank_nsamples
+            class SkippingDataLoader:
+                def __init__(self, dataloader, start_idx, count):
+                    self.dataloader = dataloader
+                    self.start_idx = start_idx
+                    self.count = count
+                    self.iter = iter(dataloader)
+                    # Skip first start_idx batches
+                    for _ in range(start_idx):
+                        next(self.iter, None)
+
+                def __iter__(self):
+                    self.iter = iter(self.dataloader)
+                    for _ in range(self.start_idx):
+                        next(self.iter, None)
+                    for _ in range(self.count):
+                        yield next(self.iter)
+
+            dataloader = SkippingDataLoader(full_dataloader, start_idx, per_rank_nsamples)
             print("dataset loading complete")
         except Exception as e:
             print(f"[ERROR] Failed to load dataloader: {e}")
@@ -1005,6 +1120,23 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
                     )[0]
             for h in handles:
                 h.remove()
+
+            # Synchronize scaler_row across processes for distributed pruning
+            if world_size > 1 and rank is not None and distributed_available and synchronize_metric:
+                for name in wrapped_layers:
+                    wrapped = wrapped_layers[name]
+                    # Synchronize scaler_row (weighted average)
+                    # First synchronize nsamples
+                    nsamples_tensor = torch.tensor([wrapped.nsamples], device=wrapped.dev)
+                    synchronize_metric(nsamples_tensor, reduce_op="sum")
+                    total_nsamples = nsamples_tensor.item()
+                    # scaler_row is already average per input dimension
+                    # Convert to sum: scaler_row * nsamples
+                    scaler_sum = wrapped.scaler_row * wrapped.nsamples
+                    synchronize_metric(scaler_sum, reduce_op="sum")
+                    if total_nsamples > 0:
+                        wrapped.scaler_row = scaler_sum / total_nsamples
+                    wrapped.nsamples = total_nsamples
 
             for name in subset:
                 print(f"pruning layer {i} name {name}")
@@ -1095,7 +1227,7 @@ def prune_wanda_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
         lib.data.get_wikitext2 = original_get_wikitext2
 
 
-def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0):
+def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m=0, **kwargs):
     """SparseGPT pruning for GPT2 with Conv1D support and position_ids handling."""
     print("[INFO] Using custom GPT2 SparseGPT pruning")
     # Import inside function to avoid circular imports
@@ -1106,6 +1238,24 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
     from lib.data import get_loaders
     from lib.prune import find_layers
     from lib.sparsegpt import SparseGPT
+
+    # Import distributed utilities if available
+    try:
+        import sys
+        from pathlib import Path
+
+        project_root = Path(__file__).parent.parent
+        sys.path.insert(0, str(project_root))
+        from src.atropos.distributed_utils import (
+            split_calibration_samples,
+            synchronize_metric,
+        )
+
+        distributed_available = True
+    except ImportError:
+        distributed_available = False
+        synchronize_metric = None  # noqa: F841
+        split_calibration_samples = None
 
     # Monkey-patch SparseGPT.fasterprune to guard CUDA calls
     original_fasterprune = SparseGPT.fasterprune
@@ -1136,18 +1286,62 @@ def prune_sparsegpt_gpt2(args, model, tokenizer, device=None, prune_n=0, prune_m
     SparseGPT.fasterprune = patched_fasterprune
     patched = True
 
+    # Distributed parameters
+    rank = kwargs.get("rank", 0)
+    world_size = kwargs.get("world_size", 1)
+    _distributed_config = kwargs.get("distributed_config")  # unused for now
+
+    # Adjust nsamples for distributed data parallelism
+    if world_size > 1 and rank is not None and distributed_available:
+        total_nsamples = args.nsamples
+        start_idx, per_rank_nsamples = split_calibration_samples(args.nsamples, rank, world_size)
+        print(
+            f"[Distributed] Rank {rank}/{world_size}: processing {per_rank_nsamples} "
+            f"of {total_nsamples} calibration samples (starting at {start_idx})"
+        )
+    else:
+        total_nsamples = args.nsamples
+        per_rank_nsamples = args.nsamples
+        start_idx = 0
+    # Set args.nsamples to per-rank count for loop iterations
+    args.nsamples = per_rank_nsamples
+
     use_cache = model.config.use_cache
     model.config.use_cache = False
 
     print("loading calibration data")
     try:
-        dataloader, _ = get_loaders(
+        # Load total_nsamples batches if distributed, otherwise per_rank_nsamples
+        load_nsamples = (
+            total_nsamples if world_size > 1 and distributed_available else args.nsamples
+        )
+        full_dataloader, _ = get_loaders(
             "wikitext2",
-            nsamples=args.nsamples,
+            nsamples=load_nsamples,
             seed=args.seed,
             seqlen=model.seqlen,
             tokenizer=tokenizer,
         )
+
+        # Create wrapper that skips start_idx batches and yields per_rank_nsamples
+        class SkippingDataLoader:
+            def __init__(self, dataloader, start_idx, count):
+                self.dataloader = dataloader
+                self.start_idx = start_idx
+                self.count = count
+                self.iter = iter(dataloader)
+                # Skip first start_idx batches
+                for _ in range(start_idx):
+                    next(self.iter, None)
+
+            def __iter__(self):
+                self.iter = iter(self.dataloader)
+                for _ in range(self.start_idx):
+                    next(self.iter, None)
+                for _ in range(self.count):
+                    yield next(self.iter)
+
+        dataloader = SkippingDataLoader(full_dataloader, start_idx, per_rank_nsamples)
         print("dataset loading complete")
     except Exception as e:
         print(f"[ERROR] Failed to load dataloader: {e}")

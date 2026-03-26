@@ -34,6 +34,7 @@ Atropos provides a comprehensive suite of tools for analyzing and automating LLM
 | Telemetry collection | Collect real performance metrics from vLLM/TGI/Triton inference servers | Integration |
 | Model testing suite | Test HuggingFace Hub models for compatibility with `test-models` command | Integration |
 | Pruning framework integrations | Integrated support for LLM-Pruner, Wanda, and SparseGPT frameworks | Integration |
+| Distributed pruning support | Multi-GPU distributed pruning for large models with data/layer/model parallelism | Integration |
 | Calibration against real metrics | Validate projections against actual performance telemetry | Integration |
 | Atropos Pipeline | Automated optimization workflow: assess, prune, fine-tune, validate, deploy | Automation |
 | Development tooling | Comprehensive test suite, CI workflows, pre-commit config, Makefile | Development |

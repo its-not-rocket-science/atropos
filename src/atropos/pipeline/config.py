@@ -51,13 +51,23 @@ class PruningConfig:
         structured: Whether to use structured pruning.
         custom_command: Custom command for framework integration.
         output_path: Path to save pruned model.
+        distributed: Whether to use distributed pruning across multiple GPUs.
+        num_gpus: Number of GPUs to use for distributed pruning.
+        parallel_strategy: Parallelization strategy (data, layer, or model).
+        distributed_backend: Distributed backend (nccl, gloo, mpi).
     """
 
-    framework: Literal["llm-pruner", "wanda", "sparsegpt", "custom"] = "llm-pruner"
+    framework: Literal[
+        "llm-pruner", "wanda", "sparsegpt", "custom", "wanda-patched", "sparsegpt-patched"
+    ] = "llm-pruner"
     target_sparsity: float = 0.30
     structured: bool = True
     custom_command: str | None = None
     output_path: str | None = None
+    distributed: bool = False
+    num_gpus: int = 1
+    parallel_strategy: Literal["data", "layer", "model"] = "data"
+    distributed_backend: str = "nccl"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -65,6 +75,10 @@ class PruningConfig:
             "framework": self.framework,
             "target_sparsity": self.target_sparsity,
             "structured": self.structured,
+            "distributed": self.distributed,
+            "num_gpus": self.num_gpus,
+            "parallel_strategy": self.parallel_strategy,
+            "distributed_backend": self.distributed_backend,
         }
         if self.custom_command:
             result["custom_command"] = self.custom_command
@@ -81,6 +95,10 @@ class PruningConfig:
             structured=data.get("structured", True),
             custom_command=data.get("custom_command"),
             output_path=data.get("output_path"),
+            distributed=data.get("distributed", False),
+            num_gpus=data.get("num_gpus", 1),
+            parallel_strategy=data.get("parallel_strategy", "data"),
+            distributed_backend=data.get("distributed_backend", "nccl"),
         )
 
 

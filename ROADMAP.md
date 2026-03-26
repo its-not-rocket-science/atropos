@@ -28,7 +28,7 @@
 - ✅ experiment-tracker integration
 - ✅ region-specific grid carbon presets
 - [ ] multi-GPU benchmarking support
-- [ ] distributed pruning experiments
+- [x] distributed pruning experiments
 - ✅ quantization + pruning combination analysis
 - ✅ automated hyperparameter tuning for pruning targets
 - ✅ enhance error handling and debugging capabilities (structured logging, debug/verbose modes, traceback flag, error context)

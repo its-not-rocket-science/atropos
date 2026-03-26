@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .distributed_utils import DistributedConfig, distributed_context
+
 if TYPE_CHECKING:
     from .models import DeploymentScenario, OptimizationStrategy
     from .pipeline.config import PipelineConfig
@@ -580,6 +582,7 @@ class WandaPatchedFramework(PruningFramework):
                 device,
                 prune_n=kwargs.get("prune_n", 0),
                 prune_m=kwargs.get("prune_m", 0),
+                **kwargs,
             )
 
             # Check sparsity after
@@ -723,6 +726,7 @@ class SparseGPTPatchedFramework(PruningFramework):
                 device,
                 prune_n=kwargs.get("prune_n", 0),
                 prune_m=kwargs.get("prune_m", 0),
+                **kwargs,
             )
 
             # Check sparsity after
@@ -767,6 +771,105 @@ class SparseGPTPatchedFramework(PruningFramework):
             return 100
 
 
+class DistributedPruningWrapper(PruningFramework):
+    """Wrapper to add distributed execution to any pruning framework.
+
+    This wrapper initializes the distributed environment (PyTorch DDP) and
+    delegates pruning to the wrapped framework with additional distributed
+    context information.
+    """
+
+    def __init__(self, framework: PruningFramework, config: PipelineConfig | None = None):
+        """Initialize distributed wrapper.
+
+        Args:
+            framework: The pruning framework to wrap.
+            config: Pipeline configuration with distributed settings.
+        """
+        self.wrapped_framework = framework
+        super().__init__(config)
+        # Extract distributed configuration from pipeline config
+        self.distributed_config = DistributedConfig()
+        if config and config.pruning:
+            pruning_config = config.pruning
+            self.distributed_config.distributed = pruning_config.distributed
+            self.distributed_config.num_gpus = pruning_config.num_gpus
+            self.distributed_config.parallel_strategy = pruning_config.parallel_strategy
+            self.distributed_config.distributed_backend = pruning_config.distributed_backend
+            # Determine rank/world_size from environment or config
+            # These will be populated by init_distributed_pruning
+            self.distributed_config.rank = -1
+            self.distributed_config.world_size = pruning_config.num_gpus
+            self.distributed_config.local_rank = -1
+
+    def _check_availability(self) -> bool:
+        """Check if distributed pruning is available."""
+        # Check that wrapped framework is available
+        try:
+            self.wrapped_framework._check_availability()
+        except RuntimeError as e:
+            raise RuntimeError(f"Wrapped framework not available: {e}") from e
+        # Check PyTorch distributed availability
+        try:
+            import torch.distributed as dist
+
+            if not dist.is_available():
+                raise RuntimeError("PyTorch distributed not available")
+        except ImportError as e:
+            raise RuntimeError("PyTorch not installed") from e
+        return True
+
+    def prune(
+        self,
+        model_name: str,
+        output_path: Path,
+        target_sparsity: float,
+        **kwargs: Any,
+    ) -> PruningResult:
+        """Execute pruning with distributed context."""
+        if not self.distributed_config.distributed:
+            # Fall back to non-distributed pruning
+            return self.wrapped_framework.prune(model_name, output_path, target_sparsity, **kwargs)
+
+        # Initialize distributed context
+        with distributed_context(self.distributed_config) as ctx:
+            # Add distributed information to kwargs for wrapped framework
+            distributed_kwargs = kwargs.copy()
+            distributed_kwargs.update(
+                {
+                    "rank": ctx.rank,
+                    "world_size": ctx.world_size,
+                    "local_rank": ctx.local_rank,
+                    "distributed_config": ctx,
+                }
+            )
+            # Call wrapped framework with distributed context
+            return self.wrapped_framework.prune(
+                model_name, output_path, target_sparsity, **distributed_kwargs
+            )
+
+    def estimate_pruning_time(self, model_params_b: float) -> float:
+        """Estimate pruning time with distributed scaling."""
+        base_time = self.wrapped_framework.estimate_pruning_time(model_params_b)
+        if not self.distributed_config.distributed:
+            return base_time
+        # Apply scaling factor based on parallel strategy
+        # Data parallelism: linear scaling with num_gpus (ideal)
+        # Layer/model parallelism: overhead, less than linear
+        num_gpus = self.distributed_config.num_gpus
+        strategy = self.distributed_config.parallel_strategy
+        if strategy == "data":
+            # Ideal linear scaling (Amdahl's law approximation)
+            scaling_factor = 0.8  # 80% parallel efficiency
+            return base_time / (num_gpus * scaling_factor)
+        elif strategy == "layer":
+            # Layer parallelism has communication overhead
+            return base_time / (num_gpus * 0.6)
+        else:  # model
+            # Model parallelism (pipeline) has significant overhead
+            return base_time / (num_gpus * 0.4)
+
+
 # Registry of available frameworks
 PRUNING_FRAMEWORKS: dict[str, type[PruningFramework]] = {
     "llm-pruner": LLMPrunerFramework,
@@ -798,6 +901,13 @@ def get_pruning_framework(
         raise ValueError(f"Unknown pruning framework '{name}'. Available: {available}")
 
     framework_class = PRUNING_FRAMEWORKS[name]
+
+    # Check if distributed pruning is enabled
+    if config is not None and config.pruning is not None and config.pruning.distributed:
+        # Create base framework and wrap with distributed wrapper
+        base_framework = framework_class(config)
+        return DistributedPruningWrapper(base_framework, config)
+
     return framework_class(config)
 
 
@@ -861,6 +971,18 @@ def run_pruning_pipeline(
         raise ValueError("No pruning framework specified")
 
     framework_obj = get_pruning_framework(framework, config)
+
+    # Print distributed info if wrapper was applied
+    if (
+        config
+        and config.pruning
+        and config.pruning.distributed
+        and isinstance(framework_obj, DistributedPruningWrapper)
+    ):
+        print(
+            f"Using distributed pruning with {config.pruning.num_gpus} GPUs "
+            f"(strategy: {config.pruning.parallel_strategy})"
+        )
 
     print(f"Pruning {model_name} with {framework} (target sparsity: {target_sparsity:.2%})")
 
