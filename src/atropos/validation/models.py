@@ -18,6 +18,12 @@ class MeasuredMetrics:
         latency_ms_per_request: Average latency per request.
         power_watts: Average power consumption (if available).
         batch_size: Batch size used for measurement.
+        gpu_count: Number of GPUs used for measurement (default 1).
+        parallel_strategy: Parallelization strategy ("data", "model", "layer") (default "data").
+        scaling_efficiency: Scaling efficiency as fraction of ideal linear scaling (optional).
+        communication_overhead_ms: Communication overhead per iteration in milliseconds (optional).
+        per_gpu_memory_gb: Peak memory usage per GPU in GB (list length equals
+            gpu_count) (optional).
     """
 
     model_name: str
@@ -27,6 +33,11 @@ class MeasuredMetrics:
     latency_ms_per_request: float
     batch_size: int = 1
     power_watts: float | None = None
+    gpu_count: int = 1
+    parallel_strategy: str = "data"
+    scaling_efficiency: float | None = None
+    communication_overhead_ms: float | None = None
+    per_gpu_memory_gb: list[float] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -37,9 +48,17 @@ class MeasuredMetrics:
             "throughput_toks_per_sec": self.throughput_toks_per_sec,
             "latency_ms_per_request": self.latency_ms_per_request,
             "batch_size": self.batch_size,
+            "gpu_count": self.gpu_count,
+            "parallel_strategy": self.parallel_strategy,
         }
         if self.power_watts is not None:
             result["power_watts"] = self.power_watts
+        if self.scaling_efficiency is not None:
+            result["scaling_efficiency"] = self.scaling_efficiency
+        if self.communication_overhead_ms is not None:
+            result["communication_overhead_ms"] = self.communication_overhead_ms
+        if self.per_gpu_memory_gb:
+            result["per_gpu_memory_gb"] = self.per_gpu_memory_gb
         return result
 
 
@@ -139,19 +158,53 @@ class ValidationResult:
             f"- Memory: {self.baseline_metrics.memory_gb:.2f} GB",
             f"- Throughput: {self.baseline_metrics.throughput_toks_per_sec:.1f} tok/s",
             f"- Latency: {self.baseline_metrics.latency_ms_per_request:.1f} ms/req",
-            "",
-            "### Optimized (Pruned)",
-            f"- Model: {self.optimized_metrics.model_name}",
-            f"- Parameters: {self.optimized_metrics.parameters_b:.2f}B",
-            f"- Memory: {self.optimized_metrics.memory_gb:.2f} GB",
-            f"- Throughput: {self.optimized_metrics.throughput_toks_per_sec:.1f} tok/s",
-            f"- Latency: {self.optimized_metrics.latency_ms_per_request:.1f} ms/req",
-            "",
-            "## Comparison: Atropos Projected vs Measured",
-            "",
-            "| Metric | Projected | Measured | Variance |",
-            "|--------|-----------|----------|----------|",
+            f"- GPU count: {self.baseline_metrics.gpu_count}",
+            f"- Parallel strategy: {self.baseline_metrics.parallel_strategy}",
         ]
+        if self.baseline_metrics.scaling_efficiency is not None:
+            lines.append(f"- Scaling efficiency: {self.baseline_metrics.scaling_efficiency:.1%}")
+        if self.baseline_metrics.communication_overhead_ms is not None:
+            lines.append(
+                f"- Communication overhead: "
+                f"{self.baseline_metrics.communication_overhead_ms:.1f} ms"
+            )
+        if self.baseline_metrics.per_gpu_memory_gb:
+            mem_str = ", ".join(
+                f"{gpu_mem:.2f} GB" for gpu_mem in self.baseline_metrics.per_gpu_memory_gb
+            )
+            lines.append(f"- Per-GPU memory: [{mem_str}]")
+        lines.append("")
+
+        lines.append("### Optimized (Pruned)")
+        lines.append(f"- Model: {self.optimized_metrics.model_name}")
+        lines.append(f"- Parameters: {self.optimized_metrics.parameters_b:.2f}B")
+        lines.append(f"- Memory: {self.optimized_metrics.memory_gb:.2f} GB")
+        lines.append(f"- Throughput: {self.optimized_metrics.throughput_toks_per_sec:.1f} tok/s")
+        lines.append(f"- Latency: {self.optimized_metrics.latency_ms_per_request:.1f} ms/req")
+        lines.append(f"- GPU count: {self.optimized_metrics.gpu_count}")
+        lines.append(f"- Parallel strategy: {self.optimized_metrics.parallel_strategy}")
+        if self.optimized_metrics.scaling_efficiency is not None:
+            lines.append(f"- Scaling efficiency: {self.optimized_metrics.scaling_efficiency:.1%}")
+        if self.optimized_metrics.communication_overhead_ms is not None:
+            lines.append(
+                f"- Communication overhead: "
+                f"{self.optimized_metrics.communication_overhead_ms:.1f} ms"
+            )
+        if self.optimized_metrics.per_gpu_memory_gb:
+            mem_str = ", ".join(
+                f"{gpu_mem:.2f} GB" for gpu_mem in self.optimized_metrics.per_gpu_memory_gb
+            )
+            lines.append(f"- Per-GPU memory: [{mem_str}]")
+        lines.append("")
+
+        lines.extend(
+            [
+                "## Comparison: Atropos Projected vs Measured",
+                "",
+                "| Metric | Projected | Measured | Variance |",
+                "|--------|-----------|----------|----------|",
+            ]
+        )
 
         for comp in self.comparisons:
             variance_str = f"{comp.variance_pct:+.1f}%"

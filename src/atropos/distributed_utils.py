@@ -30,7 +30,23 @@ except ImportError:
 
 @dataclass
 class DistributedConfig:
-    """Configuration for distributed pruning."""
+    """Configuration for distributed pruning and benchmarking.
+
+    Attributes:
+        distributed: Whether distributed mode is enabled.
+        num_gpus: Number of GPUs to use.
+        parallel_strategy: Parallelization strategy ("data", "layer", "model").
+        distributed_backend: Distributed backend ("nccl", "gloo", "mpi").
+        distributed_init_method: URL specifying how to initialize the process group.
+        local_rank: Local GPU index for this process.
+        rank: Global rank of this process.
+        world_size: Total number of processes.
+        batch_size_per_gpu: Batch size per GPU for data parallelism (default 1).
+        warmup_iterations: Number of warmup iterations before benchmarking (default 5).
+        benchmark_iterations: Number of iterations for throughput measurement (default 50).
+        measure_scaling_efficiency: Whether to compute scaling efficiency vs
+            single GPU (default True).
+    """
 
     distributed: bool = False
     num_gpus: int = 1
@@ -40,6 +56,10 @@ class DistributedConfig:
     local_rank: int = -1
     rank: int = -1
     world_size: int = 1
+    batch_size_per_gpu: int = 1
+    warmup_iterations: int = 5
+    benchmark_iterations: int = 50
+    measure_scaling_efficiency: bool = True
 
 
 def get_rank() -> int:

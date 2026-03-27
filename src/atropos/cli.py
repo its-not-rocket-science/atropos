@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import logging
 import sys
 from collections.abc import Sequence
@@ -447,6 +448,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--device", choices=["cpu", "cuda"], default="cpu", help="Device to run validation on"
     )
     validate_parser.add_argument(
+        "--gpu-count",
+        type=int,
+        default=1,
+        help="Number of GPUs to use for benchmarking (default: 1)",
+    )
+    validate_parser.add_argument(
+        "--parallel-strategy",
+        choices=["data", "layer", "model"],
+        default="data",
+        help="Parallelization strategy for multi-GPU (default: data)",
+    )
+    validate_parser.add_argument(
         "--pruning-method",
         default="magnitude",
         choices=["magnitude", "random", "structured"],
@@ -456,6 +469,53 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["markdown", "json"], default="markdown", help="Output format"
     )
     validate_parser.add_argument(
+        "--output", "-o", type=Path, help="Output file path (default: stdout)"
+    )
+
+    # Multi-GPU benchmarking command
+    benchmark_parser = subparsers.add_parser(
+        "benchmark-multi-gpu",
+        help="Analyze scaling efficiency across multiple GPUs.",
+    )
+    benchmark_parser.add_argument("scenario", help="Scenario name (preset) or path to YAML file")
+    benchmark_parser.add_argument(
+        "--strategy",
+        choices=sorted(STRATEGIES.keys()),
+        default="structured_pruning",
+        help="Optimization strategy to test",
+    )
+    benchmark_parser.add_argument("--model", required=True, help="HuggingFace model name to test")
+    benchmark_parser.add_argument(
+        "--device", choices=["cpu", "cuda"], default="cuda", help="Device to run benchmarks on"
+    )
+    benchmark_parser.add_argument(
+        "--gpu-count",
+        type=int,
+        default=1,
+        help="Number of GPUs to use for benchmarking (default: 1)",
+    )
+    benchmark_parser.add_argument(
+        "--parallel-strategy",
+        choices=["data", "layer", "model"],
+        default="data",
+        help="Parallelization strategy for multi-GPU (default: data)",
+    )
+    benchmark_parser.add_argument(
+        "--max-gpus",
+        type=int,
+        default=8,
+        help="Maximum GPU count to test (default: 8)",
+    )
+    benchmark_parser.add_argument(
+        "--gpu-counts",
+        type=int,
+        nargs="+",
+        help="Specific GPU counts to test (e.g., '1 2 4 8')",
+    )
+    benchmark_parser.add_argument(
+        "--format", choices=["markdown", "json"], default="markdown", help="Output format"
+    )
+    benchmark_parser.add_argument(
         "--output", "-o", type=Path, help="Output file path (default: stdout)"
     )
 
@@ -1383,6 +1443,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Load scenario and strategy
             scenario_name, scenario = _load_scenario_input(args.scenario)
             strategy = STRATEGIES[args.strategy]
+
+            # Update scenario with multi-GPU parameters
+            scenario = dataclasses.replace(scenario, gpu_count=args.gpu_count)
+            scenario = dataclasses.replace(scenario, parallel_strategy=args.parallel_strategy)
+
             import os
             import sys
 
@@ -1414,6 +1479,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     strategy=strategy,
                     model_name=args.model,
                     device=args.device,
+                    gpu_count=args.gpu_count,
                     pruning_method=args.pruning_method,
                 )
 
@@ -1434,6 +1500,72 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
             except Exception as e:
                 logging.error(f"Validation failed: {e}", exc_info=SHOW_TRACEBACK)
+                return 1
+
+        if args.command == "benchmark-multi-gpu":
+            # Load scenario and strategy
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+            strategy = STRATEGIES[args.strategy]
+
+            # Update scenario with multi-GPU parameters (optional)
+            scenario = dataclasses.replace(scenario, gpu_count=args.gpu_count)
+            scenario = dataclasses.replace(scenario, parallel_strategy=args.parallel_strategy)
+
+            import os
+            import sys
+
+            print(f"Running multi-GPU scaling analysis for: {scenario_name}")
+            sys.stdout.flush()
+            print(f"Strategy: {args.strategy}")
+            sys.stdout.flush()
+            print(f"Model: {args.model}")
+            sys.stdout.flush()
+            print(f"Device: {args.device}")
+            sys.stdout.flush()
+            if args.gpu_counts:
+                print(f"GPU counts: {args.gpu_counts}")
+            else:
+                print(f"Max GPUs: {args.max_gpus}")
+            sys.stdout.flush()
+            print()
+            sys.stdout.flush()
+
+            # Speed up torch import on Windows by disabling CUDA detection for CPU runs
+            if args.device == "cpu":
+                os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+            # Run scaling analysis
+            print("Loading scaling analysis module...")
+            sys.stdout.flush()
+            try:
+                from .validation.scaling_analyzer import analyze_scaling
+
+                analysis_result = analyze_scaling(
+                    scenario=scenario,
+                    strategy=strategy,
+                    model_name=args.model,
+                    device=args.device,
+                    max_gpus=args.max_gpus,
+                    gpu_counts=args.gpu_counts,
+                )
+
+                # Generate report
+                if args.format == "json":
+                    import json
+
+                    report = analysis_result.to_json()
+                else:
+                    report = analysis_result.to_markdown()
+
+                if args.output:
+                    args.output.write_text(report)
+                    print(f"Scaling analysis report saved to {args.output}")
+                else:
+                    print(report)
+
+                return 0
+            except Exception as e:
+                logging.error(f"Scaling analysis failed: {e}", exc_info=SHOW_TRACEBACK)
                 return 1
 
         if args.command == "visualize":

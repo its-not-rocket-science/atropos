@@ -27,6 +27,7 @@ class DeploymentScenario:
         one_time_project_cost_usd: One-time optimization project cost in USD.
         gpu_tier: GPU hardware tier for cost modeling.
         gpu_count: Number of GPUs (auto-estimated if None).
+        parallel_strategy: Parallelization strategy ("data", "layer", "model").
         batch_size: Request batch size (1 = no batching).
         pricing_model: "cloud" or "reserved" pricing.
         utilization: GPU utilization factor (0-1).
@@ -44,6 +45,7 @@ class DeploymentScenario:
     one_time_project_cost_usd: float
     gpu_tier: GPUType | None = None
     gpu_count: int | None = None
+    parallel_strategy: str = "data"  # "data", "layer", "model"
     batch_size: int = 1
     pricing_model: Literal["cloud", "reserved"] = "cloud"
     utilization: float = 1.0

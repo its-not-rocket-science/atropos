@@ -12,6 +12,7 @@ from .models import DeploymentScenario, OptimizationOutcome, OptimizationStrateg
 DEFAULT_GRID_CO2E_KG_PER_KWH = 0.35
 DEFAULT_HARDWARE_SAVINGS_CORRELATION = 0.8
 DEFAULT_BATCHING_EFFICIENCY = 0.85  # Sub-linear scaling for batching
+DEFAULT_DATA_PARALLEL_SCALING_EFFICIENCY = 0.8  # Multi-GPU scaling efficiency for data parallelism
 
 
 def _validate_fraction(value: float, name: str) -> None:
@@ -73,6 +74,44 @@ def _compute_batching_throughput_multiplier(
         return 1.0
     result: float = batch_size**efficiency
     return result
+
+
+def _compute_multi_gpu_throughput_scaling(
+    gpu_count: int | None,
+    parallel_strategy: str = "data",
+    scaling_efficiency: float = DEFAULT_DATA_PARALLEL_SCALING_EFFICIENCY,
+) -> float:
+    """Compute throughput scaling factor for multi-GPU deployments.
+
+    Throughput scales sub-linearly with GPU count due to communication overhead
+    and memory bandwidth limitations.
+
+    Args:
+        gpu_count: Number of GPUs (None or 1 means single GPU, scaling = 1.0).
+        parallel_strategy: Parallelization strategy ("data", "layer", "model").
+            Only "data" parallelism is currently supported.
+        scaling_efficiency: Scaling efficiency factor (0-1, higher = better scaling).
+
+    Returns:
+        Throughput multiplier relative to single GPU.
+    """
+    if gpu_count is None or gpu_count <= 1:
+        return 1.0
+
+    # After this point, gpu_count is guaranteed to be int > 1
+    assert isinstance(gpu_count, int)
+
+    if parallel_strategy == "data":
+        # Data parallelism: throughput scales with GPU count but with efficiency loss
+        # Formula: scaling = gpu_count^scaling_efficiency
+        # scaling_efficiency=0.8 means 2 GPUs -> 2^0.8 ≈ 1.74x (87% efficiency)
+        result: float = gpu_count**scaling_efficiency
+        return result
+    else:
+        # Other parallel strategies not yet implemented
+        # For now, assume same scaling as data parallelism
+        result2: float = gpu_count**scaling_efficiency
+        return result2
 
 
 def _compute_hardware_cost(scenario: DeploymentScenario) -> float:
@@ -207,7 +246,12 @@ def estimate_outcome(
 
     # Apply batching effects to throughput
     batching_multiplier = _compute_batching_throughput_multiplier(scenario.batch_size)
-    effective_baseline_throughput = scenario.throughput_toks_per_sec * batching_multiplier
+    gpu_scaling_factor = _compute_multi_gpu_throughput_scaling(
+        scenario.gpu_count, scenario.parallel_strategy
+    )
+    effective_baseline_throughput = (
+        scenario.throughput_toks_per_sec * batching_multiplier * gpu_scaling_factor
+    )
     baseline_throughput = effective_baseline_throughput
     optimized_throughput = baseline_throughput * (1 + strategy.throughput_improvement_fraction)
 

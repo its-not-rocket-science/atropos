@@ -11,6 +11,15 @@ from ..exceptions import ImportErrorException
 from ..logging_config import get_logger
 from .models import ComparisonMetric, MeasuredMetrics, ValidationResult
 
+# Optional import for multi-GPU benchmarking
+try:
+    from .distributed_benchmark import DistributedBenchmarkWrapper
+
+    DISTRIBUTED_BENCHMARK_AVAILABLE = True
+except ImportError:
+    DISTRIBUTED_BENCHMARK_AVAILABLE = False
+    DistributedBenchmarkWrapper = None  # type: ignore
+
 if TYPE_CHECKING:
     from ..models import DeploymentScenario, OptimizationStrategy
 
@@ -33,6 +42,7 @@ class ModelValidator:
         scenario: DeploymentScenario,
         strategy: OptimizationStrategy,
         device: str = "cpu",
+        gpu_count: int = 1,
     ):
         """Initialize validator.
 
@@ -40,10 +50,12 @@ class ModelValidator:
             scenario: Deployment scenario to validate.
             strategy: Optimization strategy to apply.
             device: Device to run on ("cpu" or "cuda").
+            gpu_count: Number of GPUs to use for benchmarking (default 1).
         """
         self.scenario = scenario
         self.strategy = strategy
         self.device = device
+        self.gpu_count = gpu_count
         self._atropos_outcome = estimate_outcome(scenario, strategy)
 
     def measure_baseline(self, model_name: str | None = None) -> MeasuredMetrics:
@@ -153,6 +165,40 @@ class ModelValidator:
             param_count = sum(p.numel() for p in model.parameters())
             parameters_b = param_count / 1e9
 
+        # Check if we should use distributed benchmarking
+        use_distributed = (
+            self.gpu_count > 1
+            and self.device == "cuda"
+            and DISTRIBUTED_BENCHMARK_AVAILABLE
+            and DistributedBenchmarkWrapper is not None
+        )
+
+        if use_distributed:
+            # Use distributed benchmarking wrapper
+            try:
+                # Compute batch size per GPU for data parallelism
+                batch_size_per_gpu = max(1, self.scenario.batch_size // self.gpu_count)
+                wrapper = DistributedBenchmarkWrapper(
+                    gpu_count=self.gpu_count,
+                    parallel_strategy=self.scenario.parallel_strategy,
+                    batch_size_per_gpu=batch_size_per_gpu,
+                    warmup_iterations=5,
+                    benchmark_iterations=50,
+                    measure_scaling_efficiency=True,
+                )
+                return wrapper.benchmark_model(
+                    model=model,
+                    tokenizer=tokenizer,
+                    device=self.device,
+                    model_name=model_name,
+                    batch_size=self.scenario.batch_size,
+                    tokens_per_request=self.scenario.tokens_per_request,
+                )
+            except Exception as e:
+                logger.warning("Distributed benchmarking failed, falling back to single GPU: %s", e)
+                # Fall through to single-GPU logic
+
+        # Single GPU or CPU benchmarking (original logic)
         # Measure memory
         if self.device == "cuda":
             torch.cuda.reset_peak_memory_stats()
@@ -213,6 +259,7 @@ class ModelValidator:
             throughput_toks_per_sec=throughput,
             latency_ms_per_request=latency_ms,
             batch_size=batch_size,
+            gpu_count=1,
         )
 
     def _apply_pruning(self, model: Any, method: str) -> Any:
@@ -433,6 +480,7 @@ def run_validation(
     strategy: OptimizationStrategy,
     model_name: str | None = None,
     device: str = "cpu",
+    gpu_count: int = 1,
     pruning_method: str = "magnitude",
 ) -> ValidationResult:
     """Convenience function to run validation.
@@ -442,10 +490,11 @@ def run_validation(
         strategy: Optimization strategy.
         model_name: Model to validate (optional).
         device: Device to run on.
+        gpu_count: Number of GPUs to use for benchmarking (default 1).
         pruning_method: Pruning method.
 
     Returns:
         ValidationResult.
     """
-    validator = ModelValidator(scenario, strategy, device)
+    validator = ModelValidator(scenario, strategy, device, gpu_count)
     return validator.run_validation(model_name, pruning_method)
