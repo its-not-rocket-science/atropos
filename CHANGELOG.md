@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.5.0] - 2026-03-27
+
+### Added
+- Multi‑GPU benchmarking support with `DistributedBenchmarkWrapper` for measuring performance across multiple GPUs
+- `MultiGPUScalingAnalyzer` for analyzing scaling efficiency across GPU counts with bottleneck detection
+- New CLI command `benchmark-multi-gpu` for scaling analysis with markdown and JSON output
+- Extended `DeploymentScenario` with `parallel_strategy` field and multi‑GPU throughput scaling in calculations
+- Enhanced `MeasuredMetrics` with multi‑GPU specific fields (scaling efficiency, communication overhead, per‑GPU memory)
+- Distributed benchmarking integration in validation pipeline with fallback to single‑GPU mode
+- Comprehensive unit tests for distributed benchmarking and scaling analysis
+
+### Changed
+- Updated roadmap to reflect completion of multi‑GPU benchmarking support and distributed pruning experiments
+- Extended `DistributedConfig` with benchmarking‑specific parameters (batch size per GPU, iterations, scaling efficiency measurement)
+- Enhanced validation reports with multi‑GPU metrics and improved formatting
+
+### Fixed
+- Windows CLI validation hang fixed by deferring torch imports (previous release)
+
 ## [0.4.0] - 2026-03-23
 
 ### Changed
