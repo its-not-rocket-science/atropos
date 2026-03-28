@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -189,36 +189,75 @@ class DeploymentConfig:
 
     Attributes:
         auto_deploy: Whether to auto-deploy on successful validation.
-        deployment_command: Command to deploy the optimized model.
-        rollback_command: Command to rollback if deployment fails.
-        canary_percent: Percentage of traffic for canary deployment.
+        deployment_command: Command to deploy the optimized model (legacy).
+        rollback_command: Command to rollback if deployment fails (legacy).
+        canary_percent: Percentage of traffic for canary deployment (legacy).
+        platform: Deployment platform identifier (vllm, triton, sagemaker).
+                 If set, uses deployment automation instead of shell commands.
+        strategy: Deployment strategy (immediate, canary, blue-green, rolling).
+        strategy_config: Configuration specific to the strategy.
+        health_checks: Health check configuration.
+        platform_config: Platform-specific configuration.
+        model_path: Path to model (defaults to pruning output_path if not set).
+        metadata: Additional metadata for the deployment.
     """
 
     auto_deploy: bool = False
     deployment_command: str | None = None
     rollback_command: str | None = None
     canary_percent: float = 10.0
+    platform: str | None = None
+    strategy: str = "immediate"
+    strategy_config: dict[str, Any] = field(default_factory=dict)
+    health_checks: dict[str, Any] = field(default_factory=dict)
+    platform_config: dict[str, Any] = field(default_factory=dict)
+    model_path: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         result: dict[str, Any] = {
             "auto_deploy": self.auto_deploy,
             "canary_percent": self.canary_percent,
+            "strategy": self.strategy,
+            "strategy_config": self.strategy_config,
+            "health_checks": self.health_checks,
+            "platform_config": self.platform_config,
+            "metadata": self.metadata,
         }
         if self.deployment_command:
             result["deployment_command"] = self.deployment_command
         if self.rollback_command:
             result["rollback_command"] = self.rollback_command
+        if self.platform:
+            result["platform"] = self.platform
+        if self.model_path:
+            result["model_path"] = self.model_path
         return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DeploymentConfig:
         """Create from dictionary."""
+        # Backward compatibility: map canary_percent to strategy_config for canary strategy
+        strategy = data.get("strategy", "immediate")
+        strategy_config = data.get("strategy_config", {})
+        canary_percent = data.get("canary_percent", 10.0)
+        if strategy == "canary" and "initial_percent" not in strategy_config:
+            strategy_config = strategy_config.copy()
+            strategy_config["initial_percent"] = canary_percent
+
         return cls(
             auto_deploy=data.get("auto_deploy", False),
             deployment_command=data.get("deployment_command"),
             rollback_command=data.get("rollback_command"),
-            canary_percent=data.get("canary_percent", 10.0),
+            canary_percent=canary_percent,
+            platform=data.get("platform"),
+            strategy=strategy,
+            strategy_config=strategy_config,
+            health_checks=data.get("health_checks", {}),
+            platform_config=data.get("platform_config", {}),
+            model_path=data.get("model_path"),
+            metadata=data.get("metadata", {}),
         )
 
 

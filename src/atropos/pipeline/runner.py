@@ -7,6 +7,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ..calculations import estimate_outcome
+from ..deployment import get_platform, get_strategy
+from ..deployment.models import (
+    DeploymentRequest,
+    DeploymentStatus,
+    DeploymentStrategyType,
+)
 from ..logging_config import SHOW_TRACEBACK, get_logger
 from ..models import QualityRisk
 from .config import PipelineConfig
@@ -40,6 +46,7 @@ class PipelineRunner:
         """
         self.config = config
         self.dry_run = dry_run
+        self._deployment_id: str | None = None
         self._result = PipelineResult(
             pipeline_name=config.name,
             scenario_name="",
@@ -423,13 +430,77 @@ class PipelineRunner:
         config = self.config.deployment
 
         if self.dry_run:
-            logger.debug("Dry run: would deploy with canary")
+            logger.debug("Dry run: would deploy")
             result.status = StageStatus.SUCCESS
-            result.message = f"[DRY RUN] Would deploy with {config.canary_percent}% canary"
+            if config.platform:
+                result.message = (
+                    f"[DRY RUN] Would deploy using {config.platform} platform "
+                    f"with {config.strategy} strategy"
+                )
+            elif config.deployment_command:
+                result.message = f"[DRY RUN] Would deploy with command: {config.deployment_command}"
+            else:
+                result.message = (
+                    "[DRY RUN] Would skip deployment (no platform or command configured)"
+                )
             result.end_time = _now()
             return result
 
-        if config.deployment_command:
+        # Determine model path
+        model_path = config.model_path
+        if not model_path and self.config.pruning and self.config.pruning.output_path:
+            model_path = self.config.pruning.output_path
+        if not model_path:
+            result.status = StageStatus.FAILED
+            result.message = "No model path specified and pruning output_path not set"
+            result.end_time = _now()
+            return result
+
+        # Deployment automation path
+        if config.platform:
+            try:
+                logger.debug(
+                    "Deploying via platform %s with strategy %s",
+                    config.platform,
+                    config.strategy,
+                )
+                # Create deployment request
+                strategy_enum = DeploymentStrategyType[config.strategy.upper().replace("-", "_")]
+                request = DeploymentRequest(
+                    model_path=model_path,
+                    platform=config.platform,
+                    strategy=strategy_enum,
+                    strategy_config=config.strategy_config,
+                    health_checks=config.health_checks,
+                    metadata=config.metadata,
+                )
+                # Get platform and strategy
+                platform = get_platform(config.platform, config.platform_config)
+                strategy = get_strategy(config.strategy, config.strategy_config)
+                # Execute deployment
+                deployment_result = strategy.execute(platform, request)
+                # Map deployment result to stage result
+                if deployment_result.status == DeploymentStatus.SUCCESS:
+                    result.status = StageStatus.SUCCESS
+                    result.message = deployment_result.message
+                    self._deployment_id = deployment_result.deployment_id
+                    result.metrics = {
+                        "deployment_id": deployment_result.deployment_id,
+                        "endpoints": deployment_result.endpoints,
+                        "duration_seconds": deployment_result.duration_seconds,
+                        **deployment_result.metrics,
+                    }
+                    logger.info("Deployment completed successfully: %s", deployment_result.message)
+                else:
+                    result.status = StageStatus.FAILED
+                    result.message = deployment_result.message
+                    logger.error("Deployment failed: %s", deployment_result.message)
+            except Exception as e:
+                logger.error("Deployment failed with error: %s", e, exc_info=SHOW_TRACEBACK)
+                result.status = StageStatus.FAILED
+                result.message = f"Deployment failed: {e}"
+        # Legacy shell command path
+        elif config.deployment_command:
             try:
                 logger.debug("Running deployment command: %s", config.deployment_command)
                 subprocess.run(
@@ -448,8 +519,8 @@ class PipelineRunner:
                 result.message = f"Deployment failed: {e.stderr}"
         else:
             result.status = StageStatus.WARNED
-            result.message = "No deployment command configured - skipping"
-            logger.warning("No deployment command configured - skipping deployment")
+            result.message = "No deployment command or platform configured - skipping"
+            logger.warning("No deployment command or platform configured - skipping deployment")
 
         result.end_time = _now()
         return result
@@ -470,11 +541,44 @@ class PipelineRunner:
         if self.dry_run:
             logger.debug("Dry run: would rollback deployment")
             result.status = StageStatus.SUCCESS
-            result.message = "[DRY RUN] Would rollback deployment"
+            if config.platform and self._deployment_id:
+                result.message = (
+                    f"[DRY RUN] Would rollback deployment {self._deployment_id} "
+                    f"via {config.platform}"
+                )
+            elif config.rollback_command:
+                result.message = f"[DRY RUN] Would rollback with command: {config.rollback_command}"
+            else:
+                result.message = (
+                    "[DRY RUN] Would skip rollback (no platform/deployment_id or command)"
+                )
             result.end_time = _now()
             return result
 
-        if config.rollback_command:
+        # Deployment automation rollback path
+        if config.platform and self._deployment_id:
+            try:
+                logger.debug(
+                    "Rolling back deployment %s via platform %s",
+                    self._deployment_id,
+                    config.platform,
+                )
+                platform = get_platform(config.platform, config.platform_config)
+                rollback_result = platform.rollback(self._deployment_id)
+                if rollback_result.status == DeploymentStatus.SUCCESS:
+                    result.status = StageStatus.SUCCESS
+                    result.message = rollback_result.message
+                    logger.info("Rollback completed successfully: %s", rollback_result.message)
+                else:
+                    result.status = StageStatus.FAILED
+                    result.message = rollback_result.message
+                    logger.error("Rollback failed: %s", rollback_result.message)
+            except Exception as e:
+                logger.error("Rollback failed with error: %s", e, exc_info=SHOW_TRACEBACK)
+                result.status = StageStatus.FAILED
+                result.message = f"Rollback failed: {e}"
+        # Legacy shell command path
+        elif config.rollback_command:
             try:
                 logger.debug("Running rollback command: %s", config.rollback_command)
                 subprocess.run(
@@ -493,8 +597,12 @@ class PipelineRunner:
                 result.message = f"Rollback failed: {e.stderr}"
         else:
             result.status = StageStatus.WARNED
-            result.message = "No rollback command configured - manual intervention required"
-            logger.warning("No rollback command configured - manual intervention required")
+            result.message = (
+                "No rollback command or platform deployment ID - manual intervention required"
+            )
+            logger.warning(
+                "No rollback command or platform deployment ID - manual intervention required"
+            )
 
         result.end_time = _now()
         return result
