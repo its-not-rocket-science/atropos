@@ -136,7 +136,7 @@ class MultiGPUScalingAnalyzer:
         # Load model and tokenizer
         tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         model = AutoModelForCausalLM.from_pretrained(self.model_name)
-        model = model.to(self.device)
+        model = model.to(self.device)  # type: ignore[arg-type]
         model.eval()
 
         # Initialize benchmark wrapper

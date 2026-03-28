@@ -46,22 +46,71 @@
 
 ## Version Planning
 
-**v0.5.0**
-- Multi-GPU benchmarking support
-- Distributed pruning experiments
-- Optimize validation script for GPU acceleration
+*Three-phase progression from current alpha to autonomous operations*
 
-**v0.6.0**
-- Production deployment automation
-- A/B testing framework for model variants
+**Phase 1: Core Stabilization & Foundation (v0.6.0 - v1.0.0)**
+- **v0.5.0** (current)
+  - Multi-GPU benchmarking support
+  - Distributed pruning experiments
+  - Optimize validation script for GPU acceleration
+- **v0.6.0**
+  - Production deployment automation
+  - A/B testing framework for model variants
+  - *Bridge to vision:* Basic cost anomaly detection
+- **v0.7.0**
+  - Continuous optimization pipeline
+  - *Bridge to vision:* Pipeline lineage tracking
+- **v0.8.0** (AI-Native Foundation)
+  - LLM-powered optimization recommendations
+  - Hyperparameter discovery prototype
+  - Natural language alerts for optimization thresholds
+- **v0.9.0** (Enhanced Observability)
+  - Real-time dashboard improvements
+  - SLA prediction based on historical data
+  - Quality risk monitoring
+- **v1.0.0** (Stable API & Enterprise Foundations)
+  - Stable public API
+  - Basic team collaboration (shared libraries, comment threads)
+  - Audit trail for optimization decisions
+  - Comprehensive documentation
 
-**v0.7.0**
-- Continuous optimization pipeline
+**Phase 2: Intelligence & Collaboration (v1.1.0 - v1.5.0)**
+- **v1.1.0** (Advanced AI Intelligence)
+  - Self-healing pipeline components
+  - Automated regression detection
+  - Intelligent fallback strategies
+- **v1.2.0** (Team Collaboration)
+  - Approval workflows
+  - Slack/Teams integration for notifications
+  - Role-based access control
+- **v1.3.0** (Multi-Model Orchestration)
+  - Fleet optimization across multiple models
+  - Dependency-aware scheduling
+  - Budget allocation across projects
+- **v1.4.0** (Regulatory Compliance)
+  - Model card generation
+  - GDPR/SOC2 compliance automation
+  - Ethics review workflows
+- **v1.5.0** (Edge & Embedded)
+  - Mobile deployment ROI estimation
+  - Raspberry Pi/edge device optimization profiles
+  - Battery consumption estimation
 
-**v1.0.0**
-- Stable API
-- Comprehensive documentation
-- Enterprise features (SSO, audit logging, team management)
+**Phase 3: Scale & Autonomy (v2.0.0 - v3.0.0)**
+- **v2.0.0** (Multi-Model Platform)
+  - Cross-model dependency management
+  - Portfolio-level optimization
+  - Advanced budget orchestration
+- **v2.1.0** (Advanced Edge)
+  - WebAssembly/ONNX runtime support
+  - Heterogeneous hardware optimization
+  - Cross-platform deployment automation
+- **v3.0.0** (Autonomous Operations)
+  - Fully autonomous optimization loops
+  - Predictive maintenance
+  - Continuous adaptation to changing conditions
+
+*See [Strategic Themes](#strategic-themes-2026-2027-vision) for detailed feature mapping.*
 
 ## Future Exploration
 
@@ -71,11 +120,26 @@
 - Real-time optimization suggestions based on live telemetry
 - Automated optimization across multiple model variants (Pareto frontier analysis)
 
-## Long-term Vision
+## Strategic Themes (2026-2027 Vision)
 
-*Based on community feedback and strategic planning*
+*Based on community feedback envisioning v1.3.0-v3.0.0 capabilities, mapped to realistic phased progression from current v0.5.0 alpha state.*
 
-### Production Readiness
+### AI Intelligence
+- LLM-powered optimization recommendations (v0.8.0)
+- Hyperparameter discovery with Bayesian optimization (v0.8.0)
+- Self-healing pipeline with automatic rollback (v1.1.0)
+- Natural language alerts and reports (v0.8.0)
+- Predictive scaling: forecast when pruning becomes cost-effective based on traffic growth patterns
+- Automated regression detection between pruned and baseline model performance
+- Cost-aware pruning: optimize for electricity price fluctuations and regional cost variations
+- Quality-aware scheduling: run fine-tuning during periods of lower quality tolerance
+- Intelligent fallback strategies for queries where pruning affects quality
+
+### Deep Observability
+- Cost anomaly detection with statistical baselines (v0.6.0)
+- End-to-end pipeline lineage tracking (v0.7.0)
+- Real-time dashboard with WebSocket updates (v0.9.0)
+- SLA breach prediction based on historical patterns (v0.9.0)
 - Circuit breakers for pruning framework failures with graceful degradation
 - Retry logic with exponential backoff for telemetry collection and framework operations
 - Pipeline pause/resume capability for long-running optimization jobs
@@ -83,30 +147,45 @@
 - Production deployment guide with load testing results and best practices
 - SLI/SLO tracking for pipeline execution reliability
 
-### Advanced Intelligence
-- Predictive scaling: forecast when pruning becomes cost-effective based on traffic growth patterns
-- Automated regression detection between pruned and baseline model performance
-- Cost-aware pruning: optimize for electricity price fluctuations and regional cost variations
-- Quality-aware scheduling: run fine-tuning during periods of lower quality tolerance
-- Intelligent fallback strategies for queries where pruning affects quality
-
-### Enterprise Features
+### Team Collaboration & Compliance
+- Optimization approval workflows with multi-level gating (v1.2.0)
+- Comment threads on pipeline runs (v1.0.0)
+- Shared scenario libraries with versioning (v1.0.0)
+- Slack/Teams integration for notifications and approvals (v1.2.0)
 - Audit trail for all optimization decisions with export capabilities
 - Compliance automation reports (GDPR, SOC2, etc.)
+- Model card generation for pruned models (v1.4.0)
+- Export to regulatory formats (CSV/JSON for auditors) (v1.4.0)
+- Data lineage tracking for pruning decisions (v1.4.0)
+- Ethics review workflow for fairness impact (v1.4.0)
+- License compliance checker for model licenses (v1.4.0)
+
+### Multi-Model Scale
+- Fleet optimization across hundreds of models (v1.3.0)
+- Dependency-aware scheduling for model variants (v1.3.0)
+- Budget allocation optimizer across portfolio (v1.3.0)
+- Cross-model transfer learning of pruning patterns (v2.0.0)
+- Fleet-wide anomaly correlation detection (v2.0.0)
+- Automated rollback at fleet level for systemic issues (v2.0.0)
 - Multi-region deployment support for distributed optimization pipelines
 - High availability mode for pipeline controller with failover
 - Customer success portal with usage analytics and optimization insights
 
-### Ecosystem Expansion
+### Edge & Deployment
+- Mobile deployment profiles for iOS/Android (v1.5.0)
+- Raspberry Pi optimization targets (v1.5.0)
+- WebAssembly export for browser deployment (v2.1.0)
+- ONNX runtime integration for cross-platform deployment (v2.1.0)
+- Battery life estimation for edge devices (v1.5.0)
+- Quantization-aware pruning for NPUs (v2.1.0)
 - Plugin system for custom pruning frameworks and optimization algorithms
 - VS Code extension with inline ROI estimates during model development
 - GitHub Copilot integration: suggest pruning when code changes affect deployment costs
-- Slack/Discord bot for pipeline notifications and approval workflows
 - Terraform provider for infrastructure-as-code deployment of Atropos resources
 - OpenTelemetry support for distributed tracing of optimization pipelines
 - Community templates repository for sharing optimization strategies
 
-### Specialized Optimizations
+### Advanced Optimization Techniques
 - Speculative decoding optimization estimation and ROI analysis
 - Continuous batching efficiency modeling for throughput optimization
 - Prefix caching ROI calculation for repeated prompt patterns
@@ -114,6 +193,43 @@
 - Multi-GPU tensor parallelism optimization strategies
 - LoRA adapter pruning strategies for fine-tuned models
 - Quantization-aware fine-tuning calibration and quality preservation
+
+### Autonomous Operations
+- Fully autonomous optimization with no human-in-loop (v3.0.0)
+- Continuous optimization loop adapting to traffic patterns (v3.0.0)
+- Self-tuning thresholds based on historical success (v3.0.0)
+- Predictive maintenance for pruned models (v3.0.0)
+- Automatic A/B test termination when statistical significance reached (v3.0.0)
+- Budget-aware autonomous mode within defined cost constraints (v3.0.0)
+
+### Nice-to-Have Backlog
+- JupyterLab extension with interactive widgets
+- PostgreSQL/MySQL backend for large deployments
+- GraphQL API for flexible queries
+- Webhook actions for external system integration
+- Data export to Snowflake/BigQuery for enterprise analytics
+- Custom Python operators for injecting custom logic in pipelines
+- Mobile app (iOS/Android) for monitoring approvals
+- Desktop app (Electron-based) for local use
+- Chrome extension for ROI estimates on HuggingFace model pages
+- Airflow integration as Airflow operator
+- Kubeflow integration as native pipeline component
+- Ray integration for distributed pruning across cluster
+- Unified metrics API for any quality metric
+- Benchmark suite for continuous performance regression testing
+- Community forum for optimization strategy discussion
+
+## Long-term Vision
+
+*Note: The items previously in this section have been integrated into the [Strategic Themes](#strategic-themes-2026-2027-vision) section with version planning and thematic organization.*
+
+**Production Readiness** → **Deep Observability** theme
+**Advanced Intelligence** → **AI Intelligence** theme
+**Enterprise Features** → **Team Collaboration & Compliance** theme
+**Ecosystem Expansion** → **Edge & Deployment** theme
+**Specialized Optimizations** → **Advanced Optimization Techniques** theme
+
+*Refer to the Strategic Themes section for detailed feature mapping across versions v0.6.0 through v3.0.0.*
 
 ## Atropos Pipeline
 
