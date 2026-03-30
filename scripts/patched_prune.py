@@ -562,7 +562,13 @@ def prepare_calibration_input_patched(
                 raise ValueError("Catcher cannot find input tensor in args or kwargs")
             inps[cache["i"]] = inp
             cache["i"] += 1
-            cache["attention_mask"] = kwargs["attention_mask"]
+            # GPT2 uses encoder_attention_mask instead of attention_mask
+            if "attention_mask" in kwargs:
+                cache["attention_mask"] = kwargs["attention_mask"]
+            elif "encoder_attention_mask" in kwargs:
+                cache["attention_mask"] = kwargs["encoder_attention_mask"]
+            else:
+                cache["attention_mask"] = None
             # position_ids may not be present
             if "position_ids" in kwargs:
                 cache["position_ids"] = kwargs["position_ids"]
