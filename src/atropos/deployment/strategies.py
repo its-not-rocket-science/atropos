@@ -1,7 +1,7 @@
 """Deployment strategies for advanced rollout patterns.
 
-Provides canary, blue-green, and rolling update strategies for controlled,
-low-risk deployments with health check integration.
+Provides canary, blue-green, rolling update, and A/B testing strategies for
+controlled, low-risk deployments with health check integration.
 """
 
 from __future__ import annotations
@@ -231,12 +231,166 @@ class RollingUpdateStrategy(DeploymentStrategy):
         return platform.deploy(request)
 
 
+class ABTestStrategy(DeploymentStrategy):
+    """A/B testing deployment with multiple variants."""
+
+    def __init__(self, config: dict[str, Any] | None = None):
+        super().__init__(config)
+        self.experiment_id = self.config.get("experiment_id")
+        self.traffic_allocation = self.config.get("traffic_allocation", 1.0)
+        self.auto_start = self.config.get("auto_start", True)
+
+    def execute(
+        self,
+        platform: DeploymentPlatform,
+        request: DeploymentRequest,
+    ) -> DeploymentResult:
+        """Execute A/B test deployment."""
+        from dataclasses import replace
+
+        from .models import DeploymentResult, DeploymentStatus
+
+        start_time = datetime.fromtimestamp(time.time()).isoformat()
+
+        # Extract experiment config from request
+        experiment_config = request.experiment_config
+        if not experiment_config:
+            return DeploymentResult(
+                request=request,
+                status=DeploymentStatus.FAILED,
+                message="No experiment configuration provided",
+                start_time=start_time,
+                end_time=datetime.fromtimestamp(time.time()).isoformat(),
+            )
+
+        # Parse experiment config (could be ABTestConfig dict or raw dict)
+        try:
+            # Try to parse as ABTestConfig
+            if "experiment_id" in experiment_config and "variants" in experiment_config:
+                # Already in ABTestConfig format
+                config_dict = experiment_config
+            else:
+                # Convert from raw format
+                config_dict = self._parse_experiment_config(experiment_config)
+
+            # Deploy all variants for A/B testing
+            if config_dict.get("variants"):
+                variants = config_dict["variants"]
+                experiment_id = config_dict.get("experiment_id", f"exp-{int(time.time())}")
+
+                variant_deployments: dict[str, dict[str, Any]] = {}
+                deployed_variants: list[dict[str, str | None]] = []
+                all_endpoints: list[str] = []
+
+                # Normalize traffic weights
+                total_weight = sum(v.get("traffic_weight", 1.0) for v in variants)
+                normalized_weights = {
+                    v["variant_id"]: v.get("traffic_weight", 1.0) / total_weight for v in variants
+                }
+
+                # Deploy each variant
+                for variant in variants:
+                    variant_id = variant["variant_id"]
+                    # Create deployment request for this variant
+                    variant_request = replace(
+                        request,
+                        model_path=variant.get("model_path", request.model_path),
+                        metadata={
+                            **request.metadata,
+                            "experiment_id": experiment_id,
+                            "variant_id": variant_id,
+                        },
+                    )
+
+                    # Deploy variant
+                    variant_result = platform.deploy(variant_request)
+
+                    if variant_result.status != DeploymentStatus.SUCCESS:
+                        # Rollback previously deployed variants
+                        for deployed_variant in deployed_variants:
+                            if deployed_variant["deployment_id"] is not None:
+                                platform.delete(deployed_variant["deployment_id"])
+                        return variant_result
+
+                    if variant_result.deployment_id is None:
+                        # Rollback previously deployed variants
+                        for deployed_variant in deployed_variants:
+                            if deployed_variant["deployment_id"] is not None:
+                                platform.delete(deployed_variant["deployment_id"])
+                        return DeploymentResult(
+                            request=request,
+                            status=DeploymentStatus.FAILED,
+                            message=(
+                                f"Platform did not return deployment ID for variant {variant_id}"
+                            ),
+                            start_time=start_time,
+                            end_time=datetime.fromtimestamp(time.time()).isoformat(),
+                        )
+
+                    # Store deployment info
+                    variant_deployments[variant_id] = {
+                        "deployment_id": variant_result.deployment_id,
+                        "endpoints": variant_result.endpoints,
+                        "weight": normalized_weights[variant_id],
+                    }
+                    deployed_variants.append(
+                        {
+                            "variant_id": variant_id,
+                            "deployment_id": variant_result.deployment_id,
+                        }
+                    )
+                    all_endpoints.extend(variant_result.endpoints)
+
+                # Return success with experiment ID
+                return DeploymentResult(
+                    request=request,
+                    status=DeploymentStatus.SUCCESS,
+                    message=(
+                        f"A/B test experiment '{experiment_id}' started "
+                        f"with {len(variants)} variants"
+                    ),
+                    start_time=start_time,
+                    end_time=datetime.fromtimestamp(time.time()).isoformat(),
+                    deployment_id=experiment_id,
+                    endpoints=all_endpoints[:10],  # Limit to first 10 endpoints
+                    metrics={
+                        "variant_count": len(variants),
+                        "traffic_allocation": self.traffic_allocation,
+                        "variant_deployments": variant_deployments,
+                        "normalized_weights": normalized_weights,
+                    },
+                )
+            else:
+                return DeploymentResult(
+                    request=request,
+                    status=DeploymentStatus.FAILED,
+                    message="No variants defined in experiment configuration",
+                    start_time=start_time,
+                    end_time=datetime.fromtimestamp(time.time()).isoformat(),
+                )
+        except Exception as e:
+            return DeploymentResult(
+                request=request,
+                status=DeploymentStatus.FAILED,
+                message=f"Failed to parse experiment configuration: {str(e)}",
+                start_time=start_time,
+                end_time=datetime.fromtimestamp(time.time()).isoformat(),
+            )
+
+    def _parse_experiment_config(self, raw_config: dict[str, Any]) -> dict[str, Any]:
+        """Parse raw experiment configuration into standardized format."""
+        # Simple implementation: assume raw_config is already in correct format
+        # In real implementation, would validate and convert to ABTestConfig
+        return raw_config
+
+
 # Registry of available strategies
 STRATEGIES: dict[str, type[DeploymentStrategy]] = {
     "immediate": ImmediateStrategy,
     "canary": CanaryStrategy,
     "blue-green": BlueGreenStrategy,
     "rolling": RollingUpdateStrategy,
+    "a-b-test": ABTestStrategy,
 }
 
 

@@ -31,6 +31,8 @@ class TelemetryData:
         tokens_per_request: Average tokens per request.
         timestamp: When the telemetry was collected.
         raw_metrics: Additional raw metrics from the source.
+        experiment_id: Experiment identifier for A/B testing (optional).
+        variant_id: Variant identifier for A/B testing (optional).
     """
 
     source: str
@@ -43,6 +45,8 @@ class TelemetryData:
     requests_per_day: int | None = None
     timestamp: str | None = None
     raw_metrics: dict[str, Any] = field(default_factory=dict)
+    experiment_id: str | None = None
+    variant_id: str | None = None
 
 
 def validate_telemetry(data: TelemetryData) -> list[str]:
@@ -220,6 +224,8 @@ class VLLMTelemetryParser(TelemetryParser):
             requests_per_day=metrics.get("requests_per_day"),
             timestamp=metrics.get("timestamp"),
             raw_metrics=metrics,
+            experiment_id=None,
+            variant_id=None,
         )
 
 
@@ -266,6 +272,8 @@ class TritonTelemetryParser(TelemetryParser):
             requests_per_day=parsed_data.get("requests_per_day"),
             timestamp=parsed_data.get("timestamp"),
             raw_metrics=parsed_data,
+            experiment_id=None,
+            variant_id=None,
         )
 
 
@@ -338,6 +346,8 @@ class CSVTelemetryParser(TelemetryParser):
             requests_per_day=get_int("requests_per_day", None),
             timestamp=self._get_field(row, "timestamp", None),
             raw_metrics=dict(row),
+            experiment_id=self._get_field(row, "experiment_id", None),
+            variant_id=self._get_field(row, "variant_id", None),
         )
 
 
@@ -419,6 +429,8 @@ class GenericJSONTelemetryParser(TelemetryParser):
             requests_per_day=get_int("requests_per_day"),
             timestamp=self._get_value(parsed_data, "timestamp"),
             raw_metrics=parsed_data,
+            experiment_id=self._get_value(parsed_data, "experiment_id"),
+            variant_id=self._get_value(parsed_data, "variant_id"),
         )
 
 

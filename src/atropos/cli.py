@@ -10,6 +10,18 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from .abtesting.models import (
+    ABTestConfig,
+    ExperimentStatus,
+    StatisticalTestType,
+    Variant,
+    VariantMetrics,
+)
+from .abtesting.runner import (
+    ExperimentRunner,
+    analyze_experiment_results,
+)
+from .abtesting.store import get_default_store
 from .batch import batch_process
 from .calculations import combine_strategies, estimate_outcome
 from .calibration import calibrate_scenario, generate_calibration_report
@@ -17,6 +29,7 @@ from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
 from .config import AtroposConfig
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
+from .deployment.platforms import get_platform
 from .exceptions import AtroposError
 from .integrations import TRACKERS, get_tracker, run_to_scenario
 from .io import csv_to_markdown, export_to_csv, load_scenario, render_report
@@ -588,6 +601,64 @@ def build_parser() -> argparse.ArgumentParser:
         ],
         default="auto",
         help="Report type (default: auto-detect)",
+    )
+
+    # A/B testing command
+    abtest_parser = subparsers.add_parser(
+        "ab-test",
+        help="Manage A/B testing experiments for model variants.",
+    )
+    abtest_subparsers = abtest_parser.add_subparsers(dest="subcommand", required=True)
+
+    # create subcommand
+    create_parser = abtest_subparsers.add_parser("create", help="Create a new A/B test experiment")
+    create_parser.add_argument(
+        "--config", "-c", type=Path, required=True, help="Path to experiment configuration YAML"
+    )
+    create_parser.add_argument(
+        "--dry-run", action="store_true", help="Validate configuration without starting experiment"
+    )
+
+    # status subcommand
+    status_parser = abtest_subparsers.add_parser("status", help="Check status of an experiment")
+    status_parser.add_argument("experiment_id", help="Experiment identifier")
+    status_parser.add_argument(
+        "--format", choices=["text", "json", "yaml"], default="text", help="Output format"
+    )
+
+    # stop subcommand
+    stop_parser = abtest_subparsers.add_parser("stop", help="Stop a running experiment")
+    stop_parser.add_argument("experiment_id", help="Experiment identifier")
+    stop_parser.add_argument("--reason", help="Reason for stopping")
+
+    # analyze subcommand
+    analyze_parser = abtest_subparsers.add_parser("analyze", help="Analyze experiment results")
+    analyze_parser.add_argument("experiment_id", help="Experiment identifier")
+    analyze_parser.add_argument(
+        "--format", choices=["text", "json", "markdown"], default="text", help="Output format"
+    )
+
+    # promote subcommand
+    promote_parser = abtest_subparsers.add_parser(
+        "promote", help="Promote winning variant to production"
+    )
+    promote_parser.add_argument("experiment_id", help="Experiment identifier")
+    promote_parser.add_argument(
+        "--variant-id", help="Specific variant to promote (default: winner)"
+    )
+    promote_parser.add_argument(
+        "--force", action="store_true", help="Promote even if not statistically significant"
+    )
+
+    # list subcommand
+    list_parser = abtest_subparsers.add_parser("list", help="List experiments")
+    list_parser.add_argument(
+        "--status",
+        choices=["draft", "running", "paused", "stopped", "completed"],
+        help="Filter by status",
+    )
+    list_parser.add_argument(
+        "--format", choices=["text", "json", "yaml"], default="text", help="Output format"
     )
 
     return parser
@@ -1601,6 +1672,376 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else 0
             )
             return 0 if success_rate >= 0.5 else 1
+
+        if args.command == "ab-test":
+            # Handle A/B test subcommands
+            if not hasattr(args, "subcommand"):
+                parser.error("Missing subcommand for ab-test")
+            subcommand = args.subcommand
+            if subcommand == "create":
+                # Load config
+                import yaml
+
+                with open(args.config) as f:
+                    config_data = yaml.safe_load(f)
+                # Convert variants
+                variant_objects = []
+                for v in config_data.get("variants", []):
+                    variant_objects.append(Variant(**v))
+                # Convert test_type string to enum
+                test_type_str = config_data.get("test_type", "t-test")
+                test_type = StatisticalTestType[test_type_str.upper().replace("-", "_")]
+                # Create config
+                ab_config = ABTestConfig(
+                    experiment_id=config_data["experiment_id"],
+                    name=config_data["name"],
+                    variants=variant_objects,
+                    primary_metric=config_data["primary_metric"],
+                    secondary_metrics=config_data.get("secondary_metrics", []),
+                    traffic_allocation=config_data.get("traffic_allocation", 1.0),
+                    significance_level=config_data.get("significance_level", 0.05),
+                    statistical_power=config_data.get("statistical_power", 0.8),
+                    test_type=test_type,
+                    min_sample_size_per_variant=config_data.get("min_sample_size_per_variant", 100),
+                    max_duration_hours=config_data.get("max_duration_hours", 168.0),
+                    auto_stop_conditions=config_data.get("auto_stop_conditions", {}),
+                    deployment_platform=config_data.get("deployment_platform", "vllm"),
+                    deployment_strategy=config_data.get("deployment_strategy", "immediate"),
+                    health_checks=config_data.get("health_checks", {}),
+                    metadata=config_data.get("metadata", {}),
+                )
+                # Get platform
+                platform = get_platform(ab_config.deployment_platform)
+                # Dry run?
+                if args.dry_run:
+                    print("Dry run: configuration valid")
+                    print(f"Experiment ID: {ab_config.experiment_id}")
+                    print(f"Variants: {len(ab_config.variants)}")
+                    return 0
+                # Save config to store
+                store = get_default_store()
+                store.save_config(ab_config)
+                # Start experiment
+                runner = ExperimentRunner(ab_config, platform)
+                experiment_result = runner.start()
+                # Update store with deployment IDs and status
+                store.update_experiment(
+                    experiment_id=ab_config.experiment_id,
+                    status=runner.status,
+                    deployment_ids=runner.deployment_ids,
+                    start_time=runner.start_time,
+                )
+                print(f"Experiment started: {experiment_result.experiment_id}")
+                print(f"Status: {experiment_result.status}")
+                return 0
+            elif subcommand == "status":
+                import sys
+
+                store = get_default_store()
+                exp_data = store.load_experiment(args.experiment_id)
+                if exp_data is None:
+                    print(f"Experiment not found: {args.experiment_id}", file=sys.stderr)
+                    return 1
+                # Format output
+                if args.format == "json":
+                    import json
+
+                    print(json.dumps(exp_data, indent=2))
+                elif args.format == "yaml":
+                    import yaml
+
+                    print(yaml.dump(exp_data, default_flow_style=False))
+                else:  # text
+                    print(f"Experiment ID: {exp_data.get('experiment_id', args.experiment_id)}")
+                    print(f"Status: {exp_data.get('status', 'unknown')}")
+                    print(f"Created: {exp_data.get('created_at', 'unknown')}")
+                    print(f"Updated: {exp_data.get('updated_at', 'unknown')}")
+                    if exp_data.get("start_time"):
+                        print(f"Started: {exp_data['start_time']}")
+                    if exp_data.get("end_time"):
+                        print(f"Ended: {exp_data['end_time']}")
+                    variant_dicts = exp_data.get("config", {}).get("variants", [])
+                    print(f"Variants: {len(variant_dicts)}")
+                    deployment_ids = exp_data.get("deployment_ids", {})
+                    if deployment_ids:
+                        print("Deployment IDs:")
+                        for variant_id, dep_id in deployment_ids.items():
+                            print(f"  {variant_id}: {dep_id}")
+                return 0
+            elif subcommand == "stop":
+                import sys
+
+                import yaml
+
+                store = get_default_store()
+                exp_data = store.load_experiment(args.experiment_id)
+                if exp_data is None:
+                    print(f"Experiment not found: {args.experiment_id}", file=sys.stderr)
+                    return 1
+                # Check current status
+                current_status = exp_data.get("status", "").upper()
+                if current_status in ("STOPPED", "COMPLETED", "FAILED"):
+                    print(
+                        f"Experiment already in terminal status: {current_status.lower()}",
+                        file=sys.stderr,
+                    )
+                    return 1
+                # Reconstruct config from stored data
+                config_data = exp_data.get("config")
+                if not config_data:
+                    print("Invalid experiment data: missing config", file=sys.stderr)
+                    return 1
+                # Convert variants
+                variants = []
+                for v in config_data.get("variants", []):
+                    variants.append(Variant(**v))
+                # Convert test_type string to enum
+                test_type_str = config_data.get("test_type", "t-test")
+                test_type = StatisticalTestType[test_type_str.upper().replace("-", "_")]
+                # Create config
+                ab_config = ABTestConfig(
+                    experiment_id=config_data["experiment_id"],
+                    name=config_data["name"],
+                    variants=variants,
+                    primary_metric=config_data["primary_metric"],
+                    secondary_metrics=config_data.get("secondary_metrics", []),
+                    traffic_allocation=config_data.get("traffic_allocation", 1.0),
+                    significance_level=config_data.get("significance_level", 0.05),
+                    statistical_power=config_data.get("statistical_power", 0.8),
+                    test_type=test_type,
+                    min_sample_size_per_variant=config_data.get("min_sample_size_per_variant", 100),
+                    max_duration_hours=config_data.get("max_duration_hours", 168.0),
+                    auto_stop_conditions=config_data.get("auto_stop_conditions", {}),
+                    deployment_platform=config_data.get("deployment_platform", "vllm"),
+                    deployment_strategy=config_data.get("deployment_strategy", "immediate"),
+                    health_checks=config_data.get("health_checks", {}),
+                    metadata=config_data.get("metadata", {}),
+                )
+                # Get platform
+                platform = get_platform(ab_config.deployment_platform)
+                # Create runner and stop
+                runner = ExperimentRunner(ab_config, platform)
+                # Set runner's internal state from stored data
+                runner._status = ExperimentStatus[current_status]
+                runner._start_time = exp_data.get("start_time")
+                runner._end_time = exp_data.get("end_time")
+                runner._deployment_ids = exp_data.get("deployment_ids", {})
+                # Stop experiment
+                try:
+                    stop_result = runner.stop(reason=args.reason if args.reason else "manual")
+                except RuntimeError as e:
+                    print(f"Cannot stop experiment: {e}", file=sys.stderr)
+                    return 1
+                # Update store with end_time and status
+                store.update_experiment(
+                    experiment_id=ab_config.experiment_id,
+                    status=stop_result.status,
+                    end_time=stop_result.end_time,
+                )
+                print(f"Experiment stopped: {ab_config.experiment_id}")
+                print(f"Reason: {args.reason if args.reason else 'manual'}")
+                return 0
+            elif subcommand == "analyze":
+                import json
+                import sys
+
+                import yaml
+
+                store = get_default_store()
+                exp_data = store.load_experiment(args.experiment_id)
+                if exp_data is None:
+                    print(f"Experiment not found: {args.experiment_id}", file=sys.stderr)
+                    return 1
+                # Reconstruct config from stored data
+                config_data = exp_data.get("config")
+                if not config_data:
+                    print("Invalid experiment data: missing config", file=sys.stderr)
+                    return 1
+                # Convert variants
+                variants = []
+                for v in config_data.get("variants", []):
+                    variants.append(Variant(**v))
+                # Convert test_type string to enum
+                test_type_str = config_data.get("test_type", "t-test")
+                test_type = StatisticalTestType[test_type_str.upper().replace("-", "_")]
+                # Create config
+                ab_config = ABTestConfig(
+                    experiment_id=config_data["experiment_id"],
+                    name=config_data["name"],
+                    variants=variants,
+                    primary_metric=config_data["primary_metric"],
+                    secondary_metrics=config_data.get("secondary_metrics", []),
+                    traffic_allocation=config_data.get("traffic_allocation", 1.0),
+                    significance_level=config_data.get("significance_level", 0.05),
+                    statistical_power=config_data.get("statistical_power", 0.8),
+                    test_type=test_type,
+                    min_sample_size_per_variant=config_data.get("min_sample_size_per_variant", 100),
+                    max_duration_hours=config_data.get("max_duration_hours", 168.0),
+                    auto_stop_conditions=config_data.get("auto_stop_conditions", {}),
+                    deployment_platform=config_data.get("deployment_platform", "vllm"),
+                    deployment_strategy=config_data.get("deployment_strategy", "immediate"),
+                    health_checks=config_data.get("health_checks", {}),
+                    metadata=config_data.get("metadata", {}),
+                )
+                # Load variant metrics if available
+                variant_metrics: dict[str, VariantMetrics] = {}
+                stored_metrics = exp_data.get("variant_metrics", {})
+                for variant_id, metrics_dict in stored_metrics.items():
+                    # Convert nested dict structure to VariantMetrics
+                    # metrics_dict should already be in the format from to_dict()
+                    variant_metrics[variant_id] = VariantMetrics(**metrics_dict)
+                # Perform analysis
+                statistical_results = analyze_experiment_results(variant_metrics, ab_config)
+                # Prepare output
+                analysis_output: dict[str, Any] = {
+                    "experiment_id": ab_config.experiment_id,
+                    "status": exp_data.get("status", "unknown"),
+                    "variant_metrics": {vid: vm.to_dict() for vid, vm in variant_metrics.items()},
+                    "statistical_results": {
+                        metric: sr.to_dict() for metric, sr in statistical_results.items()
+                    },
+                }
+                # Format output
+                if args.format == "json":
+                    print(json.dumps(analysis_output, indent=2))
+                elif args.format == "markdown":
+                    # Generate markdown table
+                    lines = []
+                    lines.append(f"# Analysis for experiment: {ab_config.experiment_id}")
+                    lines.append(f"**Status**: {exp_data.get('status', 'unknown')}")
+                    lines.append("")
+                    if statistical_results:
+                        lines.append("## Statistical Results")
+                        lines.append("| Metric | Test Type | p-value | Significant | Effect Size |")
+                        lines.append("|--------|-----------|---------|-------------|-------------|")
+                        for metric, sr in statistical_results.items():
+                            lines.append(
+                                f"| {metric} | {sr.test_type} | {sr.p_value:.4f} | "
+                                f"{sr.is_significant} | {sr.effect_size:.3f} |"
+                            )
+                    else:
+                        lines.append("No statistical results available (insufficient data).")
+                    print("\n".join(lines))
+                else:  # text
+                    print(f"Experiment: {ab_config.experiment_id}")
+                    print(f"Status: {exp_data.get('status', 'unknown')}")
+                    print(f"Variant metrics: {len(variant_metrics)} variants")
+                    for variant_id, vm in variant_metrics.items():
+                        print(f"  {variant_id}: {vm.sample_count} samples")
+                    if statistical_results:
+                        print("Statistical results:")
+                        for metric, sr in statistical_results.items():
+                            print(
+                                f"  {metric}: p={sr.p_value:.4f}, "
+                                f"significant={sr.is_significant}, "
+                                f"effect={sr.effect_size:.3f}"
+                            )
+                    else:
+                        print("No statistical results (insufficient data)")
+                return 0
+            elif subcommand == "promote":
+                import sys
+
+                store = get_default_store()
+                exp_data = store.load_experiment(args.experiment_id)
+                if exp_data is None:
+                    print(f"Experiment not found: {args.experiment_id}", file=sys.stderr)
+                    return 1
+                # Load config data
+                config_data = exp_data.get("config")
+                if not config_data:
+                    print("Invalid experiment data: missing config", file=sys.stderr)
+                    return 1
+                # Get variant IDs from config
+                variant_ids = [v["variant_id"] for v in config_data.get("variants", [])]
+                # Determine which variant to promote
+                winner_variant_id = args.variant_id
+                if winner_variant_id is None:
+                    # Try to get winner from stored statistical results
+                    statistical_results = exp_data.get("statistical_results", {})
+                    # Simplified: pick first variant for now
+                    if variant_ids:
+                        winner_variant_id = variant_ids[0]
+                        print(
+                            f"Warning: no winner specified, "
+                            f"using first variant: {winner_variant_id}",
+                            file=sys.stderr,
+                        )
+                    else:
+                        print("No variants found in experiment", file=sys.stderr)
+                        return 1
+                # Validate variant exists
+                if winner_variant_id not in variant_ids:
+                    print(
+                        f"Variant {winner_variant_id} not found in experiment. "
+                        f"Available: {', '.join(variant_ids)}",
+                        file=sys.stderr,
+                    )
+                    return 1
+                # Check statistical significance if not forced
+                if not args.force:
+                    statistical_results = exp_data.get("statistical_results", {})
+                    # Check if any result indicates significance for primary metric
+                    primary_metric = config_data.get("primary_metric")
+                    if primary_metric in statistical_results:
+                        sr_dict = statistical_results[primary_metric]
+                        # sr_dict may be dict (from stored StatisticalResult.to_dict())
+                        is_significant = sr_dict.get("is_significant", False)
+                        if not is_significant:
+                            print(
+                                f"Warning: primary metric '{primary_metric}' "
+                                f"not statistically significant.",
+                                file=sys.stderr,
+                            )
+                            print("Use --force to promote anyway.", file=sys.stderr)
+                            return 1
+                    else:
+                        print(
+                            f"Warning: no statistical results "
+                            f"for primary metric '{primary_metric}'.",
+                            file=sys.stderr,
+                        )
+                        print("Use --force to promote anyway.", file=sys.stderr)
+                        return 1
+                # Update store with winner
+                store.update_experiment(
+                    experiment_id=args.experiment_id,
+                    winner_variant_id=winner_variant_id,
+                )
+                print(f"Variant promoted: {winner_variant_id}")
+                print(f"Experiment: {args.experiment_id}")
+                # TODO: Actually deploy promoted variant to production
+                return 0
+            elif subcommand == "list":
+                import json
+
+                import yaml
+
+                store = get_default_store()
+                experiments = store.list_experiments(status_filter=args.status)
+                # Format output
+                if args.format == "json":
+                    print(json.dumps(experiments, indent=2))
+                elif args.format == "yaml":
+                    print(yaml.dump(experiments, default_flow_style=False))
+                else:  # text
+                    if not experiments:
+                        print("No experiments found.")
+                        return 0
+                    print(f"Experiments ({len(experiments)}):")
+                    for exp in experiments:
+                        exp_id = exp.get("experiment_id", "unknown")
+                        name = exp.get("config", {}).get("name", "unknown")
+                        status = exp.get("status", "unknown")
+                        created = exp.get("created_at", "unknown")
+                        variant_count = len(exp.get("config", {}).get("variants", []))
+                        print(f"  {exp_id}: {name} [{status}]")
+                        print(f"    Created: {created}, Variants: {variant_count}")
+                        if exp.get("start_time"):
+                            print(f"    Started: {exp['start_time']}")
+                return 0
+            else:
+                parser.error(f"Unknown subcommand: {subcommand}")
 
         parser.error(f"Unsupported command: {args.command}")
         return 2

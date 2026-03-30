@@ -28,6 +28,7 @@ class DeploymentStrategyType(Enum):
     CANARY = auto()  # Gradual traffic shift
     BLUE_GREEN = auto()  # Alternate environment swap
     ROLLING = auto()  # Incremental instance updates
+    A_B_TEST = auto()  # A/B testing with multiple variants
 
     def __str__(self) -> str:
         return self.name.lower().replace("_", "-")
@@ -42,6 +43,7 @@ class DeploymentRequest:
         platform: Deployment platform identifier (e.g., 'vllm', 'triton').
         strategy: Deployment strategy type.
         strategy_config: Configuration specific to the strategy.
+        experiment_config: A/B testing experiment configuration (optional).
         health_checks: Health check configuration.
         metadata: Additional metadata for the deployment.
     """
@@ -50,6 +52,7 @@ class DeploymentRequest:
     platform: str = "vllm"
     strategy: DeploymentStrategyType = DeploymentStrategyType.IMMEDIATE
     strategy_config: dict[str, Any] = field(default_factory=dict)
+    experiment_config: dict[str, Any] = field(default_factory=dict)
     health_checks: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -97,6 +100,7 @@ class DeploymentResult:
                 "platform": self.request.platform,
                 "strategy": str(self.request.strategy),
                 "strategy_config": self.request.strategy_config,
+                "experiment_config": self.request.experiment_config,
                 "health_checks": self.request.health_checks,
                 "metadata": self.request.metadata,
             },
