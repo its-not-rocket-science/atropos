@@ -39,7 +39,7 @@
   - Future enhancements: comparative views, what-if sliders, pipeline visualization
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
-- [ ] production deployment automation
+- ✅ production deployment automation
 - [ ] A/B testing framework for model variants
 - [ ] continuous optimization pipeline
 - ✅ PyPI package release
