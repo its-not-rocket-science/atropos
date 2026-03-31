@@ -36,6 +36,7 @@ Atropos provides a comprehensive suite of tools for analyzing and automating LLM
 | Pruning framework integrations | Integrated support for LLM-Pruner, Wanda, and SparseGPT frameworks | Integration |
 | Distributed pruning support | Multi-GPU distributed pruning for large models with data/layer/model parallelism | Integration |
 | Calibration against real metrics | Validate projections against actual performance telemetry | Integration |
+| A/B testing framework | Statistical comparison of model variants with automatic traffic routing, significance testing, and promotion | Integration |
 | Atropos Pipeline | Automated optimization workflow: assess, prune, fine-tune, validate, deploy | Automation |
 | Development tooling | Comprehensive test suite, CI workflows, pre-commit config, Makefile | Development |
 
@@ -178,6 +179,25 @@ Run the automated optimization pipeline:
 
 ```bash
 atropos-llm pipeline medium-coder --config pipeline.yaml --strategy structured_pruning
+```
+
+Run A/B test experiments:
+
+```bash
+# Create and start an experiment from YAML config
+atropos-llm ab-test create experiment.yaml --start
+
+# Check experiment status
+atropos-llm ab-test status experiment-id
+
+# Analyze results with statistical tests
+atropos-llm ab-test analyze experiment-id --format markdown
+
+# Promote winning variant
+atropos-llm ab-test promote experiment-id --variant-id variant-a
+
+# List experiments filtered by status
+atropos-llm ab-test list --status running
 ```
 
 ## Strategy model

@@ -33,19 +33,6 @@ def independent_t_test(
     Returns:
         Dictionary with t-statistic, p-value, degrees of freedom.
     """
-    if SCIPY_AVAILABLE:
-        # Use SciPy for accurate implementation
-        t_stat, p_value = stats.ttest_ind(sample_a, sample_b, equal_var=equal_var)
-        n_a, n_b = len(sample_a), len(sample_b)
-        df_scipy = float(n_a + n_b - 2) if equal_var else float(n_a + n_b - 2)  # Approximate
-        return {
-            "t_statistic": float(t_stat),
-            "p_value": float(p_value),
-            "degrees_of_freedom": df_scipy,
-            "method": "scipy_ttest_ind",
-        }
-
-    # Fallback pure Python implementation
     n_a, n_b = len(sample_a), len(sample_b)
     if n_a < 2 or n_b < 2:
         return {
@@ -55,6 +42,19 @@ def independent_t_test(
             "method": "insufficient_data",
             "error": "At least 2 samples required per group",
         }
+
+    if SCIPY_AVAILABLE:
+        # Use SciPy for accurate implementation
+        t_stat, p_value = stats.ttest_ind(sample_a, sample_b, equal_var=equal_var)
+        df_scipy = float(n_a + n_b - 2) if equal_var else float(n_a + n_b - 2)  # Approximate
+        return {
+            "t_statistic": float(t_stat),
+            "p_value": float(p_value),
+            "degrees_of_freedom": df_scipy,
+            "method": "scipy_ttest_ind",
+        }
+
+    # Fallback pure Python implementation
 
     mean_a = statistics.mean(sample_a)
     mean_b = statistics.mean(sample_b)

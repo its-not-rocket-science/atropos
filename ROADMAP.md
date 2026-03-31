@@ -40,8 +40,8 @@
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
 - ✅ production deployment automation
-- [ ] A/B testing framework for model variants
-- [ ] continuous optimization pipeline
+- [x] A/B testing framework for model variants
+- [x] continuous optimization pipeline
 - ✅ PyPI package release
 
 ## Version Planning
