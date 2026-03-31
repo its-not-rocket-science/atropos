@@ -412,8 +412,8 @@ def _normal_cdf(x: float) -> float:
 
 
 def analyze_variant_comparison(
-    variant_a_metrics: dict[str, float],
-    variant_b_metrics: dict[str, float],
+    variant_a_metrics: dict[str, float] | list[float],
+    variant_b_metrics: dict[str, float] | list[float],
     test_type: str = "t-test",
     alpha: float = 0.05,
 ) -> dict[str, Any]:
