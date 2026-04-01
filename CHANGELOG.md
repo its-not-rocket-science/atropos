@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Basic cost anomaly detection with statistical baselines (z‑score thresholding) for optimization outcomes
+- New CLI command `detect‑anomalies` with JSON/markdown/text output formats
+- `CostAnomalyDetector` class supporting baseline computation from historical outcomes and file I/O
+- Comprehensive unit tests covering anomaly detection, baseline computation, and CLI integration
 
 ### Changed
 - Updated ROADMAP.md with strategic themes and phased version planning (v0.6.0-v3.0.0) based on community feedback envisioning AI-native optimization, deep observability, team collaboration, multi-model orchestration, regulatory compliance, edge deployment, and autonomous operations

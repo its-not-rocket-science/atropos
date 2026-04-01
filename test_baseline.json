@@ -1,0 +1,17 @@
+{
+  "baselines": {
+    "annual_savings_usd": {
+      "mean": 5000.0,
+      "std": 10000.0
+    },
+    "break_even_months": {
+      "mean": 6.0,
+      "std": 4.0
+    },
+    "total_co2e_saved_kg": {
+      "mean": 1000.0,
+      "std": 2000.0
+    }
+  },
+  "threshold": 2.0
+}

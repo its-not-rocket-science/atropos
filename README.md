@@ -28,6 +28,7 @@ Atropos provides a comprehensive suite of tools for analyzing and automating LLM
 | Batch processing | Process multiple scenario files with `batch` command | Advanced Analysis |
 | Sensitivity analysis | Analyze impact of parameter variations with `sensitivity` command | Advanced Analysis |
 | Monte Carlo uncertainty analysis | Quantify uncertainty in projections with probabilistic modeling | Advanced Analysis |
+| Cost anomaly detection | Detect statistical anomalies in optimization outcomes with z‑score thresholding using `detect‑anomalies` command | Advanced Analysis |
 | CSV-to-markdown report generation | Convert batch results to formatted markdown reports | Reporting |
 | Multiple report formats | Generate reports in text, JSON, markdown, or HTML formats | Reporting |
 | Web dashboard | Interactive browser-based dashboard for exploration (run with `dashboard` command, requires optional `dashboard` dependencies) | Interactive Tools |
@@ -123,6 +124,12 @@ Batch process a directory of scenarios:
 
 ```bash
 atropos-llm batch examples --strategies mild_pruning structured_pruning --output results.csv
+```
+
+Detect cost anomalies in optimization outcomes:
+
+```bash
+atropos-llm detect-anomalies medium-coder --strategy structured_pruning --format markdown
 ```
 
 Hyperparameter tuning for optimal pruning targets:

@@ -485,6 +485,36 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", "-o", type=Path, help="Output file path (default: stdout)"
     )
 
+    # Anomaly detection command
+    anomaly_parser = subparsers.add_parser(
+        "detect-anomalies",
+        help="Detect statistical anomalies in optimization cost projections.",
+    )
+    anomaly_parser.add_argument("scenario", help="Scenario name (preset) or path to YAML file")
+    anomaly_parser.add_argument(
+        "--strategy",
+        choices=sorted(STRATEGIES.keys()),
+        default="structured_pruning",
+        help="Optimization strategy to test",
+    )
+    anomaly_parser.add_argument(
+        "--baseline",
+        type=Path,
+        help="Path to JSON file with historical optimization outcomes for baseline",
+    )
+    anomaly_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=3.0,
+        help="Z-score threshold for anomaly detection (default: 3.0)",
+    )
+    anomaly_parser.add_argument(
+        "--format", choices=["text", "json", "markdown"], default="text", help="Output format"
+    )
+    anomaly_parser.add_argument(
+        "--output", "-o", type=Path, help="Output file path (default: stdout)"
+    )
+
     # Multi-GPU benchmarking command
     benchmark_parser = subparsers.add_parser(
         "benchmark-multi-gpu",
@@ -1572,6 +1602,51 @@ def main(argv: Sequence[str] | None = None) -> int:
             except Exception as e:
                 logging.error(f"Validation failed: {e}", exc_info=SHOW_TRACEBACK)
                 return 1
+
+        if args.command == "detect-anomalies":
+            # Load scenario and strategy
+            scenario_name, scenario = _load_scenario_input(args.scenario)
+            strategy = STRATEGIES[args.strategy]
+
+            # Compute optimization outcome
+            outcome = estimate_outcome(scenario, strategy)
+
+            # Load detector with optional baseline file
+            from .validation.anomaly_detection import CostAnomalyDetector
+
+            if args.baseline:
+                try:
+                    detector = CostAnomalyDetector.load_baselines_from_file(args.baseline)
+                    # Override threshold if specified via CLI
+                    if args.threshold != 3.0:
+                        detector.threshold = args.threshold
+                except Exception as e:
+                    logging.warning(f"Failed to load baselines from {args.baseline}: {e}")
+                    # Fall back to default detector
+                    detector = CostAnomalyDetector(baseline_data=None, threshold=args.threshold)
+            else:
+                detector = CostAnomalyDetector(baseline_data=None, threshold=args.threshold)
+
+            anomaly_result = detector.detect(outcome)
+
+            # Generate report
+            if args.format == "json":
+                import json
+
+                report = json.dumps(anomaly_result.to_dict(), indent=2)
+            elif args.format == "markdown":
+                report = anomaly_result.to_markdown()
+            else:
+                # text format
+                report = anomaly_result.to_markdown()  # markdown works for text
+
+            if args.output:
+                args.output.write_text(report)
+                print(f"Anomaly detection report saved to {args.output}")
+            else:
+                print(report)
+
+            return 0
 
         if args.command == "benchmark-multi-gpu":
             # Load scenario and strategy

@@ -27,8 +27,8 @@
 - ✅ telemetry import from benchmark runs
 - ✅ experiment-tracker integration
 - ✅ region-specific grid carbon presets
-- [x] multi-GPU benchmarking support
-- [x] distributed pruning experiments
+- ✅ multi-GPU benchmarking support
+- ✅ distributed pruning experiments
 - ✅ quantization + pruning combination analysis
 - ✅ automated hyperparameter tuning for pruning targets
 - ✅ enhance error handling and debugging capabilities (structured logging, debug/verbose modes, traceback flag, error context)
@@ -40,8 +40,8 @@
 - ✅ richer cost models for GPU tiers and batching
 - ✅ scenario calibration from real serving traces
 - ✅ production deployment automation
-- [x] A/B testing framework for model variants
-- [x] continuous optimization pipeline
+- ✅ A/B testing framework for model variants
+- ✅ continuous optimization pipeline
 - ✅ PyPI package release
 
 ## Version Planning
@@ -56,7 +56,7 @@
 - **v0.6.0**
   - Production deployment automation
   - A/B testing framework for model variants
-  - *Bridge to vision:* Basic cost anomaly detection
+  - ✅ *Bridge to vision:* Basic cost anomaly detection
 - **v0.7.0**
   - Continuous optimization pipeline
   - *Bridge to vision:* Pipeline lineage tracking
@@ -183,7 +183,7 @@
 - Automated experiment design and hypothesis testing
 
 ### Deep Observability
-- Cost anomaly detection with statistical baselines (v0.6.0)
+- ✅ Cost anomaly detection with statistical baselines (v0.6.0)
 - End-to-end pipeline lineage tracking (v0.7.0)
 - Real-time dashboard with WebSocket updates (v0.9.0)
 - SLA breach prediction based on historical patterns (v0.9.0)
