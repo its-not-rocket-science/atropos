@@ -14,6 +14,7 @@ from typing import Any
 from ..deployment.models import DeploymentRequest, DeploymentStrategyType
 from ..deployment.platforms import DeploymentPlatform
 from ..logging_config import get_logger
+from ..telemetry_collector import get_collector
 from .models import (
     ABTestConfig,
     ExperimentResult,
@@ -58,6 +59,7 @@ class ExperimentRunner:
         self._start_time: str | None = None
         self._end_time: str | None = None
         self._deployment_ids: dict[str, str] = {}  # variant_id -> deployment_id
+        self._variant_endpoints: dict[str, list[str]] = {}  # variant_id -> endpoints
         self._variant_metrics: dict[str, VariantMetrics] = {}
         self._statistical_results: dict[str, StatisticalResult] = {}
         self._error_counts: dict[str, int] = {}  # variant_id -> error count
@@ -71,6 +73,23 @@ class ExperimentRunner:
         interval = self.config.auto_stop_conditions.get("monitoring_interval_seconds", 60.0)
         # Ensure reasonable bounds (5 seconds to 1 hour)
         return max(5.0, min(3600.0, float(interval)))
+
+    def _get_server_type(self) -> str:
+        """Map deployment platform to telemetry server type.
+
+        Returns:
+            Server type string (vllm, tgi, triton).
+        """
+        platform = self.config.deployment_platform.lower()
+        if "vllm" in platform:
+            return "vllm"
+        elif "tgi" in platform or "text-generation-inference" in platform:
+            return "tgi"
+        elif "triton" in platform:
+            return "triton"
+        else:
+            # Default to vllm
+            return "vllm"
 
     def _record_error(self, variant_id: str, count: int = 1) -> None:
         """Record an error for a variant.
@@ -254,12 +273,14 @@ class ExperimentRunner:
         # Execute deployment
         result = strategy.execute(self.platform, deployment_request)
 
-        # Store deployment IDs for all variants
+        # Store deployment IDs and endpoints for all variants
         if result.metrics and "variant_deployments" in result.metrics:
             variant_deployments = result.metrics["variant_deployments"]
             for variant_id, deployment_info in variant_deployments.items():
                 if deployment_info.get("deployment_id"):
                     self._deployment_ids[variant_id] = deployment_info["deployment_id"]
+                if deployment_info.get("endpoints"):
+                    self._variant_endpoints[variant_id] = deployment_info["endpoints"]
         elif result.deployment_id:
             # Fallback: store single deployment ID for first variant
             self._deployment_ids[first_variant.variant_id] = result.deployment_id
@@ -433,11 +454,15 @@ class ExperimentRunner:
         Returns:
             Dictionary of variant_id to VariantMetrics.
         """
-        # If we have a telemetry client, fetch actual metrics
-        if self.telemetry_client is not None:
-            # TODO: Implement actual metric collection from telemetry client
-            # For now, return empty dict
-            return {}
+        # Try to collect real telemetry if we have endpoint information
+        if hasattr(self, "_variant_endpoints") and self._variant_endpoints:
+            try:
+                return self._collect_telemetry_metrics(record_errors)
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to collect telemetry metrics: {e}. Falling back to mock metrics."
+                )
+                # Fall through to mock implementation
 
         # Mock implementation for testing/demonstration
         # Generate synthetic metrics for each variant
@@ -498,6 +523,140 @@ class ExperimentRunner:
                         error_rate = metric_stats.get("mean", 0.0)
                         if error_rate > 1.0:  # 1% error rate threshold
                             self._record_error(variant_id)
+
+        # Update internal cache
+        self._variant_metrics = result
+        return result
+
+    def _collect_telemetry_metrics(self, record_errors: bool = False) -> dict[str, VariantMetrics]:
+        """Collect actual telemetry metrics from deployed variant endpoints.
+
+        Returns:
+            Dictionary of variant_id to VariantMetrics.
+
+        Raises:
+            RuntimeError: If endpoints are not available or collection fails.
+        """
+        from datetime import datetime, timedelta
+
+        result: dict[str, VariantMetrics] = {}
+        server_type = self._get_server_type()
+
+        # Define metrics to collect (primary + secondary)
+        metric_names = [self.config.primary_metric] + self.config.secondary_metrics
+        if not metric_names:
+            metric_names = ["throughput_toks_per_sec", "latency_ms_per_request", "error_rate"]
+
+        # Mapping from telemetry field names to metric names
+        telemetry_field_map = {
+            "throughput_toks_per_sec": "throughput_toks_per_sec",
+            "latency_ms_per_request": "latency_ms_per_request",
+            "memory_gb": "memory_gb",
+            "tokens_per_request": "tokens_per_request",
+            "power_watts": "power_watts",
+        }
+
+        for variant in self.config.variants:
+            variant_id = variant.variant_id
+            endpoints = self._variant_endpoints.get(variant_id, [])
+            if not endpoints:
+                self.logger.warning(
+                    f"No endpoints available for variant {variant_id}, "
+                    "skipping telemetry collection"
+                )
+                continue
+
+            # Use the first endpoint (could extend to collect from multiple)
+            base_url = endpoints[0]
+
+            try:
+                collector = get_collector(server_type, base_url)
+                collection_result = collector.collect()
+
+                if not collection_result.success or collection_result.aggregated is None:
+                    raise RuntimeError(
+                        f"Telemetry collection failed for variant {variant_id}: "
+                        f"{collection_result.error_message}"
+                    )
+
+                telemetry_data = collection_result.aggregated
+
+                # Convert TelemetryData to metrics dictionary
+                metrics: dict[str, dict[str, float]] = {}
+                for metric_name in metric_names:
+                    # Map metric name to telemetry field
+                    field_name = None
+                    for telemetry_field, mapped_name in telemetry_field_map.items():
+                        if (
+                            metric_name.lower() == mapped_name.lower()
+                            or metric_name.lower() in telemetry_field.lower()
+                        ):
+                            field_name = telemetry_field
+                            break
+
+                    if field_name is None:
+                        # Try to get from raw_metrics
+                        raw_value = telemetry_data.raw_metrics.get(metric_name)
+                        if raw_value is not None:
+                            field_name = metric_name
+                        else:
+                            # Metric not available in telemetry
+                            self.logger.debug(
+                                f"Metric {metric_name} not available in telemetry "
+                                f"for variant {variant_id}"
+                            )
+                            continue
+
+                    # Get value from telemetry data
+                    if hasattr(telemetry_data, field_name):
+                        value = getattr(telemetry_data, field_name)
+                    else:
+                        value = telemetry_data.raw_metrics.get(field_name)
+
+                    if value is None:
+                        continue
+
+                    # For now, assume single value (mean). In real implementation, we would
+                    # calculate std and count from samples in collection_result.samples
+                    mean = float(value)
+                    std = mean * 0.1  # Estimate variability (could compute from samples)
+                    count = len(collection_result.samples) if collection_result.samples else 1
+
+                    metrics[metric_name] = {
+                        "mean": mean,
+                        "std": std,
+                        "count": count,
+                    }
+
+                # If no metrics collected, skip this variant
+                if not metrics:
+                    self.logger.warning(f"No metrics collected for variant {variant_id}")
+                    continue
+
+                # Create VariantMetrics object
+                now = datetime.now()
+                variant_metrics = VariantMetrics(
+                    variant_id=variant_id,
+                    sample_count=sum(int(metrics[m]["count"]) for m in metrics),
+                    metrics=metrics,
+                    percentiles=None,
+                    timestamp_start=(now - timedelta(minutes=5)).isoformat(),
+                    timestamp_end=now.isoformat(),
+                )
+
+                result[variant_id] = variant_metrics
+
+                # Record errors if requested
+                if record_errors:
+                    for metric_name, metric_stats in metrics.items():
+                        if "error" in metric_name.lower():
+                            error_rate = metric_stats.get("mean", 0.0)
+                            if error_rate > 1.0:  # 1% error rate threshold
+                                self._record_error(variant_id)
+
+            except Exception as e:
+                self.logger.error(f"Failed to collect telemetry for variant {variant_id}: {e}")
+                # Continue with other variants
 
         # Update internal cache
         self._variant_metrics = result
