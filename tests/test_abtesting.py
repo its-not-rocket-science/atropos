@@ -80,9 +80,9 @@ def sample_config(sample_variants: list[Variant]) -> ABTestConfig:
         significance_level=0.05,
         statistical_power=0.8,
         test_type=StatisticalTestType.T_TEST,
-        min_sample_size_per_variant=100,
+        min_sample_size_per_variant=1000000,
         max_duration_hours=24.0,
-        auto_stop_conditions={"confidence_threshold": 0.95},
+        auto_stop_conditions={},
         deployment_platform="vllm",
         deployment_strategy="immediate",
         health_checks={"http_endpoint": "http://localhost:8000/health"},
@@ -302,6 +302,69 @@ def test_runner_stop(sample_config: ABTestConfig, mock_platform: Mock) -> None:
     # Runner state updated
     assert runner.status == ExperimentStatus.STOPPED
     assert runner.end_time == result.end_time
+
+
+def test_runner_pause_resume(sample_config: ABTestConfig, mock_platform: Mock) -> None:
+    """Test pausing and resuming an experiment."""
+    runner = ExperimentRunner(sample_config, mock_platform)
+    runner.start()
+
+    # Mock platform pause_experiment and resume_experiment
+    mock_platform.pause_experiment = Mock()
+    mock_platform.resume_experiment = Mock()
+
+    # Pause experiment
+    runner.pause()
+    assert runner.status == ExperimentStatus.PAUSED
+    mock_platform.pause_experiment.assert_called_once_with(
+        sample_config.experiment_id, runner.deployment_ids
+    )
+
+    # Resume experiment
+    runner.resume()
+    assert runner.status == ExperimentStatus.RUNNING
+    mock_platform.resume_experiment.assert_called_once_with(
+        sample_config.experiment_id, runner.deployment_ids
+    )
+
+    # Stop experiment to clean up monitoring thread
+    mock_platform.undeploy = Mock(
+        return_value=DeploymentResult(
+            request=Mock(spec=DeploymentRequest),
+            deployment_id="test-deployment-123",
+            status=DeploymentStatus.SUCCESS,
+            message="Undeployed",
+        )
+    )
+    runner.stop(reason="test")
+
+
+def test_runner_pause_without_platform_support(
+    sample_config: ABTestConfig, mock_platform: Mock
+) -> None:
+    """Test pausing when platform doesn't support traffic pausing."""
+    runner = ExperimentRunner(sample_config, mock_platform)
+    runner.start()
+
+    # Platform does not have pause_experiment method
+    # Should still update status and log warning
+    runner.pause()
+    assert runner.status == ExperimentStatus.PAUSED
+
+    # Resume without platform support
+    runner.resume()
+    assert runner.status == ExperimentStatus.RUNNING
+
+    # Stop experiment to clean up monitoring thread
+    mock_platform.undeploy = Mock(
+        return_value=DeploymentResult(
+            request=Mock(spec=DeploymentRequest),
+            deployment_id="test-deployment-123",
+            status=DeploymentStatus.SUCCESS,
+            message="Undeployed",
+        )
+    )
+    runner.stop(reason="test")
 
 
 if __name__ == "__main__":

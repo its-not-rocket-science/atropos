@@ -6,11 +6,14 @@ experiment lifecycle management.
 
 from __future__ import annotations
 
+import threading
+import time
 from datetime import datetime
 from typing import Any
 
 from ..deployment.models import DeploymentRequest, DeploymentStrategyType
 from ..deployment.platforms import DeploymentPlatform
+from ..logging_config import get_logger
 from .models import (
     ABTestConfig,
     ExperimentResult,
@@ -31,6 +34,8 @@ class ExperimentRunner:
     - Automatic stopping based on configured conditions
     - Promotion of winning variants
     """
+
+    logger = get_logger(__name__)
 
     def __init__(
         self,
@@ -55,6 +60,86 @@ class ExperimentRunner:
         self._deployment_ids: dict[str, str] = {}  # variant_id -> deployment_id
         self._variant_metrics: dict[str, VariantMetrics] = {}
         self._statistical_results: dict[str, StatisticalResult] = {}
+        self._error_counts: dict[str, int] = {}  # variant_id -> error count
+        # Monitoring thread
+        self._monitoring_event = threading.Event()
+        self._monitoring_thread: threading.Thread | None = None
+        self._monitoring_interval = self._get_monitoring_interval()
+
+    def _get_monitoring_interval(self) -> float:
+        """Get monitoring interval from config or default to 60 seconds."""
+        interval = self.config.auto_stop_conditions.get("monitoring_interval_seconds", 60.0)
+        # Ensure reasonable bounds (5 seconds to 1 hour)
+        return max(5.0, min(3600.0, float(interval)))
+
+    def _record_error(self, variant_id: str, count: int = 1) -> None:
+        """Record an error for a variant.
+
+        Args:
+            variant_id: Variant identifier.
+            count: Number of errors to record (default 1).
+        """
+        self._error_counts[variant_id] = self._error_counts.get(variant_id, 0) + count
+
+    def _check_auto_stop_conditions(self) -> tuple[bool, str]:
+        """Check if experiment should stop automatically based on conditions.
+
+        Returns:
+            Tuple of (should_stop, reason).
+        """
+        conditions = self.config.auto_stop_conditions
+
+        # Check confidence threshold
+        confidence_threshold = conditions.get("confidence_threshold")
+        if confidence_threshold is not None and self._statistical_results:
+            # Find highest confidence for primary metric
+            primary_metric = self.config.primary_metric
+            for result in self._statistical_results.values():
+                if result.metric_name == primary_metric and result.p_value is not None:
+                    confidence = 1.0 - result.p_value
+                    if confidence >= confidence_threshold:
+                        return True, (
+                            f"Confidence threshold reached: {confidence:.3f} >= "
+                            f"{confidence_threshold}"
+                        )
+
+        # Check max errors
+        max_errors = conditions.get("max_errors")
+        if max_errors is not None:
+            # Check if any variant has exceeded max errors
+            for variant_id, error_count in self._error_counts.items():
+                if error_count >= max_errors:
+                    return True, (
+                        f"Max errors reached for variant {variant_id}: "
+                        f"{error_count} >= {max_errors}"
+                    )
+
+        # Check max duration
+        if self._start_time:
+            start_dt = datetime.fromisoformat(self._start_time)
+            duration_hours = (datetime.now() - start_dt).total_seconds() / 3600.0
+            if duration_hours >= self.config.max_duration_hours:
+                return True, (
+                    f"Max duration reached: {duration_hours:.1f}h >= "
+                    f"{self.config.max_duration_hours}h"
+                )
+
+        # Check min sample size
+        if self._variant_metrics:
+            # Check if all variants have sufficient samples
+            all_sufficient = True
+            insufficient_variants = []
+            for variant_id, metrics in self._variant_metrics.items():
+                if metrics.sample_count < self.config.min_sample_size_per_variant:
+                    all_sufficient = False
+                    insufficient_variants.append(variant_id)
+            if all_sufficient:
+                return True, (
+                    f"All variants reached min sample size: "
+                    f"{self.config.min_sample_size_per_variant}"
+                )
+
+        return False, ""
 
     @property
     def status(self) -> ExperimentStatus:
@@ -75,6 +160,52 @@ class ExperimentRunner:
     def deployment_ids(self) -> dict[str, str]:
         """Deployment IDs for each variant."""
         return self._deployment_ids.copy()
+
+    def _monitoring_loop(self) -> None:
+        """Background monitoring loop."""
+        self.logger.info("Starting monitoring loop for experiment %s", self.config.experiment_id)
+        while not self._monitoring_event.is_set():
+            try:
+                # Collect metrics (record errors if error rate > 1%)
+                self._collect_metrics(record_errors=True)
+                # Run analysis
+                self._statistical_results = self.analyze()
+                # Check auto-stop conditions
+                should_stop, reason = self._check_auto_stop_conditions()
+                if should_stop:
+                    self.logger.info("Auto-stop condition met: %s", reason)
+                    self.stop(reason=f"auto: {reason}")
+                    break
+                # Log status periodically
+                self.logger.debug(
+                    "Experiment %s monitoring cycle complete", self.config.experiment_id
+                )
+            except Exception as e:
+                self.logger.error("Error in monitoring loop: %s", e, exc_info=True)
+            # Wait for interval or shutdown signal
+            self._monitoring_event.wait(timeout=self._monitoring_interval)
+        self.logger.info("Monitoring loop stopped for experiment %s", self.config.experiment_id)
+
+    def _stop_monitoring(self, skip_join: bool = False) -> None:
+        """Stop the monitoring thread.
+
+        Args:
+            skip_join: If True, skip joining the thread (call from within the thread).
+        """
+        if self._monitoring_thread is not None:
+            self.logger.debug(
+                "Stopping monitoring thread for experiment %s", self.config.experiment_id
+            )
+            self._monitoring_event.set()
+            if not skip_join:
+                self._monitoring_thread.join(timeout=5.0)
+                if self._monitoring_thread.is_alive():
+                    self.logger.warning(
+                        "Monitoring thread did not stop gracefully for experiment %s",
+                        self.config.experiment_id,
+                    )
+            self._monitoring_thread = None
+            self._monitoring_event.clear()
 
     def start(self) -> ExperimentResult:
         """Start the experiment.
@@ -142,8 +273,14 @@ class ExperimentRunner:
             statistical_results={},
         )
 
-        # TODO: Start background monitoring thread
-        # For now, just return initial result
+        # Start background monitoring thread
+        self._monitoring_thread = threading.Thread(
+            target=self._monitoring_loop,
+            name=f"experiment-monitor-{self.config.experiment_id}",
+            daemon=True,
+        )
+        self._monitoring_thread.start()
+        self.logger.info("Started monitoring thread for experiment %s", self.config.experiment_id)
 
         return experiment_result
 
@@ -156,11 +293,17 @@ class ExperimentRunner:
         Returns:
             Final experiment result.
         """
+        # Idempotency: if already stopped, return current result
+        if self._status == ExperimentStatus.STOPPED:
+            return self._get_current_result()
         if self._status not in (ExperimentStatus.RUNNING, ExperimentStatus.PAUSED):
             raise RuntimeError(f"Cannot stop experiment in status {self._status}")
 
         self._end_time = datetime.now().isoformat()
         self._status = ExperimentStatus.STOPPED
+        # Stop monitoring thread
+        skip_join = threading.current_thread() == self._monitoring_thread
+        self._stop_monitoring(skip_join=skip_join)
 
         # Perform final analysis before stopping
         self._statistical_results = self.analyze()
@@ -181,14 +324,22 @@ class ExperimentRunner:
         if self._status != ExperimentStatus.RUNNING:
             raise RuntimeError(f"Cannot pause experiment in status {self._status}")
         self._status = ExperimentStatus.PAUSED
-        # TODO: Implement traffic pausing
+        # Try to pause traffic via platform if supported
+        if hasattr(self.platform, "pause_experiment"):
+            self.platform.pause_experiment(self.config.experiment_id, self._deployment_ids)
+        else:
+            self.logger.warning("Platform does not support traffic pausing; only status updated")
 
     def resume(self) -> None:
         """Resume a paused experiment."""
         if self._status != ExperimentStatus.PAUSED:
             raise RuntimeError(f"Cannot resume experiment in status {self._status}")
         self._status = ExperimentStatus.RUNNING
-        # TODO: Implement traffic resuming
+        # Try to resume traffic via platform if supported
+        if hasattr(self.platform, "resume_experiment"):
+            self.platform.resume_experiment(self.config.experiment_id, self._deployment_ids)
+        else:
+            self.logger.warning("Platform does not support traffic resuming; only status updated")
 
     def analyze(self) -> dict[str, StatisticalResult]:
         """Perform statistical analysis on current metrics.
@@ -276,7 +427,7 @@ class ExperimentRunner:
             metadata={"analyzed_at": datetime.now().isoformat()},
         )
 
-    def _collect_metrics(self) -> dict[str, VariantMetrics]:
+    def _collect_metrics(self, record_errors: bool = False) -> dict[str, VariantMetrics]:
         """Collect metrics from telemetry system.
 
         Returns:
@@ -340,6 +491,14 @@ class ExperimentRunner:
 
             result[variant_id] = variant_metrics
 
+            # Record errors if requested and error metrics exceed threshold
+            if record_errors:
+                for metric_name, metric_stats in metrics.items():
+                    if "error" in metric_name.lower():
+                        error_rate = metric_stats.get("mean", 0.0)
+                        if error_rate > 1.0:  # 1% error rate threshold
+                            self._record_error(variant_id)
+
         # Update internal cache
         self._variant_metrics = result
         return result
@@ -364,11 +523,22 @@ def run_ab_test(
         Final experiment result.
     """
     runner = ExperimentRunner(config, platform, telemetry_client)
-    result = runner.start()
+    runner.start()
 
-    # TODO: Implement monitoring loop with periodic analysis
-    # For now, just return initial result
-    return result
+    # Wait for experiment completion (RUNNING or PAUSED -> final state)
+    polling_interval = config.auto_stop_conditions.get("monitoring_interval_seconds", 60.0)
+    # Ensure reasonable bounds
+    polling_interval = max(1.0, min(300.0, polling_interval))
+
+    try:
+        while runner.status in (ExperimentStatus.RUNNING, ExperimentStatus.PAUSED):
+            time.sleep(polling_interval)
+    except KeyboardInterrupt:
+        runner.logger.info("Experiment interrupted by user, stopping...")
+        runner.stop(reason="user_interrupt")
+
+    # Return final result
+    return runner._get_current_result()
 
 
 def analyze_experiment_results(
