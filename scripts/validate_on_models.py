@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import random
 import subprocess
 import sys
@@ -35,11 +34,12 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import torch
-from atropos.core.calculator import ROICalculator
-from atropos.models import DeploymentScenario, OptimizationStrategy
-from atropos.pruning_integration import get_pruning_framework
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch  # noqa: E402
+from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
+
+from atropos.core.calculator import ROICalculator  # noqa: E402
+from atropos.models import DeploymentScenario, OptimizationStrategy  # noqa: E402
+from atropos.pruning_integration import get_pruning_framework  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -392,7 +392,6 @@ def validate_single(
     kwargs = dict(strategy_cfg.get("kwargs", {}))
 
     predicted = build_prediction(spec, strategy_cfg, suite_cfg.get("commercial", {}))
-    ci_level = float(suite_cfg.get("metrics", {}).get("confidence_interval", 0.9))
 
     result: dict[str, Any] = {
         "model": {
@@ -431,21 +430,24 @@ def validate_single(
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        device_map = (
+            suite_cfg.get("execution", {}).get("device_map", "auto") if device == "cuda" else None
+        )
         model = AutoModelForCausalLM.from_pretrained(
             spec.model_id,
             torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-            device_map=suite_cfg.get("execution", {}).get("device_map", "auto") if device == "cuda" else None,
+            device_map=device_map,
         )
         if device == "cpu":
             model.to(device)
         model.eval()
 
+        sampling_cfg = suite_cfg.get("hardware", {}).get("power_sampling", {})
+        sample_interval = float(sampling_cfg.get("sample_interval_sec", 2))
         baseline_perf = measure_performance(
             model,
             tokenizer,
-            sample_interval_sec=float(
-                suite_cfg.get("hardware", {}).get("power_sampling", {}).get("sample_interval_sec", 2)
-            ),
+            sample_interval_sec=sample_interval,
         )
 
         framework = get_pruning_framework(framework_name)
@@ -473,7 +475,7 @@ def validate_single(
         pruned_model = AutoModelForCausalLM.from_pretrained(
             pruned_model_path,
             torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-            device_map=suite_cfg.get("execution", {}).get("device_map", "auto") if device == "cuda" else None,
+            device_map=device_map,
         )
         if device == "cpu":
             pruned_model.to(device)
@@ -482,23 +484,26 @@ def validate_single(
         post_perf = measure_performance(
             pruned_model,
             tokenizer,
-            sample_interval_sec=float(
-                suite_cfg.get("hardware", {}).get("power_sampling", {}).get("sample_interval_sec", 2)
-            ),
+            sample_interval_sec=sample_interval,
         )
 
         metrics_cfg = suite_cfg.get("metrics", {})
         ppl = None
         if metrics_cfg.get("evaluate_perplexity", True):
-            ppl = evaluate_perplexity(pruned_model, tokenizer, int(metrics_cfg.get("max_eval_samples", 64)))
+            max_eval_samples = int(metrics_cfg.get("max_eval_samples", 64))
+            ppl = evaluate_perplexity(pruned_model, tokenizer, max_eval_samples)
 
         humaneval_like = None
         if metrics_cfg.get("evaluate_humaneval", True):
+            max_new_tokens = int(
+                suite_cfg.get("execution", {}).get("max_new_tokens_humaneval", 256)
+            )
+            max_samples = int(metrics_cfg.get("max_eval_samples", 4))
             humaneval_like = evaluate_humaneval_like(
                 pruned_model,
                 tokenizer,
-                max_new_tokens=int(suite_cfg.get("execution", {}).get("max_new_tokens_humaneval", 256)),
-                max_samples=int(metrics_cfg.get("max_eval_samples", 4)),
+                max_new_tokens=max_new_tokens,
+                max_samples=max_samples,
             )
 
         annual_cost_pred = float(predicted.get("annual_savings_usd") or 0.0)
@@ -570,13 +575,19 @@ def aggregate_suite_metrics(
             memory_pairs.append((p, a))
             ci_checks["memory"].append(ci_coverage(a, p, estimate_ci_half_width(p, ci_level)))
 
-        if pred.get("throughput_toks_per_sec") is not None and post.get("throughput_toks_per_sec") is not None:
+        if (
+            pred.get("throughput_toks_per_sec") is not None
+            and post.get("throughput_toks_per_sec") is not None
+        ):
             p = float(pred["throughput_toks_per_sec"])
             a = float(post["throughput_toks_per_sec"])
             throughput_pairs.append((p, a))
             ci_checks["throughput"].append(ci_coverage(a, p, estimate_ci_half_width(p, ci_level)))
 
-        if pred.get("annual_savings_usd") is not None and actual.get("annual_savings_usd") is not None:
+        if (
+            pred.get("annual_savings_usd") is not None
+            and actual.get("annual_savings_usd") is not None
+        ):
             p = float(pred["annual_savings_usd"])
             a = float(actual["annual_savings_usd"])
             savings_pairs.append((p, a))
@@ -587,7 +598,10 @@ def aggregate_suite_metrics(
             if a != 0:
                 naive_guess_mape_terms.append(abs((naive_pred - a) / a))
 
-        if pred.get("break_even_months") is not None and actual.get("break_even_months") is not None:
+        if (
+            pred.get("break_even_months") is not None
+            and actual.get("break_even_months") is not None
+        ):
             p = float(pred["break_even_months"])
             a = float(actual["break_even_months"])
             break_even_pairs.append((p, a))
@@ -668,10 +682,13 @@ def main() -> int:
                 print("[validation] fail-fast enabled; stopping early")
                 break
 
+    baseline_guess_fraction = float(
+        cfg.get("metrics", {}).get("baseline_guess_savings_fraction", 0.2)
+    )
     aggregate = aggregate_suite_metrics(
         per_run_results,
         ci_level=float(cfg.get("metrics", {}).get("confidence_interval", 0.9)),
-        baseline_guess_fraction=float(cfg.get("metrics", {}).get("baseline_guess_savings_fraction", 0.2)),
+        baseline_guess_fraction=baseline_guess_fraction,
     )
 
     suite_payload = {
