@@ -1,482 +1,191 @@
-# Atropos roadmap
+# Atropos Roadmap (2026 Decision Window)
 
-## Near term
+<!--
+This roadmap is intentionally structured to keep three outcomes viable:
+1) Academic publication,
+2) Commercial product/investment narrative,
+3) Reputation-building open-source project.
+Sections below explicitly map work to one or more of these paths so we do not overcommit too early.
+-->
 
-- ✅ add notebook examples
-- ✅ add CSV-to-markdown report generation
-- ✅ expand comparison and sensitivity CLI output
-- ✅ publish documentation pages
-- ✅ stabilize core pruning integrations (LLM-Pruner, Wanda, SparseGPT) - compatibility extended to GPT2, BLOOM, GPT-J, OPT, Pythia via patched_prune.py
-  - Comprehensive test coverage across diverse model architectures
-  - Clear documentation on limitations, dependencies, and failure modes
-  - Validation suite to confirm model/environment compatibility
-- ✅ improve CI stability and reliability
-- ✅ optimize validation script for GPU acceleration
-- ✅ add pruning result visualizations (charts, graphs)
-- ✅ standardize CLI examples to consistently use atropos-llm in all documentation
-- ✅ add feature overview table at top of README for scannability
-- ✅ create CONTRIBUTING.md with PR workflow, coding standards, and testing requirements
-- ✅ add documentation badge linking to hosted docs (GitHub Pages)
-- ✅ add note in validation docs clarifying GPT-2 is for pipeline testing only, not representative of 7B+ models
-- ✅ make dashboard dependencies optional (pip install atropos-llm[dashboard]) to keep core lightweight
-- ✅ add make dev-full target that sets up dedicated environment with all pruning frameworks
+## Current Status & Known Gaps
 
-## Medium term
+<!--
+Why this section exists (all paths):
+- Academic path needs threats-to-validity transparency.
+- Commercial path needs due-diligence honesty.
+- Reputation path needs trust via candid status reporting.
+-->
 
-- ✅ Monte Carlo uncertainty analysis
-- ✅ telemetry import from benchmark runs
-- ✅ experiment-tracker integration
-- ✅ region-specific grid carbon presets
-- ✅ multi-GPU benchmarking support
-- ✅ distributed pruning experiments
-- ✅ quantization + pruning combination analysis
-- ✅ automated hyperparameter tuning for pruning targets
-- ✅ enhance error handling and debugging capabilities (structured logging, debug/verbose modes, traceback flag, error context)
+Atropos currently provides useful ROI estimation scaffolding, but it is **not yet proven** as a production-grade predictor for large-model pruning decisions.
 
-## Long term
+### What is working today
+- ROI estimation workflows, CLI/reporting, and baseline experimentation loops are available.
+- GPT-2 level integration and testing has been the primary validation surface.
 
-- ✅ lightweight web dashboard
-  - Future enhancements: comparative views, what-if sliders, pipeline visualization
-- ✅ richer cost models for GPU tiers and batching
-- ✅ scenario calibration from real serving traces
-- ✅ production deployment automation
-- ✅ A/B testing framework for model variants
-- ✅ continuous optimization pipeline
-- ✅ PyPI package release
+### Critical deficiencies (must-fix)
+- **No validation data for models > 1B parameters**; current evidence is concentrated around GPT-2-scale testing.
+- **Pruning framework integrations are fragile** (Wanda, SparseGPT, LLM-Pruner), with recurring dependency and environment conflicts.
+- **No quality degradation model** yet (e.g., perplexity/task-accuracy impact as pruning ratio changes).
+- **Missing cloud/hosting cost models** for AWS, Azure, and GCP (plus practical GPU hosts).
+- **No published accuracy metrics or formal validation studies** for prediction quality.
+- **External submodule dependencies create maintenance risk** and can break reproducibility.
 
-## Version Planning
-
-*Three-phase progression from current alpha to autonomous operations*
-
-**Phase 1: Core Stabilization & Foundation (v0.6.0 - v1.0.0)**
-- **v0.5.0** (current)
-  - Multi-GPU benchmarking support
-  - Distributed pruning experiments
-  - Optimize validation script for GPU acceleration
-- **v0.6.0**
-  - Production deployment automation
-  - A/B testing framework for model variants
-  - ✅ *Bridge to vision:* Basic cost anomaly detection
-- **v0.7.0**
-  - Continuous optimization pipeline
-  - *Bridge to vision:* Pipeline lineage tracking
-- **v0.8.0** (AI-Native Foundation)
-  - LLM-powered optimization recommendations
-  - Hyperparameter discovery prototype
-  - Natural language alerts for optimization thresholds
-- **v0.9.0** (Enhanced Observability)
-  - Real-time dashboard improvements
-  - SLA prediction based on historical data
-  - Quality risk monitoring
-- **v1.0.0** (Stable API & Enterprise Foundations)
-  - Stable public API
-  - Basic team collaboration (shared libraries, comment threads)
-  - Audit trail for optimization decisions
-  - Comprehensive documentation
-
-**Phase 2: Intelligence & Collaboration (v1.1.0 - v1.5.0)**
-- **v1.1.0** (Advanced AI Intelligence)
-  - Self-healing pipeline components
-  - Automated regression detection
-  - Intelligent fallback strategies
-- **v1.2.0** (Team Collaboration)
-  - Approval workflows
-  - Slack/Teams integration for notifications
-  - Role-based access control
-- **v1.3.0** (Multi-Model Orchestration)
-  - Fleet optimization across multiple models
-  - Dependency-aware scheduling
-  - Budget allocation across projects
-- **v1.4.0** (Regulatory Compliance)
-  - Model card generation
-  - GDPR/SOC2 compliance automation
-  - Ethics review workflows
-- **v1.5.0** (Edge & Embedded)
-  - Mobile deployment ROI estimation
-  - Raspberry Pi/edge device optimization profiles
-  - Battery consumption estimation
-
-**Phase 3: Scale & Autonomy (v2.0.0 - v3.0.0)**
-- **v2.0.0** (Multi-Model Platform)
-  - Cross-model dependency management
-  - Portfolio-level optimization
-  - Advanced budget orchestration
-- **v2.1.0** (Advanced Edge)
-  - WebAssembly/ONNX runtime support
-  - Heterogeneous hardware optimization
-  - Cross-platform deployment automation
-- **v3.0.0** (Autonomous Operations)
-  - Fully autonomous optimization loops
-  - Predictive maintenance
-  - Continuous adaptation to changing conditions
-
-*See [Strategic Themes](#strategic-themes-2026-2027-vision) for detailed feature mapping.*
-
-**Phase 4: Ecosystem & Autonomy (v3.1.0 - v5.0.0)**
-- **v3.1.0** (Multi-Tenant SaaS Foundations)
-  - Tenant isolation for multi-tenant deployments
-  - Usage-based billing integration (Stripe/Chargebee)
-  - Self-service onboarding workflows
-  - Organization hierarchies with roll-up reporting
-  - API keys with scoped permissions
-  - SaaS health dashboard and status page
-- **v3.2.0** (Federated & Hybrid Deployments)
-  - Federated optimization across multiple cloud providers
-  - Air-gapped deployment capability
-  - Hybrid cloud orchestration (on-prem + cloud)
-  - Edge-to-cloud continuous optimization
-  - Cross-region cost arbitrage optimization
-  - Bandwidth-aware cost modeling
-- **v3.3.0** (Advanced AI & Agentic Capabilities)
-  - Autonomous AI agents for pruning, quantization, deployment coordination
-  - Natural language pipeline creation ("Optimize my 7B model for < 8GB memory")
-  - Code generation for deployable optimization snippets
-  - Automated experiment design and hypothesis testing
-  - Multi-modal model support (vision, audio)
-  - Fine-tuning process optimization
-- **v4.0.0** (Atropos Ecosystem)
-  - Atropos Hub: Marketplace for pre-optimized models, community templates, benchmark results
-  - Plugin marketplace for third-party extensions
-  - Professional services automation for consulting workflows
-  - Open source community program with governance
-- **v4.1.0** (Hardware Native Optimization)
-  - FPGA acceleration for pruning decisions
-  - GPU direct optimization bypassing CPU overhead
-  - Chiplet-aware optimization for advanced packaging
-  - Neuromorphic hardware support for event-based optimization
-- **v4.2.0** (Human-AI Collaboration)
-  - Voice control for natural language optimization commands
-  - Collaborative workspaces for real-time co-optimization
-  - Expert-in-the-loop AI suggestions with human override
-  - Optimization assistant with always-on chat guidance
-- **v5.0.0** (Autonomous Infrastructure)
-  - Self-optimizing data centers with Atropos resource control
-  - Carbon-negative operations with grid impact reduction
-  - Predictive capacity planning for infrastructure needs
-  - Self-repairing systems for optimization drift
-  - Real-time economic optimization trading costs vs. latency vs. carbon
-
-## Future Exploration
-
-- Model compression beyond pruning (knowledge distillation, low-rank adaptation)
-- Hardware-specific optimization profiles (NVIDIA vs AMD vs AWS Inferentia)
-- Integration with more deployment platforms (TensorRT-LLM, ONNX Runtime, Apple MLX)
-- Real-time optimization suggestions based on live telemetry
-- Automated optimization across multiple model variants (Pareto frontier analysis)
-
-## Strategic Themes (2026-2027 Vision)
-
-*Based on community feedback envisioning v1.3.0-v5.0.0 capabilities, mapped to realistic phased progression from current v0.5.0 alpha state.*
-
-### AI Intelligence
-- LLM-powered optimization recommendations (v0.8.0)
-- Hyperparameter discovery with Bayesian optimization (v0.8.0)
-- Self-healing pipeline with automatic rollback (v1.1.0)
-- Natural language alerts and reports (v0.8.0)
-- Predictive scaling: forecast when pruning becomes cost-effective based on traffic growth patterns
-- Automated regression detection between pruned and baseline model performance
-- Cost-aware pruning: optimize for electricity price fluctuations and regional cost variations
-- Quality-aware scheduling: run fine-tuning during periods of lower quality tolerance
-- Intelligent fallback strategies for queries where pruning affects quality
-- Autonomous AI agents for pruning/quantization/deployment coordination
-- Natural language pipeline creation interface
-- Automated experiment design and hypothesis testing
-
-### Deep Observability
-- ✅ Cost anomaly detection with statistical baselines (v0.6.0)
-- End-to-end pipeline lineage tracking (v0.7.0)
-- Real-time dashboard with WebSocket updates (v0.9.0)
-- SLA breach prediction based on historical patterns (v0.9.0)
-- Circuit breakers for pruning framework failures with graceful degradation
-- Retry logic with exponential backoff for telemetry collection and framework operations
-- Pipeline pause/resume capability for long-running optimization jobs
-- Encrypted secrets management for cloud credentials and API keys
-- Production deployment guide with load testing results and best practices
-- SLI/SLO tracking for pipeline execution reliability
-- SaaS health dashboard and public status page
-- Real-time economic optimization monitoring
-
-### Team Collaboration & Compliance
-- Optimization approval workflows with multi-level gating (v1.2.0)
-- Comment threads on pipeline runs (v1.0.0)
-- Shared scenario libraries with versioning (v1.0.0)
-- Slack/Teams integration for notifications and approvals (v1.2.0)
-- Audit trail for all optimization decisions with export capabilities
-- Compliance automation reports (GDPR, SOC2, etc.)
-- Model card generation for pruned models (v1.4.0)
-- Export to regulatory formats (CSV/JSON for auditors) (v1.4.0)
-- Data lineage tracking for pruning decisions (v1.4.0)
-- Ethics review workflow for fairness impact (v1.4.0)
-- License compliance checker for model licenses (v1.4.0)
-- Multi-tenant isolation with complete data separation
-- Organization hierarchies with teams and divisions
-- API keys with fine-grained scoped permissions
-- Self-service onboarding workflows
-
-### Multi-Model Scale
-- Fleet optimization across hundreds of models (v1.3.0)
-- Dependency-aware scheduling for model variants (v1.3.0)
-- Budget allocation optimizer across portfolio (v1.3.0)
-- Cross-model transfer learning of pruning patterns (v2.0.0)
-- Fleet-wide anomaly correlation detection (v2.0.0)
-- Automated rollback at fleet level for systemic issues (v2.0.0)
-- Multi-region deployment support for distributed optimization pipelines
-- High availability mode for pipeline controller with failover
-- Customer success portal with usage analytics and optimization insights
-- Federated optimization across multiple cloud providers
-- Hybrid cloud orchestration (on-prem + cloud coordination)
-- Cross-region cost arbitrage optimization
-
-### Edge & Deployment
-- Mobile deployment profiles for iOS/Android (v1.5.0)
-- Raspberry Pi optimization targets (v1.5.0)
-- WebAssembly export for browser deployment (v2.1.0)
-- ONNX runtime integration for cross-platform deployment (v2.1.0)
-- Battery life estimation for edge devices (v1.5.0)
-- Quantization-aware pruning for NPUs (v2.1.0)
-- Plugin system for custom pruning frameworks and optimization algorithms
-- VS Code extension with inline ROI estimates during model development
-- GitHub Copilot integration: suggest pruning when code changes affect deployment costs
-- Terraform provider for infrastructure-as-code deployment of Atropos resources
-- OpenTelemetry support for distributed tracing of optimization pipelines
-- Community templates repository for sharing optimization strategies
-- Air-gapped deployment capability
-- Edge-to-cloud continuous optimization
-- Bandwidth-aware cost modeling
-- Hardware-native optimizations (FPGA, GPU direct, neuromorphic)
-
-### Advanced Optimization Techniques
-- Speculative decoding optimization estimation and ROI analysis
-- Continuous batching efficiency modeling for throughput optimization
-- Prefix caching ROI calculation for repeated prompt patterns
-- FlashAttention memory impact projections and optimization trade-offs
-- Multi-GPU tensor parallelism optimization strategies
-- LoRA adapter pruning strategies for fine-tuned models
-- Quantization-aware fine-tuning calibration and quality preservation
-- Multi-modal model support (vision, audio, multimodal LLMs)
-- Fine-tuning process optimization
-
-### Autonomous Operations
-- Fully autonomous optimization with no human-in-loop (v3.0.0)
-- Continuous optimization loop adapting to traffic patterns (v3.0.0)
-- Self-tuning thresholds based on historical success (v3.0.0)
-- Predictive maintenance for pruned models (v3.0.0)
-- Automatic A/B test termination when statistical significance reached (v3.0.0)
-- Budget-aware autonomous mode within defined cost constraints (v3.0.0)
-- Self-optimizing data center resource control
-- Carbon-negative operations with grid impact reduction
-- Predictive capacity planning
-- Self-repairing systems for optimization drift
-
-### Nice-to-Have Backlog
-- JupyterLab extension with interactive widgets
-- PostgreSQL/MySQL backend for large deployments
-- GraphQL API for flexible queries
-- Webhook actions for external system integration
-- Data export to Snowflake/BigQuery for enterprise analytics
-- Custom Python operators for injecting custom logic in pipelines
-- Mobile app (iOS/Android) for monitoring approvals
-- Desktop app (Electron-based) for local use
-- Chrome extension for ROI estimates on HuggingFace model pages
-- Airflow integration as Airflow operator
-- Kubeflow integration as native pipeline component
-- Ray integration for distributed pruning across cluster
-- Unified metrics API for any quality metric
-- Benchmark suite for continuous performance regression testing
-- Community forum for optimization strategy discussion
-
-### Tool Integration Backlog
-- **Infrastructure as Code**: Terraform provider, Pulumi provider, Crossplane provider
-- **Developer Portals**: Backstage integration
-- **Observability**: Prometheus alertmanager integration, Grafana data source plugin
-- **Enterprise Logging**: Splunk integration, DataDog integration, New Relic integration
-- **High-Cardinality Events**: Honeycomb integration
-- **MLOps**: CML integration (continuous ML), DVC integration (data version control), Kedro integration (pipeline framework), Metaflow integration (Netflix ML framework), ZenML integration (MLOps orchestration)
-
-### Visionary Concepts & Future Exploration
-- Blockchain-based optimization provenance and verifiable claims
-- Decentralized optimization registry for sharing anonymized patterns
-- Carbon credit generation from optimization savings
-- Quantum computing readiness for future hardware
-- AR/VR visualization for immersive optimization exploration
-- Smart contract integration for auto-executing optimization budgets
-
-## Long-term Vision
-
-*Note: The items previously in this section have been integrated into the [Strategic Themes](#strategic-themes-2026-2027-vision) section with version planning and thematic organization.*
-
-**Production Readiness** → **Deep Observability** theme
-**Advanced Intelligence** → **AI Intelligence** theme
-**Enterprise Features** → **Team Collaboration & Compliance** theme
-**Ecosystem Expansion** → **Edge & Deployment** theme
-**Specialized Optimizations** → **Advanced Optimization Techniques** theme
-
-*Refer to the Strategic Themes section for detailed feature mapping across versions v0.6.0 through v5.0.0.*
-
-## Atropos Pipeline
-
-✅ **Implemented** — A pipeline extension that automates pruning and tuning when assessments show positive ROI:
-
-### Pipeline stages
-
-1. **Assess** — Run Atropos analysis on deployment scenario
-2. **Gate** — Proceed only if projected savings exceed configurable threshold (e.g., break-even < 12 months, annual savings > $10k)
-3. **Prune** — Execute structured pruning via framework integration (LLM-Pruner, Wanda, or custom)
-4. **Recover** — Run fine-tuning to restore model quality
-5. **Validate** — Benchmark optimized model, verify actual metrics match Atropos projections within tolerance
-6. **Deploy/Rollback** — Deploy if validation passes; auto-rollback if quality or performance degrades
-
-### Configuration
-
-```yaml
-pipeline:
-  auto_execute: true
-  thresholds:
-    max_break_even_months: 12
-    min_annual_savings_usd: 10000
-    max_quality_risk: medium
-  pruning:
-    framework: llm-pruner
-    target_sparsity: 0.30
-  validation:
-    tolerance_percent: 10
-    quality_benchmark: humaneval
-```
-
-### Integration points
-
-- Pruning frameworks (LLM-Pruner, Wanda, SparseGPT)
-- Training orchestration (Weights & Biases, MLflow)
-- Deployment platforms (vLLM, Triton, custom)
-- CI/CD pipelines (GitHub Actions, GitLab CI)
+### Delivery risk signal
+- Current pace (~108 commits in 25 days) shows high execution velocity, but also indicates potential instability unless stabilization work is prioritized.
 
 ---
 
-## Active Experiments
+## Strategic Tracks (Run in Parallel, Re-balance at Day 120)
 
-Practical exercises to validate Atropos projections and demonstrate real-world value.
+<!--
+Why tracks instead of one linear roadmap:
+- Academic, Commercial, and Reputation goals have overlapping foundations but different proof requirements.
+- Track structure allows shared work while preserving optionality for the final direction.
+-->
 
-### 1. Launching Metrics Analysis ✅
+## Track A — Scientific Validation *(Primary: Academic, Secondary: Reputation)*
 
-**Goal:** Collect real performance telemetry and compare against Atropos projections.
+<!--
+Supports Academic directly (publishable rigor), and Reputation indirectly (credible open benchmarks).
+-->
 
-**Tasks:**
-- [x] Set up telemetry collection from vLLM/TGI inference servers
-- [x] Capture memory, throughput, latency, power consumption for baseline models
-- [x] Import telemetry into Atropos scenarios
-- [x] Run calibration to validate projection accuracy
-- [x] Document variance findings and update models if needed
+### Goals
+- Build evidence that Atropos predictions are statistically meaningful across modern LLM families.
 
-**Deliverables:**
-- ✅ `src/atropos/telemetry_collector.py` — Active collectors for vLLM, TGI, Triton
-- ✅ `atropos-llm collect-telemetry` CLI command
-- ✅ `docs/telemetry-collection-guide.md` — Complete usage documentation
-- ✅ Calibration integration with existing `atropos-llm calibrate` command
+### Priorities
+1. **Benchmark coverage expansion**
+   - Validate on multiple model families: **Llama, Mistral, Qwen** (with at least one 1B+, one ~7B, one ~13B representative checkpoint).
+2. **Peer-review-ready methodology paper draft**
+   - Explicit assumptions, dataset definitions, protocol, and reproducibility checklist.
+3. **Statistical accuracy analysis**
+   - Error distribution, confidence intervals, calibration plots, and outlier characterization.
+4. **Ablation studies**
+   - Quantify contribution of each ROI formula component (cost, throughput, quality proxy, infra assumptions).
 
-### 2. LLM Crawl and Analysis ✅
-
-**Goal:** Discover and catalog available models for Atropos testing.
-
-**Tasks:**
-- [x] Run model discovery crawler across HuggingFace Hub
-- [x] Identify models by size tier (edge <1B, medium 1-7B, large >7B)
-- [x] Test model loading on available hardware
-- [x] Generate compatibility matrix
-- [x] Create Atropos scenario files for working models
-- [x] Document recommended test models per use case
-
-**Deliverables:**
-- ✅ `src/atropos/model_tester.py` — Automated test suite
-- ✅ `atropos-llm test-models` CLI command
-- ✅ `docs/model-recommendations.md` — Comprehensive model guide
-- ✅ `scripts/model-discovery-crawler.py` — Discovery tool
-- ✅ Curated model lists by size tier and use case
-
-### 3. Pruning Exercise
-
-**Goal:** Execute actual pruning on real models and validate ROI projections.
-
-**Tasks:**
-- [x] Select 3-5 candidate models (small to medium size)
-- [x] Download and cache candidate models
-- [x] Run Atropos analysis to project savings
-- [x] Execute pruning using integrated frameworks (LLM-Pruner/Wanda/SparseGPT)
-- [x] Measure actual performance of pruned models
-- [x] Compare achieved sparsity vs target
-- [x] Run quality benchmarks to validate model quality
-- [x] Document break-even analysis with real data
-
-**Deliverables:**
-- ✅ `scripts/download_test_models.py` — Download script for 5 candidate models
-- ✅ `scripts/project_savings.py` — Generate baseline projections
-- ✅ `scripts/prune_models.py` — PyTorch-based pruning implementation
-- ✅ `scripts/compare_projections.py` — Compare projected vs actual results
-- ✅ `scripts/benchmark_quality.py` — Quality benchmarking script
-- ✅ `scripts/generate_case_study.py` — Generate comprehensive case study report
-- ✅ `scripts/upload_to_huggingface.py` — Upload pruned models to HF Hub
-- ✅ `scripts/test_pruning_candidates.py` — Validation test runner
-- ✅ `test_data/` — Local cache of 36+ GB models
-- ✅ `test_data/projections.json/md` — Baseline projections
-- ✅ `test_data/pruned_models/` — 8 pruned model variants
-- ✅ `test_data/pruning_report.json/md` — Pruning operation results
-- ✅ `test_data/comparison_report.json/md` — Projected vs actual comparison
-- ✅ `test_data/benchmark_report.json/md` — Quality benchmark results
-- ✅ `test_data/case_study.json/md` — Complete case study with break-even analysis
-- ✅ Pruned models hosted on HuggingFace (4 validated models uploaded to https://huggingface.co/arsegarp)
-- [x] Updated Atropos strategies based on real pruning outcomes
-- ✅ `docs/case-study.md` — Comprehensive case study write-up
-
-### 4. Pruned Model Validation ✅
-
-**Goal:** Validate that pruned models maintain performance within acceptable tolerance compared to original models before HuggingFace upload.
-
-**Tasks:**
-- [x] Create side-by-side comparison script (original vs pruned)
-- [x] Measure perplexity on validation dataset for both
-- [x] Run identical generation tasks and compare outputs
-- [x] Verify quality metrics are within tolerance (e.g., <20% degradation)
-- [x] Document which models pass/fail validation
-- [x] Gate HuggingFace upload on passing validation
-
-**Deliverables:**
-- ✅ `scripts/validate_pruned_models.py` — Compare original vs pruned performance
-- [x] `test_data/validation_report.json/md` — Pass/fail results with metrics (requires models)
-- ✅ Updated upload script with validation gate (`--force` to bypass)
-- ✅ Validation criteria documented in script
-
-**Note:** Validation requires both original and pruned models in `test_data/`. Run `download_test_models.py` and `prune_models.py` first if models are missing.
-
-### 5. Advanced Pruning Frameworks ✅
-
-**Goal:** Integrate and compare state-of-the-art pruning frameworks (Wanda, SparseGPT) against our PyTorch magnitude-based approach.
-
-**Tasks:**
-- [x] Integrate Wanda (Pruning by Weights AND Activations) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
-- [x] Integrate SparseGPT (GPT-specific pruning) - scripts created, compatibility with non-LLaMA models resolved via patched_prune.py
-- [x] Run comparison: magnitude vs Wanda vs SparseGPT - comprehensive comparison script created
-- [x] Measure quality/speed trade-offs
-- [x] Update Atropos strategies with framework-specific recommendations
-
-**Deliverables:**
-- [x] `scripts/wanda_pruning.py` — Wanda integration (created, compatibility resolved via patched_prune.py)
-- [x] `scripts/sparsegpt_pruning.py` — SparseGPT integration (created, compatibility resolved via patched_prune.py)
-- [x] `scripts/compare_pruning_frameworks.py` — Comprehensive comparison of magnitude, wanda-patched, sparsegpt-patched
-- [x] `docs/framework-comparison.md` — Comparison report (created)
-- [x] Updated presets with framework-specific values
+### Success indicators
+- Reproducible benchmark suite runs end-to-end.
+- Draft manuscript and replication package skeleton are publicly reviewable.
 
 ---
 
-### 6. Quantization + Pruning Study ✅
+## Track B — Production Readiness *(Primary: Commercial, Secondary: Reputation)*
 
-**Goal:** Evaluate combined quantization and pruning optimizations.
+<!--
+Supports Commercial directly (buyer/investor confidence), and Reputation via practical reliability.
+-->
 
-**Tasks:**
-- [x] Implement INT8 quantization pipeline
-- [x] Test pruning + quantization combinations
-- [x] Measure cumulative savings and quality impact
-- [x] Document best practices for combined optimization
+### Goals
+- Make Atropos robust enough for real deployment planning and external pilot usage.
 
-**Deliverables:**
-- [x] `scripts/quantize_models.py` — Quantization pipeline
-- [x] `scripts/combined_optimization.py` — Pruning + quantization
-- [x] Comparison report showing combined ROI
+### Priorities
+1. **Cloud provider cost ingestion**
+   - Integrate pricing/cost models for **AWS, Azure, GCP, Lambda Labs, RunPod**.
+2. **Harden pruning integrations**
+   - Support robust operation with containerized fallbacks for unstable dependency stacks.
+3. **Quality degradation prediction v1**
+   - Add probabilistic quality impact modeling for pruning strategies.
+4. **SLA-worthy validation pipeline**
+   - Deterministic runs, version-pinned environments, artifact retention, and regression gating.
+
+### Success indicators
+- Repeatable environment setup across clean machines.
+- End-to-end validation pipeline can be run for external due diligence.
+
+---
+
+## Track C — Developer Experience *(Primary: Reputation, Secondary: Commercial)*
+
+<!--
+Supports Reputation directly (adoption and contribution quality), and Commercial indirectly (lower pilot friction).
+-->
+
+### Goals
+- Make Atropos easy to understand, verify, and extend.
+
+### Priorities
+1. **Documentation overhaul with worked examples**
+   - Clear quickstart, architecture notes, and interpretation guidance for ROI outputs.
+2. **Interactive tutorial notebooks**
+   - Step-by-step notebooks from raw inputs to decision-ready reports.
+3. **Real-world case studies (including failures)**
+   - Publish successes and misses to improve model trust and calibration.
+4. **Codebase simplification**
+   - Minimal dependency profile, stronger tests, and clearer module boundaries.
+
+### Success indicators
+- New contributor can run a complete example in one sitting.
+- Case studies demonstrate honest learning, not only positive outcomes.
+
+---
+
+## Validation Milestones (Definition of “Proven”)
+
+<!--
+This milestone ladder aligns all paths on shared evidence thresholds:
+- Bronze/Silver establish technical credibility,
+- Gold establishes market credibility,
+- Platinum establishes academic credibility.
+-->
+
+- **Bronze**: Works on **3 model sizes** (1B, 7B, 13B) with publicly posted results.
+- **Silver**: Prediction error is within **20%** against real deployment telemetry (defined evaluation protocol).
+- **Gold**: Used in production decision-making by **3+ external organizations**.
+- **Platinum**: Peer-reviewed publication accepted, with a complete replication package released.
+
+---
+
+## Time-Boxed Plan (Aggressive but Honest)
+
+<!--
+Dates are relative to the current acceleration phase and explicitly account for instability risk from recent commit velocity.
+-->
+
+### Next 30 days (Stabilization Sprint)
+- Stabilize current integrations and dependency matrix.
+- Complete first serious validation pass on **7B-class models**.
+- Publish a transparent “known breakages” compatibility table.
+
+### By 60 days
+- Deliver **cloud cost models v1** (AWS/Azure/GCP + Lambda Labs/RunPod baselines).
+- Ship **quality degradation model v1** with uncertainty bounds.
+
+### By 90 days
+- Publish first **external user case study** (acceptable even if outcome is negative or mixed).
+- Convert lessons into calibration and documentation updates.
+
+### By 120 days (Decision Gate)
+Choose primary direction for the next major cycle while preserving secondary paths:
+- **Option 1:** Academic paper submission package.
+- **Option 2:** Commercial MVP + pilot collateral.
+- **Option 3:** Reputation-focused open-source release with high contributor UX.
+
+---
+
+## What We Won’t Do (Scope Controls)
+
+<!--
+Why explicit non-goals matter:
+- Academic: preserves methodological focus.
+- Commercial: prevents roadmap dilution before PMF.
+- Reputation: avoids overpromising to contributors.
+-->
+
+- We **won’t support every pruning framework**; we will prioritize the top 2 most stable/high-impact options.
+- We **won’t build custom pruning algorithms** in this phase; we will integrate and evaluate existing methods.
+- We **won’t provide deep on-prem hardware cost modeling** beyond basic, transparent formulas.
+- We **won’t guarantee exact accuracy predictions**; outputs are probabilistic decision support, not certainty.
+
+---
+
+## Decision Log
+
+<!--
+Decision log keeps strategic intent explicit so future contributors understand why tradeoffs were made.
+-->
+
+1. **Adopted a 3-track roadmap** to keep Academic, Commercial, and Reputation paths simultaneously viable until the Day-120 gate.
+2. **Elevated transparency** by adding explicit known gaps, including >1B validation absence and fragile integrations.
+3. **Defined milestone ladder (Bronze→Platinum)** to align discussions around evidence, not feature count.
+4. **Time-boxed next 120 days** around stabilization, validation, and one external proof point before strategic commitment.
+5. **Set explicit non-goals** to avoid premature expansion into custom algorithms and broad framework sprawl.
