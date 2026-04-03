@@ -46,6 +46,14 @@ def test_pipeline_config_from_dict() -> None:
             "max_break_even_months": 6,
             "min_annual_savings_usd": 5000.0,
             "max_quality_risk": "low",
+            "min_expected_quality": 0.8,
+        },
+        "quality_prediction": {
+            "method": "obd_obs",
+            "uncertainty_method": "quantile",
+            "metric": "perplexity",
+            "confidence_level": 0.9,
+            "baseline_quality": 1.0,
         },
         "pruning": {
             "framework": "llm-pruner",
@@ -75,6 +83,9 @@ def test_pipeline_config_from_dict() -> None:
     assert config.thresholds.max_break_even_months == 6
     assert config.thresholds.min_annual_savings_usd == 5000.0
     assert config.thresholds.max_quality_risk == "low"
+    assert config.thresholds.min_expected_quality == 0.8
+    assert config.quality_prediction is not None
+    assert config.quality_prediction.method == "obd_obs"
     assert config.pruning is not None
     assert config.pruning.framework == "llm-pruner"
     assert config.pruning.target_sparsity == 0.25
@@ -108,6 +119,7 @@ def test_pipeline_config_to_dict() -> None:
     assert "recovery" in data
     assert "validation" in data
     assert "deployment" in data
+    assert "quality_prediction" in data
 
 
 def test_pipeline_runner_dry_run() -> None:

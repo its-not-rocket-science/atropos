@@ -15,6 +15,13 @@ from ..deployment.models import (
 )
 from ..logging_config import SHOW_TRACEBACK, get_logger
 from ..models import QualityRisk
+from ..quality.predictor import (
+    CalibrationCoefficients,
+    QualityPredictorConfig,
+    expected_quality_from_risk,
+    predict_quality_degradation,
+)
+from ..quality.sensitivity import LayerSensitivity, SensitivityProfile
 from .config import PipelineConfig
 from .models import PipelineResult, PipelineStage, StageResult, StageStatus
 
@@ -32,6 +39,21 @@ def _now() -> str:
 def _risk_rank(risk: QualityRisk) -> int:
     """Convert risk level to numeric rank for comparison."""
     return {"low": 1, "medium": 2, "high": 3}.get(risk, 3)
+
+
+def _default_sensitivity_profile() -> SensitivityProfile:
+    """Create a conservative fallback profile when layer probes are unavailable."""
+    return SensitivityProfile(
+        layers=(
+            LayerSensitivity(
+                name="default",
+                gradient_magnitude=0.35,
+                hessian_trace=0.40,
+                attention_head_importance=0.30,
+                embedding_fragility=0.45,
+            ),
+        )
+    )
 
 
 class PipelineRunner:
@@ -167,6 +189,21 @@ class PipelineRunner:
             logger.debug("Running ROI assessment")
             outcome = estimate_outcome(scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e)
             self._result.roi_outcome = outcome
+            quality_cfg = self.config.quality_prediction or QualityPredictorConfig()
+            quality_prediction = predict_quality_degradation(
+                metric=quality_cfg.metric,
+                sparsity=strategy.parameter_reduction_fraction,
+                sensitivity_profile=_default_sensitivity_profile(),
+                baseline_quality=quality_cfg.baseline_quality,
+                predictor_config=QualityPredictorConfig(
+                    method=quality_cfg.method,
+                    uncertainty_method=quality_cfg.uncertainty_method,
+                    confidence_level=quality_cfg.confidence_level,
+                    lookup_table=quality_cfg.lookup_table,
+                    calibration=CalibrationCoefficients(),
+                ),
+            )
+            self._result.expected_quality = quality_prediction.expected_quality
 
             result.status = StageStatus.SUCCESS
             if outcome.break_even_years:
@@ -187,6 +224,12 @@ class PipelineRunner:
                 "annual_savings_usd": outcome.annual_total_savings_usd,
                 "break_even_years": outcome.break_even_years,
                 "quality_risk": outcome.quality_risk,
+                "predicted_quality_degradation_percent": quality_prediction.degradation_percent,
+                "predicted_quality_ci_percent": [
+                    quality_prediction.lower_percent,
+                    quality_prediction.upper_percent,
+                ],
+                "expected_quality_ratio": quality_prediction.expected_quality,
                 "baseline_cost": outcome.baseline_annual_total_cost_usd,
                 "optimized_cost": outcome.optimized_annual_total_cost_usd,
             }
@@ -242,6 +285,13 @@ class PipelineRunner:
         max_risk = thresholds.max_quality_risk
         if _risk_rank(risk) > _risk_rank(max_risk):
             failures.append(f"Quality risk ({risk}) exceeds threshold ({max_risk})")
+
+        expected_quality = self._result.expected_quality or expected_quality_from_risk(risk)
+        if expected_quality < thresholds.min_expected_quality:
+            failures.append(
+                f"Expected quality ({expected_quality:.2f}) below threshold "
+                f"({thresholds.min_expected_quality:.2f})"
+            )
 
         if failures:
             result.status = StageStatus.SKIPPED

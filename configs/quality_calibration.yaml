@@ -1,0 +1,6 @@
+quality_calibration:
+  formula: predicted = raw * scale + offset
+  scale: 1.0
+  offset: 0.0
+  num_samples: 0
+  source_dir: validation_results
