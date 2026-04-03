@@ -42,6 +42,7 @@ from .model_tester import (
 from .models import DeploymentScenario
 from .pipeline import PipelineConfig, run_pipeline
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
+from .pruning.manager import setup_pruning_environment, test_pruning_framework
 from .reporting import generate_comparison_json, generate_comparison_table
 from .telemetry import (
     PARSERS,
@@ -689,6 +690,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     list_parser.add_argument(
         "--format", choices=["text", "json", "yaml"], default="text", help="Output format"
+    )
+
+
+    pruning_setup_parser = subparsers.add_parser(
+        "setup-pruning",
+        help="Check pruning dependencies and build isolated pruning framework containers.",
+    )
+    pruning_setup_parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Force container rebuild without cache to fix dependency conflicts.",
+    )
+
+    pruning_test_parser = subparsers.add_parser(
+        "test-pruning",
+        help="Run pruning integration smoke test for a framework.",
+    )
+    pruning_test_parser.add_argument(
+        "--framework",
+        required=True,
+        choices=["wanda", "sparsegpt", "llm-pruner"],
+        help="Framework to test.",
     )
 
     return parser
@@ -1747,6 +1770,27 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else 0
             )
             return 0 if success_rate >= 0.5 else 1
+
+
+        if args.command == "setup-pruning":
+            summary = setup_pruning_environment(fix=args.fix)
+            if summary.success:
+                print(summary.message)
+                return 0
+            print(summary.message, file=sys.stderr)
+            return 1
+
+        if args.command == "test-pruning":
+            print(f"Testing pruning integration for {args.framework}...")
+            result = test_pruning_framework(args.framework)
+            if result.success:
+                mode_text = result.mode.value
+                print(f"{args.framework} integration OK (mode={mode_text})")
+                if result.warning:
+                    print(f"warning: {result.warning}")
+                return 0
+            print(result.error_message or "Unknown pruning integration error", file=sys.stderr)
+            return 1
 
         if args.command == "ab-test":
             # Handle A/B test subcommands

@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  wanda:
+    build:
+      context: .
+      dockerfile: docker/pruning_frameworks/wanda/Dockerfile
+      args:
+        CUDA_VERSION: ${CUDA_VERSION:-11.8.0}
+    image: atropos/pruning-wanda:cuda${CUDA_TAG:-11.8}
+    volumes:
+      - ./artifacts/pruning/wanda:/workspace/output
+
+  sparsegpt:
+    build:
+      context: .
+      dockerfile: docker/pruning_frameworks/sparsegpt/Dockerfile
+      args:
+        CUDA_VERSION: ${CUDA_VERSION:-11.8.0}
+    image: atropos/pruning-sparsegpt:cuda${CUDA_TAG:-11.8}
+    volumes:
+      - ./artifacts/pruning/sparsegpt:/workspace/output
+
+  llm-pruner:
+    build:
+      context: .
+      dockerfile: docker/pruning_frameworks/llm-pruner/Dockerfile
+      args:
+        CUDA_VERSION: ${CUDA_VERSION:-11.8.0}
+    image: atropos/pruning-llm-pruner:cuda${CUDA_TAG:-11.8}
+    volumes:
+      - ./artifacts/pruning/llm-pruner:/workspace/output
