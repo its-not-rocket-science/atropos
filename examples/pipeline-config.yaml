@@ -10,6 +10,16 @@ pipeline:
     max_break_even_months: 12
     min_annual_savings_usd: 10000
     max_quality_risk: medium
+    min_expected_quality: 0.7
+
+  quality_prediction:
+    # Quality degradation predictor (no full eval required)
+    method: linear  # Options: linear, obd_obs, lookup
+    uncertainty_method: bootstrap  # Options: bootstrap, quantile, conformal
+    metric: perplexity  # Options: perplexity, humaneval_pass_at_1, custom
+    confidence_level: 0.9
+    baseline_quality: 1.0
+    # lookup_table: {0.1: 2.0, 0.3: 10.0, 0.5: 28.0}
 
   pruning:
     # Pruning stage configuration

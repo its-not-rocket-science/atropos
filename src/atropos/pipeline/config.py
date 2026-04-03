@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from ..models import QualityRisk
+from ..quality.predictor import PredictionMethod, QualityMetric, UncertaintyMethod
 
 
 @dataclass(frozen=True)
@@ -17,11 +18,13 @@ class ThresholdConfig:
         max_break_even_months: Maximum acceptable break-even time in months.
         min_annual_savings_usd: Minimum annual savings to proceed (USD).
         max_quality_risk: Maximum acceptable quality risk level.
+        min_expected_quality: Minimum expected post-pruning quality ratio.
     """
 
     max_break_even_months: int = 12
     min_annual_savings_usd: float = 10_000.0
     max_quality_risk: QualityRisk = "medium"
+    min_expected_quality: float = 0.7
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -29,6 +32,7 @@ class ThresholdConfig:
             "max_break_even_months": self.max_break_even_months,
             "min_annual_savings_usd": self.min_annual_savings_usd,
             "max_quality_risk": self.max_quality_risk,
+            "min_expected_quality": self.min_expected_quality,
         }
 
     @classmethod
@@ -38,6 +42,42 @@ class ThresholdConfig:
             max_break_even_months=data.get("max_break_even_months", 12),
             min_annual_savings_usd=data.get("min_annual_savings_usd", 10_000.0),
             max_quality_risk=data.get("max_quality_risk", "medium"),
+            min_expected_quality=data.get("min_expected_quality", 0.7),
+        )
+
+
+@dataclass(frozen=True)
+class QualityPredictionConfig:
+    """Configuration for quality degradation prediction gate."""
+
+    method: PredictionMethod = "linear"
+    uncertainty_method: UncertaintyMethod = "bootstrap"
+    metric: QualityMetric = "perplexity"
+    confidence_level: float = 0.9
+    baseline_quality: float = 1.0
+    lookup_table: dict[float, float] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "method": self.method,
+            "uncertainty_method": self.uncertainty_method,
+            "metric": self.metric,
+            "confidence_level": self.confidence_level,
+            "baseline_quality": self.baseline_quality,
+            "lookup_table": self.lookup_table,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> QualityPredictionConfig:
+        """Create from dictionary."""
+        return cls(
+            method=data.get("method", "linear"),
+            uncertainty_method=data.get("uncertainty_method", "bootstrap"),
+            metric=data.get("metric", "perplexity"),
+            confidence_level=data.get("confidence_level", 0.9),
+            baseline_quality=data.get("baseline_quality", 1.0),
+            lookup_table={float(k): float(v) for k, v in data.get("lookup_table", {}).items()},
         )
 
 
@@ -273,6 +313,7 @@ class PipelineConfig:
         recovery: Recovery/fine-tuning configuration.
         validation: Validation stage configuration.
         deployment: Deployment stage configuration.
+        quality_prediction: Quality predictor configuration.
     """
 
     name: str = "atropos-pipeline"
@@ -282,6 +323,7 @@ class PipelineConfig:
     recovery: RecoveryConfig | None = None
     validation: ValidationConfig | None = None
     deployment: DeploymentConfig | None = None
+    quality_prediction: QualityPredictionConfig | None = None
 
     def __post_init__(self) -> None:
         """Set default configs if not provided."""
@@ -291,6 +333,9 @@ class PipelineConfig:
         object.__setattr__(self, "recovery", self.recovery or RecoveryConfig())
         object.__setattr__(self, "validation", self.validation or ValidationConfig())
         object.__setattr__(self, "deployment", self.deployment or DeploymentConfig())
+        object.__setattr__(
+            self, "quality_prediction", self.quality_prediction or QualityPredictionConfig()
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -302,6 +347,9 @@ class PipelineConfig:
             "recovery": self.recovery.to_dict() if self.recovery else {},
             "validation": self.validation.to_dict() if self.validation else {},
             "deployment": self.deployment.to_dict() if self.deployment else {},
+            "quality_prediction": self.quality_prediction.to_dict()
+            if self.quality_prediction
+            else {},
         }
 
     @classmethod
@@ -315,6 +363,9 @@ class PipelineConfig:
             recovery=RecoveryConfig.from_dict(data.get("recovery", {})),
             validation=ValidationConfig.from_dict(data.get("validation", {})),
             deployment=DeploymentConfig.from_dict(data.get("deployment", {})),
+            quality_prediction=QualityPredictionConfig.from_dict(
+                data.get("quality_prediction", {})
+            ),
         )
 
     @classmethod

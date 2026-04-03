@@ -113,6 +113,7 @@ class PipelineResult:
     start_time: str | None = None
     end_time: str | None = None
     roi_outcome: OptimizationOutcome | None = None
+    expected_quality: float | None = None
 
     @property
     def duration_seconds(self) -> float | None:
@@ -160,6 +161,8 @@ class PipelineResult:
                 "break_even_years": self.roi_outcome.break_even_years,
                 "quality_risk": self.roi_outcome.quality_risk,
             }
+        if self.expected_quality is not None:
+            result["expected_quality"] = self.expected_quality
         return result
 
     def to_json(self, indent: int = 2) -> str:
