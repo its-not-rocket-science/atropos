@@ -338,8 +338,25 @@ def test_capture_warnings() -> None:
         assert len(captured_records) > 0, (
             f"No records captured. captured_records: {captured_records}"
         )
-        assert any("Test warning" in str(r.msg) for r in captured_records), (
-            f"Records: {[str(r.msg) for r in captured_records]}"
+        # Check if warning message is in the formatted log record
+        # The warning might be logged with %s format string and args
+        found_warning = False
+        for r in captured_records:
+            formatted_msg = r.getMessage()
+            if "Test warning" in formatted_msg:
+                found_warning = True
+                break
+            # Also check args directly (warning might be in args tuple)
+            for arg in r.args:
+                if "Test warning" in str(arg):
+                    found_warning = True
+                    break
+            if found_warning:
+                break
+
+        assert found_warning, (
+            f"No 'Test warning' found in captured records. "
+            f"Records details: {[(r.msg, r.args) for r in captured_records]}"
         )
     finally:
         # Clean up
