@@ -1,0 +1,56 @@
+seed: 1337
+output_dir: validation_results
+models_catalog: configs/models.yaml
+fail_fast: false
+
+hardware:
+  required_gpu: NVIDIA A100-SXM4-40GB
+  min_gpu_memory_gb: 40
+  min_system_ram_gb: 128
+  target_cuda_major: 12
+  power_sampling:
+    sample_interval_sec: 2
+    method: nvidia-smi
+
+metrics:
+  evaluate_perplexity: true
+  evaluate_humaneval: true
+  max_eval_samples: 64
+  confidence_interval: 0.90
+  baseline_guess_savings_fraction: 0.20
+
+validation:
+  pruning_strategies:
+    - name: wanda_30
+      framework: wanda
+      target_sparsity: 0.30
+      kwargs:
+        nsamples: 128
+    - name: sparsegpt_50
+      framework: sparsegpt
+      target_sparsity: 0.50
+      kwargs:
+        nsamples: 128
+
+  runtime_estimates_hours:
+    "1b": 1.0
+    "7b": 4.0
+    "13b": 7.0
+    "34b": 14.0
+
+  significance:
+    enabled: true
+    minimum_models_per_bucket: 2
+    alpha: 0.05
+
+commercial:
+  electricity_cost_per_kwh: 0.12
+  one_time_project_cost_usd: 25000
+  pricing_model: cloud
+  utilization: 0.9
+
+execution:
+  device_map: auto
+  torch_dtype: float16
+  max_new_tokens_humaneval: 256
+  skip_existing_results: true
