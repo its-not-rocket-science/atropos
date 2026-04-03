@@ -14,7 +14,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-
 MAX_PRUNING_TIMEOUT_SECONDS = 24 * 60 * 60
 
 
@@ -105,7 +104,10 @@ class PruningFramework(ABC):
         started = time.monotonic()
         output_path.mkdir(parents=True, exist_ok=True)
         checkpoint_path = output_path / f"{self.framework_name}_checkpoint.json"
-        self._write_checkpoint(checkpoint_path, {"status": "started", "framework": self.framework_name})
+        self._write_checkpoint(
+            checkpoint_path,
+            {"status": "started", "framework": self.framework_name},
+        )
 
         native_error: str | None = None
         if self.is_native_available():
@@ -132,7 +134,10 @@ class PruningFramework(ABC):
                 resource_limits=resource_limits,
             )
             if result.success:
-                self._write_checkpoint(checkpoint_path, {"status": "completed", "mode": "container"})
+                self._write_checkpoint(
+                    checkpoint_path,
+                    {"status": "completed", "mode": "container"},
+                )
                 result.duration_seconds = time.monotonic() - started
                 return result
             container_error = result.error_message
@@ -165,7 +170,8 @@ class PruningFramework(ABC):
             duration_seconds=time.monotonic() - started,
             error_message=(
                 f"{self.framework_name} failed. Native error: {native_error or 'not available'}. "
-                f"Container error: {container_error}. Suggested fix: {self.native_dependency_hint()}"
+                "Container error: "
+                f"{container_error}. Suggested fix: {self.native_dependency_hint()}"
             ),
         )
 
@@ -283,12 +289,21 @@ class WandaPruning(PruningFramework):
     container_image = "atropos/pruning-wanda:cuda11.8"
 
     def native_dependency_hint(self) -> str:
-        return "Wanda failed because transformers version mismatch; run `atropos-llm setup-pruning --fix`"
+        return (
+            "Wanda failed because transformers version mismatch; run "
+            "`atropos-llm setup-pruning --fix`"
+        )
 
     def is_native_available(self) -> bool:
         return Path("scripts/prune_wanda.py").exists()
 
-    def build_native_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_native_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             sys.executable,
             "scripts/prune_wanda.py",
@@ -302,7 +317,13 @@ class WandaPruning(PruningFramework):
             str(checkpoint_path),
         ]
 
-    def build_container_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_container_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             "python",
             "/workspace/framework/run_prune.py",
@@ -329,7 +350,13 @@ class SparseGPTPruning(PruningFramework):
     def is_native_available(self) -> bool:
         return Path("scripts/prune_sparsegpt.py").exists()
 
-    def build_native_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_native_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             sys.executable,
             "scripts/prune_sparsegpt.py",
@@ -343,7 +370,13 @@ class SparseGPTPruning(PruningFramework):
             str(checkpoint_path),
         ]
 
-    def build_container_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_container_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             "python",
             "/workspace/framework/run_prune.py",
@@ -374,7 +407,13 @@ class LLMPrunerPruning(PruningFramework):
         except ImportError:
             return False
 
-    def build_native_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_native_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             sys.executable,
             "-m",
@@ -389,7 +428,13 @@ class LLMPrunerPruning(PruningFramework):
             str(checkpoint_path),
         ]
 
-    def build_container_command(self, model_name: str, output_path: Path, sparsity: float, checkpoint_path: Path) -> list[str]:
+    def build_container_command(
+        self,
+        model_name: str,
+        output_path: Path,
+        sparsity: float,
+        checkpoint_path: Path,
+    ) -> list[str]:
         return [
             "python",
             "/workspace/framework/run_prune.py",
