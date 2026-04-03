@@ -38,7 +38,7 @@ def create_app() -> dash.Dash:
 def register_callbacks(app: dash.Dash) -> None:
     """Register all Dash callbacks."""
 
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("results-container", "children"),
         Output("comparison-chart", "figure"),
         Output("savings-breakdown-chart", "figure"),
@@ -109,7 +109,7 @@ def register_callbacks(app: dash.Dash) -> None:
             )
             return error_msg, {}, {}, {}
 
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("custom-params", "data"),
         Input("param-parameters-b", "value"),
         Input("param-memory-gb", "value"),
@@ -148,7 +148,7 @@ def register_callbacks(app: dash.Dash) -> None:
             "one_time_project_cost_usd": project_cost,
         }
 
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("preset-params-display", "children"),
         Input("preset-selector", "value"),
     )
@@ -163,7 +163,7 @@ def register_callbacks(app: dash.Dash) -> None:
         scenario = SCENARIOS[preset_name]
         return components.create_scenario_summary(scenario)
 
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("strategy-details", "children"),
         Input("strategy-selector", "value"),
     )
@@ -175,7 +175,7 @@ def register_callbacks(app: dash.Dash) -> None:
         strategy = STRATEGIES[strategy_name]
         return components.create_strategy_summary(strategy)
 
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("download-scenario", "data"),
         Input("export-button", "n_clicks"),
         State("preset-selector", "value"),

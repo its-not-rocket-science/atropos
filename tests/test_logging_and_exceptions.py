@@ -316,6 +316,12 @@ def test_capture_warnings() -> None:
     root_logger.addHandler(handler)
     root_logger.setLevel(logging.WARNING)
 
+    # Also attach to py.warnings logger directly as fallback
+    warnings_logger = logging.getLogger("py.warnings")
+    warnings_logger.addHandler(handler)
+    warnings_logger.setLevel(logging.WARNING)
+    warnings_logger.propagate = True  # Ensure propagation
+
     try:
         # Enable warning capture
         logging.captureWarnings(True)
@@ -324,9 +330,19 @@ def test_capture_warnings() -> None:
         warnings.warn("Test warning", UserWarning, stacklevel=2)
 
         # Should have captured the warning
-        assert len(captured_records) > 0
-        assert any("Test warning" in str(r.msg) for r in captured_records)
+        # Give a moment for logging to propagate (though it's synchronous)
+        import sys
+
+        sys.stderr.flush()
+
+        assert len(captured_records) > 0, (
+            f"No records captured. captured_records: {captured_records}"
+        )
+        assert any("Test warning" in str(r.msg) for r in captured_records), (
+            f"Records: {[str(r.msg) for r in captured_records]}"
+        )
     finally:
         # Clean up
         root_logger.removeHandler(handler)
+        warnings_logger.removeHandler(handler)
         logging.captureWarnings(False)
