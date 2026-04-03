@@ -2085,7 +2085,57 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 print(f"Variant promoted: {winner_variant_id}")
                 print(f"Experiment: {args.experiment_id}")
-                # TODO: Actually deploy promoted variant to production
+                # Actually deploy promoted variant to production
+                from datetime import datetime
+
+                from ..deployment.models import DeploymentRequest, DeploymentStrategyType
+
+                # Find winning variant details
+                winning_variant = None
+                for v in config_data.get("variants", []):
+                    if v.get("variant_id") == winner_variant_id:
+                        winning_variant = v
+                        break
+                if not winning_variant:
+                    print(
+                        f"Error: variant {winner_variant_id} not found in config", file=sys.stderr
+                    )
+                    return 1
+
+                # Get deployment platform
+                deployment_platform = config_data.get("deployment_platform", "vllm")
+                health_checks = config_data.get("health_checks", {})
+
+                # Create deployment request for production
+                deployment_request = DeploymentRequest(
+                    model_path=winning_variant["model_path"],
+                    platform=deployment_platform,
+                    strategy=DeploymentStrategyType.IMMEDIATE,
+                    health_checks=health_checks,
+                    metadata={
+                        "promoted_from_experiment": args.experiment_id,
+                        "variant_id": winner_variant_id,
+                        "promoted_at": datetime.now().isoformat(),
+                    },
+                )
+
+                try:
+                    platform = get_platform(deployment_platform, {})
+                    deployment_result = platform.deploy(deployment_request)
+
+                    if deployment_result.status.name == "SUCCESS":
+                        print(f"Deployed to production: {deployment_result.deployment_id}")
+                        if deployment_result.endpoints:
+                            print(f"Endpoints: {', '.join(deployment_result.endpoints)}")
+                        # Optionally update store with production deployment ID
+                        # store.update_experiment(...)
+                    else:
+                        print(f"Deployment failed: {deployment_result.message}", file=sys.stderr)
+                        return 1
+                except Exception as e:
+                    print(f"Error deploying variant: {e}", file=sys.stderr)
+                    return 1
+
                 return 0
             elif subcommand == "list":
                 import json
