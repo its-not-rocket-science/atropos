@@ -129,14 +129,10 @@ class CloudPricingEngine:
                     }
                 },
                 "replicate": {
-                    "serverless": {
-                        "l40s": {"usd_per_second": 0.00055, "usd_per_inference": 0.003}
-                    }
+                    "serverless": {"l40s": {"usd_per_second": 0.00055, "usd_per_inference": 0.003}}
                 },
                 "banana": {
-                    "serverless": {
-                        "a100": {"usd_per_second": 0.00062, "usd_per_inference": 0.0025}
-                    }
+                    "serverless": {"a100": {"usd_per_second": 0.00062, "usd_per_inference": 0.0025}}
                 },
                 "modal": {
                     "serverless": {
@@ -279,9 +275,7 @@ class CloudPricingEngine:
             interruption_probability = None
             risk_warning = None
         else:
-            unit_usd = float(
-                pricing.get("ondemand_usd_per_hour", pricing.get("usd_per_hour", 0.0))
-            )
+            unit_usd = float(pricing.get("ondemand_usd_per_hour", pricing.get("usd_per_hour", 0.0)))
             interruption_probability = None
             risk_warning = None
 

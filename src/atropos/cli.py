@@ -723,7 +723,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["text", "json", "yaml"], default="text", help="Output format"
     )
 
-
     pruning_setup_parser = subparsers.add_parser(
         "setup-pruning",
         help="Check pruning dependencies and build isolated pruning framework containers.",
@@ -1084,7 +1083,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 }
                 content = json.dumps(output_data, indent=2)
             elif args.format == "yaml":
-
                 output_data = {
                     "scenario": scenario_name,
                     "strategy": {
@@ -1208,7 +1206,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"\nRaw metrics available: {len(telemetry.raw_metrics)} fields")
 
             if args.output:
-
                 # Convert dataclass to dict for YAML output
                 scenario_dict = {
                     "name": scenario.name,
@@ -1352,7 +1349,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
                     # Save if output specified and single run or last run
                     if args.output and len(runs) == 1:
-
                         scenario_dict = {
                             "name": scenario.name,
                             "parameters_b": scenario.parameters_b,
@@ -1463,7 +1459,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(provider)
                 return 0
 
-
             scenario_data = yaml.safe_load(args.scenario.read_text())
             if not isinstance(scenario_data, dict):
                 raise ValueError("Scenario file must contain a YAML mapping/object.")
@@ -1536,9 +1531,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                 if len(estimates) >= 2:
                     delta = estimates[-1].monthly_total_cost - estimates[0].monthly_total_cost
-                    print(
-                        f"Spread best->worst: {delta:.2f} {estimates[0].currency} per month."
-                    )
+                    print(f"Spread best->worst: {delta:.2f} {estimates[0].currency} per month.")
                 return 0
 
         if args.command == "dashboard":
@@ -1886,7 +1879,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 0 if success_rate >= 0.5 else 1
 
-
         if args.command == "setup-pruning":
             summary = setup_pruning_environment(fix=args.fix)
             if summary.success:
@@ -1984,7 +1976,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
                     print(json.dumps(exp_data, indent=2))
                 elif args.format == "yaml":
-
                     print(yaml.dump(exp_data, default_flow_style=False))
                 else:  # text
                     print(f"Experiment ID: {exp_data.get('experiment_id', args.experiment_id)}")
@@ -2005,7 +1996,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
             elif subcommand == "stop":
                 import sys
-
 
                 store = get_default_store()
                 exp_data = store.load_experiment(args.experiment_id)
@@ -2078,7 +2068,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             elif subcommand == "analyze":
                 import json
                 import sys
-
 
                 store = get_default_store()
                 exp_data = store.load_experiment(args.experiment_id)
@@ -2297,7 +2286,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return 0
             elif subcommand == "list":
                 import json
-
 
                 store = get_default_store()
                 experiments = store.list_experiments(status_filter=args.status)
