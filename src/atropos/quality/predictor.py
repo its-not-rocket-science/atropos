@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from random import Random
 from statistics import mean
-from typing import Callable, Literal
+from typing import Literal
 
 from .sensitivity import SensitivityProfile
 
@@ -72,7 +73,12 @@ def _interpolate_lookup(lookup_table: dict[float, float], sparsity: float) -> fl
     return points[-1][1]
 
 
-def _point_prediction(method: PredictionMethod, sparsity: float, sensitivity: float, lookup: dict[float, float] | None) -> float:
+def _point_prediction(
+    method: PredictionMethod,
+    sparsity: float,
+    sensitivity: float,
+    lookup: dict[float, float] | None,
+) -> float:
     if method == "linear":
         return 100.0 * sparsity * max(0.05, sensitivity)
     if method == "obd_obs":

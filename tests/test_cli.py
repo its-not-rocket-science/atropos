@@ -246,10 +246,9 @@ monthly_runtime_hours: 100
     captured = capsys.readouterr()
     assert "Monthly" in captured.out
 
-
-
-
-def test_cloud_pricing_estimate_reserved_shows_buyout(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_cloud_pricing_estimate_reserved_shows_buyout(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
     """Test reserved estimate prints commitment buyout."""
     scenario = tmp_path / "scenario_reserved.yaml"
     scenario.write_text(

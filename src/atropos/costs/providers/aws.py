@@ -24,7 +24,10 @@ def get_aws_catalog() -> dict[str, Any]:
             "lambda": {
                 "usd_per_inference": 0.0000002,
                 "usd_per_gb_second": 0.0000166667,
-                "notes": "AWS Lambda GPU is limited/preview; modeled as CPU baseline for comparison.",
+                "notes": (
+                    "AWS Lambda GPU is limited/preview; "
+                    "modeled as CPU baseline for comparison."
+                ),
             }
         },
     }

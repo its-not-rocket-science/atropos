@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+import yaml  # type: ignore[import-untyped]
+
 from ..models import QualityRisk
 from ..quality.predictor import PredictionMethod, QualityMetric, UncertaintyMethod
 
@@ -371,15 +373,11 @@ class PipelineConfig:
     @classmethod
     def from_yaml(cls, path: Path) -> PipelineConfig:
         """Load configuration from YAML file."""
-        import yaml
-
         with open(path) as f:
             data = yaml.safe_load(f)
         return cls.from_dict(data.get("pipeline", data))
 
     def to_yaml(self, path: Path) -> None:
         """Save configuration to YAML file."""
-        import yaml
-
         with open(path, "w") as f:
             yaml.dump({"pipeline": self.to_dict()}, f, default_flow_style=False)

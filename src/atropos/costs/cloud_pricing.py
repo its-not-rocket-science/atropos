@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from .providers import (
     fetch_aws_live_catalog,
@@ -167,7 +167,9 @@ class CloudPricingEngine:
             if self._is_stale(stamp):
                 continue
             try:
-                return json.loads(file.read_text())
+                payload = json.loads(file.read_text())
+                if isinstance(payload, dict):
+                    return payload
             except json.JSONDecodeError:
                 continue
 
@@ -241,14 +243,17 @@ class CloudPricingEngine:
             if group_name.startswith("_"):
                 continue
             if isinstance(group_data, dict) and group_data:
-                return next(iter(group_data.keys()))
+                return str(next(iter(group_data.keys())))
         raise KeyError(f"No instance types available for provider '{provider}'")
 
     def _calc_reserved_buyout(self, unit_usd: float, request: CloudCostRequest) -> float:
         if request.purchase_option != "reserved" or request.commitment_years <= 0:
             return 0.0
         committed_hours = 365 * 24 * request.commitment_years
-        used_hours = min(request.monthly_runtime_hours * 12 * request.commitment_years, committed_hours)
+        used_hours = min(
+            request.monthly_runtime_hours * 12 * request.commitment_years,
+            committed_hours,
+        )
         remaining_hours = max(committed_hours - used_hours, 0)
         return remaining_hours * unit_usd
 
@@ -351,7 +356,10 @@ def list_supported_providers(data_dir: Path | None = None) -> list[str]:
     return CloudPricingEngine(data_dir=data_dir).list_providers()
 
 
-def estimate_cloud_cost(request: CloudCostRequest, data_dir: Path | None = None) -> CloudCostEstimate:
+def estimate_cloud_cost(
+    request: CloudCostRequest,
+    data_dir: Path | None = None,
+) -> CloudCostEstimate:
     """Estimate cloud cost for a request."""
     return CloudPricingEngine(data_dir=data_dir).estimate(request)
 
@@ -366,10 +374,15 @@ def request_from_scenario_yaml(
     if not provider:
         raise ValueError("Scenario must define deployment.platform or pass --provider.")
 
+    purchase_option: PurchaseOption = "ondemand"
+    raw_purchase_option = str(deployment.get("purchase_option", "ondemand"))
+    if raw_purchase_option in {"ondemand", "spot", "reserved"}:
+        purchase_option = cast(PurchaseOption, raw_purchase_option)
+
     return CloudCostRequest(
         provider=str(provider),
         instance_type=str(deployment.get("instance_type", "")),
-        purchase_option=str(deployment.get("purchase_option", "ondemand")),
+        purchase_option=purchase_option,
         region=str(deployment.get("region", "us-east-1")),
         commitment_years=int(deployment.get("commitment_years", 0)),
         monthly_runtime_hours=float(scenario_data.get("monthly_runtime_hours", 730.0)),
