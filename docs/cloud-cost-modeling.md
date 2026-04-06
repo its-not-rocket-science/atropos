@@ -6,7 +6,7 @@ Atropos now supports cloud-first deployment economics with offline pricing cache
 
 - **On-demand instances** (`ondemand`) with hourly rates.
 - **Spot/Preemptible** (`spot`) with hourly rates + interruption probability warnings.
-- **Reserved commitments** (`reserved`) with 1-year and 3-year discount schedules.
+- **Reserved commitments** (`reserved`) with 1-year and 3-year discount schedules plus commitment buyout exposure.
 - **Serverless inference** using per-inference + per-second + GB-second terms.
 - **Ancillary spend** split into compute, storage, and data-transfer egress.
 

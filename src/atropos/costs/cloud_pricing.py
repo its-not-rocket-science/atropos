@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-import dataclasses
 import json
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from .providers import get_aws_catalog, get_azure_catalog, get_gcp_catalog
+from .providers import (
+    fetch_aws_live_catalog,
+    fetch_azure_live_catalog,
+    fetch_gcp_live_catalog,
+    get_aws_catalog,
+    get_azure_catalog,
+    get_gcp_catalog,
+)
 
 PurchaseOption = Literal["ondemand", "spot", "reserved"]
 
@@ -50,6 +56,7 @@ class CloudCostEstimate:
     network_monthly_cost: float
     serverless_request_monthly_cost: float
     serverless_duration_monthly_cost: float
+    commitment_buyout_cost: float
     interruption_probability: float | None = None
     risk_warning: str | None = None
     source_timestamp: str | None = None
@@ -60,6 +67,7 @@ DEFAULT_STORAGE_USD_PER_GB_MONTH = 0.023
 DEFAULT_EGRESS_USD_PER_GB = 0.09
 DEFAULT_SPOT_INTERRUPTION_PROBABILITY = 0.15
 CACHE_MAX_AGE_DAYS = 30
+LIVE_FETCH_COOLDOWN_HOURS = 6
 
 
 class CloudPricingEngine:
@@ -75,6 +83,7 @@ class CloudPricingEngine:
                 "source": "atropos-static",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
                 "currency_base": "USD",
+                "exchange_rate_date": date.today().isoformat(),
             },
             "exchange_rates": {
                 "USD": 1.0,
@@ -141,30 +150,63 @@ class CloudPricingEngine:
             },
         }
 
+    def _is_stale(self, stamp: str) -> bool:
+        try:
+            file_date = datetime.strptime(stamp, "%Y-%m-%d").date()
+        except ValueError:
+            return True
+        return (date.today() - file_date).days > CACHE_MAX_AGE_DAYS
+
     def _load_catalog(self) -> dict[str, Any]:
         if not self.data_dir.exists():
             return self._default_catalog()
 
         files = sorted(self.data_dir.glob("cloud_pricing_*.json"), reverse=True)
         for file in files:
+            stamp = file.stem.replace("cloud_pricing_", "")
+            if self._is_stale(stamp):
+                continue
             try:
-                stamp = file.stem.replace("cloud_pricing_", "")
-                file_date = datetime.strptime(stamp, "%Y-%m-%d").date()
-                if (date.today() - file_date).days > CACHE_MAX_AGE_DAYS:
-                    continue
                 return json.loads(file.read_text())
-            except (ValueError, json.JSONDecodeError):
+            except json.JSONDecodeError:
                 continue
 
         return self._default_catalog()
 
-    def refresh_live_pricing(self) -> None:
-        """Hook for live pricing refresh.
+    def _last_live_fetch_at(self) -> datetime | None:
+        raw = self.catalog.get("metadata", {}).get("live_fetched_at")
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(str(raw))
+        except ValueError:
+            return None
 
-        Current implementation intentionally conservative/offline-first:
-        it rebuilds from maintained static provider adapters.
+    def refresh_live_pricing(self, use_mock_api: bool = False) -> None:
+        """Refresh selected provider catalogs.
+
+        This entry point is CI-safe and API-key optional. To avoid provider rate-limit
+        abuse we refuse to re-fetch if the previous refresh happened recently.
         """
-        self.catalog = self._default_catalog()
+        now = datetime.now(timezone.utc)
+        last_fetch = self._last_live_fetch_at()
+        if last_fetch is not None:
+            age_hours = (now - last_fetch).total_seconds() / 3600.0
+            if age_hours < LIVE_FETCH_COOLDOWN_HOURS:
+                return
+
+        catalog = self.catalog or self._default_catalog()
+        providers = dict(catalog.get("providers", {}))
+        providers["aws"] = fetch_aws_live_catalog(mock=use_mock_api)
+        providers["azure"] = fetch_azure_live_catalog(mock=use_mock_api)
+        providers["gcp"] = fetch_gcp_live_catalog(mock=use_mock_api)
+
+        metadata = dict(catalog.get("metadata", {}))
+        metadata["source"] = "atropos-live-mock" if use_mock_api else "atropos-live-fallback"
+        metadata["updated_at"] = now.isoformat()
+        metadata["live_fetched_at"] = now.isoformat()
+
+        self.catalog = {**catalog, "metadata": metadata, "providers": providers}
 
     def list_providers(self) -> list[str]:
         return sorted(self.catalog.get("providers", {}).keys())
@@ -175,14 +217,18 @@ class CloudPricingEngine:
             raise ValueError(f"Unsupported currency '{currency}'.")
         return float(rates[currency])
 
-    def _find_instance_pricing(self, provider: str, instance_type: str) -> dict[str, float]:
+    def _find_instance_pricing(self, provider: str, instance_type: str) -> dict[str, Any]:
         provider_catalog = self.catalog.get("providers", {}).get(provider)
         if provider_catalog is None:
             raise KeyError(f"Unknown provider '{provider}'")
 
-        for _, group_data in provider_catalog.items():
+        for group_name, group_data in provider_catalog.items():
+            if group_name.startswith("_"):
+                continue
             if isinstance(group_data, dict) and instance_type in group_data:
-                return group_data[instance_type]
+                candidate = group_data[instance_type]
+                if isinstance(candidate, dict):
+                    return candidate
 
         raise KeyError(f"Unknown instance type '{instance_type}' for provider '{provider}'")
 
@@ -191,10 +237,20 @@ class CloudPricingEngine:
         provider_catalog = self.catalog.get("providers", {}).get(provider)
         if not isinstance(provider_catalog, dict):
             raise KeyError(f"Unknown provider '{provider}'")
-        for _, group_data in provider_catalog.items():
+        for group_name, group_data in provider_catalog.items():
+            if group_name.startswith("_"):
+                continue
             if isinstance(group_data, dict) and group_data:
                 return next(iter(group_data.keys()))
         raise KeyError(f"No instance types available for provider '{provider}'")
+
+    def _calc_reserved_buyout(self, unit_usd: float, request: CloudCostRequest) -> float:
+        if request.purchase_option != "reserved" or request.commitment_years <= 0:
+            return 0.0
+        committed_hours = 365 * 24 * request.commitment_years
+        used_hours = min(request.monthly_runtime_hours * 12 * request.commitment_years, committed_hours)
+        remaining_hours = max(committed_hours - used_hours, 0)
+        return remaining_hours * unit_usd
 
     def estimate(self, request: CloudCostRequest) -> CloudCostEstimate:
         pricing = self._find_instance_pricing(request.provider, request.instance_type)
@@ -250,6 +306,7 @@ class CloudPricingEngine:
 
         storage_monthly = request.monthly_storage_gb * DEFAULT_STORAGE_USD_PER_GB_MONTH
         network_monthly = request.monthly_data_transfer_gb * DEFAULT_EGRESS_USD_PER_GB
+        buyout_cost = self._calc_reserved_buyout(unit_usd, request)
 
         monthly_total_usd = (
             compute_monthly
@@ -261,9 +318,12 @@ class CloudPricingEngine:
         annual_total_usd = monthly_total_usd * 12.0
 
         rate = self._get_currency_rate(request.currency)
-        converted = lambda v: v * rate
 
-        hourly = converted(monthly_total_usd / max(request.monthly_runtime_hours, 1.0))
+        def converted(value: float) -> float:
+            return value * rate
+
+        denominator = request.monthly_runtime_hours if request.monthly_runtime_hours > 0 else 730.0
+        hourly = converted(monthly_total_usd / denominator)
 
         return CloudCostEstimate(
             provider=request.provider,
@@ -279,6 +339,7 @@ class CloudPricingEngine:
             network_monthly_cost=converted(network_monthly),
             serverless_request_monthly_cost=converted(serverless_request_monthly),
             serverless_duration_monthly_cost=converted(serverless_duration_monthly),
+            commitment_buyout_cost=converted(buyout_cost),
             interruption_probability=interruption_probability,
             risk_warning=risk_warning,
             source_timestamp=self.catalog.get("metadata", {}).get("updated_at"),
