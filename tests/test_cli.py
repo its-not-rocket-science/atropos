@@ -246,6 +246,7 @@ monthly_runtime_hours: 100
     captured = capsys.readouterr()
     assert "Monthly" in captured.out
 
+
 def test_cloud_pricing_estimate_reserved_shows_buyout(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
