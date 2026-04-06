@@ -1,0 +1,48 @@
+models:
+  - id: meta-llama/Llama-2-7b-hf
+    alias: llama2_7b
+    family: Llama
+    size_bucket: 7b
+    params_b: 7.0
+    download_url: https://huggingface.co/meta-llama/Llama-2-7b-hf
+    realistic_deployment_rationale: >-
+      Baseline general-purpose 7B model used in many production pilots.
+    expected_baselines:
+      memory_gb_fp16: 14.5
+      throughput_toks_per_sec_a100_40gb: 45.0
+      throughput_toks_per_sec_t4_16gb: 11.0
+      power_watts: 275.0
+      requests_per_day: 100000
+      tokens_per_request: 900
+
+  - id: mistralai/Mistral-7B-v0.1
+    alias: mistral_7b
+    family: Mistral
+    size_bucket: 7b
+    params_b: 7.2
+    download_url: https://huggingface.co/mistralai/Mistral-7B-v0.1
+    realistic_deployment_rationale: >-
+      Strong open 7B baseline for quality/latency tradeoff measurements.
+    expected_baselines:
+      memory_gb_fp16: 15.0
+      throughput_toks_per_sec_a100_40gb: 42.0
+      throughput_toks_per_sec_t4_16gb: 10.0
+      power_watts: 285.0
+      requests_per_day: 120000
+      tokens_per_request: 900
+
+  - id: codellama/CodeLlama-13b-hf
+    alias: codellama_13b
+    family: CodeLlama
+    size_bucket: 13b
+    params_b: 13.0
+    download_url: https://huggingface.co/codellama/CodeLlama-13b-hf
+    realistic_deployment_rationale: >-
+      Coding-specialized model used to evaluate pruning impact on code tasks.
+    expected_baselines:
+      memory_gb_fp16: 27.0
+      throughput_toks_per_sec_a100_40gb: 24.0
+      throughput_toks_per_sec_t4_16gb: 5.5
+      power_watts: 315.0
+      requests_per_day: 80000
+      tokens_per_request: 1000

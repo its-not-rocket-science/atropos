@@ -1,0 +1,16 @@
+{
+  "hardware_matrix": [
+    {
+      "environment": "cloud",
+      "gpu": "NVIDIA A100 40GB",
+      "available_in_run": false,
+      "notes": "Requested target, not available in this execution environment."
+    },
+    {
+      "environment": "on-prem",
+      "gpu": "NVIDIA T4 16GB",
+      "available_in_run": false,
+      "notes": "Requested target, not available in this execution environment."
+    }
+  ]
+}

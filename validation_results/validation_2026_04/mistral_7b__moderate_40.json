@@ -1,0 +1,43 @@
+{
+  "actual": {},
+  "errors": [
+    "Can't load the configuration of 'mistralai/Mistral-7B-v0.1'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'mistralai/Mistral-7B-v0.1' is the correct path to a directory containing a config.json file"
+  ],
+  "hardware": {
+    "cuda_available": false,
+    "cuda_runtime": "13.0",
+    "driver_version": "n/a",
+    "gpu_count": 0,
+    "gpus": [],
+    "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+    "timestamp_utc": "2026-04-06T15:58:03.101326+00:00",
+    "torch": "2.11.0+cu130"
+  },
+  "model": {
+    "alias": "mistral_7b",
+    "download_url": "https://huggingface.co/mistralai/Mistral-7B-v0.1",
+    "family": "Mistral",
+    "id": "mistralai/Mistral-7B-v0.1",
+    "params_b": 7.2,
+    "rationale": "Strong open 7B baseline for quality/latency tradeoff measurements.",
+    "size_bucket": "7b"
+  },
+  "predicted": {
+    "annual_savings_usd": 37062.857142857145,
+    "break_even_months": 8.094357076780758,
+    "memory_gb": 9.599999999999998,
+    "power_watts": 233.7,
+    "throughput_toks_per_sec": 47.879999999999995
+  },
+  "seed": 1337,
+  "status": "error",
+  "strategy": {
+    "framework": "sparsegpt",
+    "name": "moderate_40",
+    "target_sparsity": 0.4
+  },
+  "timestamps": {
+    "completed_utc": "2026-04-06T15:58:03.129484+00:00",
+    "started_utc": "2026-04-06T15:58:03.122339+00:00"
+  }
+}
