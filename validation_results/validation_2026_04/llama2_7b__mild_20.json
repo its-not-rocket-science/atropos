@@ -1,0 +1,43 @@
+{
+  "actual": {},
+  "errors": [
+    "Can't load the configuration of 'meta-llama/Llama-2-7b-hf'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'meta-llama/Llama-2-7b-hf' is the correct path to a directory containing a config.json file"
+  ],
+  "hardware": {
+    "cuda_available": false,
+    "cuda_runtime": "13.0",
+    "driver_version": "n/a",
+    "gpu_count": 0,
+    "gpus": [],
+    "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+    "timestamp_utc": "2026-04-06T15:57:25.914313+00:00",
+    "torch": "2.11.0+cu130"
+  },
+  "model": {
+    "alias": "llama2_7b",
+    "download_url": "https://huggingface.co/meta-llama/Llama-2-7b-hf",
+    "family": "Llama",
+    "id": "meta-llama/Llama-2-7b-hf",
+    "params_b": 7.0,
+    "rationale": "Baseline general-purpose 7B model used in many production pilots.",
+    "size_bucket": "7b"
+  },
+  "predicted": {
+    "annual_savings_usd": 18280.623052959505,
+    "break_even_months": 16.41081921173535,
+    "memory_gb": 11.889999999999999,
+    "power_watts": 250.25,
+    "throughput_toks_per_sec": 48.150000000000006
+  },
+  "seed": 1337,
+  "status": "error",
+  "strategy": {
+    "framework": "wanda",
+    "name": "mild_20",
+    "target_sparsity": 0.2
+  },
+  "timestamps": {
+    "completed_utc": "2026-04-06T15:57:25.932916+00:00",
+    "started_utc": "2026-04-06T15:57:25.914542+00:00"
+  }
+}
