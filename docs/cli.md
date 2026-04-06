@@ -76,3 +76,13 @@ Convert batch CSV results to markdown report.
 ```bash
 atropos-llm csv-to-markdown results.csv --output report.md
 ```
+
+## Cloud pricing commands
+
+```bash
+atropos-llm cloud-pricing list-providers
+atropos-llm cloud-pricing estimate --scenario scenario.yaml --provider aws
+atropos-llm cloud-pricing compare --scenario scenario.yaml --providers aws,azure,lambda-labs
+```
+
+Use `--fetch-live-pricing` with `estimate` or `compare` to refresh provider catalogs before estimation.
