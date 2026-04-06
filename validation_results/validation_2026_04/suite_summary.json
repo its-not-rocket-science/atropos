@@ -16,9 +16,9 @@
       "throughput": null
     },
     "counts": {
-      "failed_runs": 3,
+      "failed_runs": 9,
       "successful_runs": 0,
-      "total_runs": 3
+      "total_runs": 9
     },
     "mape_percent": {
       "break_even_months": null,
@@ -99,7 +99,7 @@
       }
     }
   },
-  "generated_at_utc": "2026-04-06T15:58:03.138053+00:00",
+  "generated_at_utc": "2026-04-06T18:40:06.098262+00:00",
   "hardware": {
     "cuda_available": false,
     "cuda_runtime": "13.0",
@@ -107,7 +107,7 @@
     "gpu_count": 0,
     "gpus": [],
     "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
-    "timestamp_utc": "2026-04-06T15:58:03.101326+00:00",
+    "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
     "torch": "2.11.0+cu130"
   },
   "notes": {
@@ -118,9 +118,7 @@
   "results": [
     {
       "actual": {},
-      "errors": [
-        "Can't load the configuration of 'mistralai/Mistral-7B-v0.1'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'mistralai/Mistral-7B-v0.1' is the correct path to a directory containing a config.json file"
-      ],
+      "errors": [],
       "hardware": {
         "cuda_available": false,
         "cuda_runtime": "13.0",
@@ -128,7 +126,130 @@
         "gpu_count": 0,
         "gpus": [],
         "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
-        "timestamp_utc": "2026-04-06T15:58:03.101326+00:00",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "llama2_7b",
+        "download_url": "https://huggingface.co/meta-llama/Llama-2-7b-hf",
+        "family": "Llama",
+        "id": "meta-llama/Llama-2-7b-hf",
+        "params_b": 7.0,
+        "rationale": "Baseline general-purpose 7B model used in many production pilots.",
+        "size_bucket": "7b"
+      },
+      "predicted": {
+        "annual_savings_usd": 18280.623052959505,
+        "break_even_months": 16.41081921173535,
+        "memory_gb": 11.889999999999999,
+        "power_watts": 250.25,
+        "throughput_toks_per_sec": 48.150000000000006
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "wanda",
+        "name": "mild_20",
+        "target_sparsity": 0.2
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.087633+00:00",
+        "started_utc": "2026-04-06T18:40:06.087612+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "llama2_7b",
+        "download_url": "https://huggingface.co/meta-llama/Llama-2-7b-hf",
+        "family": "Llama",
+        "id": "meta-llama/Llama-2-7b-hf",
+        "params_b": 7.0,
+        "rationale": "Baseline general-purpose 7B model used in many production pilots.",
+        "size_bucket": "7b"
+      },
+      "predicted": {
+        "annual_savings_usd": 36438.362573099424,
+        "break_even_months": 8.233081258746644,
+        "memory_gb": 9.28,
+        "power_watts": 225.5,
+        "throughput_toks_per_sec": 51.3
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "sparsegpt",
+        "name": "moderate_40",
+        "target_sparsity": 0.4
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.088603+00:00",
+        "started_utc": "2026-04-06T18:40:06.088582+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "llama2_7b",
+        "download_url": "https://huggingface.co/meta-llama/Llama-2-7b-hf",
+        "family": "Llama",
+        "id": "meta-llama/Llama-2-7b-hf",
+        "params_b": 7.0,
+        "rationale": "Baseline general-purpose 7B model used in many production pilots.",
+        "size_bucket": "7b"
+      },
+      "predicted": {
+        "annual_savings_usd": 54494.545454545456,
+        "break_even_months": 5.505138128920326,
+        "memory_gb": 6.67,
+        "power_watts": 200.75,
+        "throughput_toks_per_sec": 54.449999999999996
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "sparsegpt",
+        "name": "aggressive_60",
+        "target_sparsity": 0.6
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.089402+00:00",
+        "started_utc": "2026-04-06T18:40:06.089388+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
         "torch": "2.11.0+cu130"
       },
       "model": {
@@ -148,22 +269,20 @@
         "throughput_toks_per_sec": 44.940000000000005
       },
       "seed": 1337,
-      "status": "error",
+      "status": "dry_run",
       "strategy": {
         "framework": "wanda",
         "name": "mild_20",
         "target_sparsity": 0.2
       },
       "timestamps": {
-        "completed_utc": "2026-04-06T15:58:03.121811+00:00",
-        "started_utc": "2026-04-06T15:58:03.101551+00:00"
+        "completed_utc": "2026-04-06T18:40:06.089970+00:00",
+        "started_utc": "2026-04-06T18:40:06.089955+00:00"
       }
     },
     {
       "actual": {},
-      "errors": [
-        "Can't load the configuration of 'mistralai/Mistral-7B-v0.1'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'mistralai/Mistral-7B-v0.1' is the correct path to a directory containing a config.json file"
-      ],
+      "errors": [],
       "hardware": {
         "cuda_available": false,
         "cuda_runtime": "13.0",
@@ -171,7 +290,7 @@
         "gpu_count": 0,
         "gpus": [],
         "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
-        "timestamp_utc": "2026-04-06T15:58:03.101326+00:00",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
         "torch": "2.11.0+cu130"
       },
       "model": {
@@ -191,22 +310,20 @@
         "throughput_toks_per_sec": 47.879999999999995
       },
       "seed": 1337,
-      "status": "error",
+      "status": "dry_run",
       "strategy": {
         "framework": "sparsegpt",
         "name": "moderate_40",
         "target_sparsity": 0.4
       },
       "timestamps": {
-        "completed_utc": "2026-04-06T15:58:03.129484+00:00",
-        "started_utc": "2026-04-06T15:58:03.122339+00:00"
+        "completed_utc": "2026-04-06T18:40:06.090750+00:00",
+        "started_utc": "2026-04-06T18:40:06.090729+00:00"
       }
     },
     {
       "actual": {},
-      "errors": [
-        "Can't load the configuration of 'mistralai/Mistral-7B-v0.1'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'mistralai/Mistral-7B-v0.1' is the correct path to a directory containing a config.json file"
-      ],
+      "errors": [],
       "hardware": {
         "cuda_available": false,
         "cuda_runtime": "13.0",
@@ -214,7 +331,7 @@
         "gpu_count": 0,
         "gpus": [],
         "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
-        "timestamp_utc": "2026-04-06T15:58:03.101326+00:00",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
         "torch": "2.11.0+cu130"
       },
       "model": {
@@ -234,15 +351,138 @@
         "throughput_toks_per_sec": 50.82
       },
       "seed": 1337,
-      "status": "error",
+      "status": "dry_run",
       "strategy": {
         "framework": "sparsegpt",
         "name": "aggressive_60",
         "target_sparsity": 0.6
       },
       "timestamps": {
-        "completed_utc": "2026-04-06T15:58:03.137668+00:00",
-        "started_utc": "2026-04-06T15:58:03.129957+00:00"
+        "completed_utc": "2026-04-06T18:40:06.091663+00:00",
+        "started_utc": "2026-04-06T18:40:06.091576+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "codellama_13b",
+        "download_url": "https://huggingface.co/codellama/CodeLlama-13b-hf",
+        "family": "CodeLlama",
+        "id": "codellama/CodeLlama-13b-hf",
+        "params_b": 13.0,
+        "rationale": "Coding-specialized model used to evaluate pruning impact on code tasks.",
+        "size_bucket": "13b"
+      },
+      "predicted": {
+        "annual_savings_usd": 19190.280373831774,
+        "break_even_months": 15.632913858261581,
+        "memory_gb": 22.139999999999997,
+        "power_watts": 286.65000000000003,
+        "throughput_toks_per_sec": 25.68
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "wanda",
+        "name": "mild_20",
+        "target_sparsity": 0.2
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.092427+00:00",
+        "started_utc": "2026-04-06T18:40:06.092412+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "codellama_13b",
+        "download_url": "https://huggingface.co/codellama/CodeLlama-13b-hf",
+        "family": "CodeLlama",
+        "id": "codellama/CodeLlama-13b-hf",
+        "params_b": 13.0,
+        "rationale": "Coding-specialized model used to evaluate pruning impact on code tasks.",
+        "size_bucket": "13b"
+      },
+      "predicted": {
+        "annual_savings_usd": 38145.9649122807,
+        "break_even_months": 7.864527760403252,
+        "memory_gb": 17.279999999999998,
+        "power_watts": 258.3,
+        "throughput_toks_per_sec": 27.36
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "sparsegpt",
+        "name": "moderate_40",
+        "target_sparsity": 0.4
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.092971+00:00",
+        "started_utc": "2026-04-06T18:40:06.092958+00:00"
+      }
+    },
+    {
+      "actual": {},
+      "errors": [],
+      "hardware": {
+        "cuda_available": false,
+        "cuda_runtime": "13.0",
+        "driver_version": "n/a",
+        "gpu_count": 0,
+        "gpus": [],
+        "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
+        "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
+        "torch": "2.11.0+cu130"
+      },
+      "model": {
+        "alias": "codellama_13b",
+        "download_url": "https://huggingface.co/codellama/CodeLlama-13b-hf",
+        "family": "CodeLlama",
+        "id": "codellama/CodeLlama-13b-hf",
+        "params_b": 13.0,
+        "rationale": "Coding-specialized model used to evaluate pruning impact on code tasks.",
+        "size_bucket": "13b"
+      },
+      "predicted": {
+        "annual_savings_usd": 56907.76859504133,
+        "break_even_months": 5.271687985779511,
+        "memory_gb": 12.419999999999998,
+        "power_watts": 229.95,
+        "throughput_toks_per_sec": 29.04
+      },
+      "seed": 1337,
+      "status": "dry_run",
+      "strategy": {
+        "framework": "sparsegpt",
+        "name": "aggressive_60",
+        "target_sparsity": 0.6
+      },
+      "timestamps": {
+        "completed_utc": "2026-04-06T18:40:06.097696+00:00",
+        "started_utc": "2026-04-06T18:40:06.097678+00:00"
       }
     }
   ]
