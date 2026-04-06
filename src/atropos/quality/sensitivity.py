@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from statistics import mean
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,11 @@ class SensitivityProfile:
     @property
     def embedding_output_fragility(self) -> float:
         """Mean fragility across embedding/output layers."""
-        fragilities = [l.embedding_fragility for l in self.layers if l.embedding_fragility is not None]
+        fragilities = [
+            layer.embedding_fragility
+            for layer in self.layers
+            if layer.embedding_fragility is not None
+        ]
         if not fragilities:
             return 0.0
         return mean(fragilities)

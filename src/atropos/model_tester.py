@@ -7,12 +7,13 @@ Generates a catalog of working models with their specifications.
 from __future__ import annotations
 
 import json
-import sys
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+import yaml  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -305,12 +306,6 @@ def generate_catalog(
         output_path: Path to write YAML catalog.
         min_success_rate: Only include if success rate >= this.
     """
-    try:
-        import yaml
-    except ImportError:
-        print("Error: pyyaml not installed. Run: pip install pyyaml")
-        sys.exit(1)
-
     successful = [r for r in test_results.results if r.status == "success"]
 
     if test_results.total_models > 0:

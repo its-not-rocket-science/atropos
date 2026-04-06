@@ -22,7 +22,7 @@ from ..quality.predictor import (
     predict_quality_degradation,
 )
 from ..quality.sensitivity import LayerSensitivity, SensitivityProfile
-from .config import PipelineConfig
+from .config import PipelineConfig, QualityPredictionConfig
 from .models import PipelineResult, PipelineStage, StageResult, StageStatus
 
 logger = get_logger("pipeline")
@@ -189,7 +189,7 @@ class PipelineRunner:
             logger.debug("Running ROI assessment")
             outcome = estimate_outcome(scenario, strategy, grid_co2e_kg_per_kwh=grid_co2e)
             self._result.roi_outcome = outcome
-            quality_cfg = self.config.quality_prediction or QualityPredictorConfig()
+            quality_cfg = self.config.quality_prediction or QualityPredictionConfig()
             quality_prediction = predict_quality_degradation(
                 metric=quality_cfg.metric,
                 sparsity=strategy.parameter_reduction_fraction,

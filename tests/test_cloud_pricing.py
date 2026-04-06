@@ -6,7 +6,11 @@ from pathlib import Path
 
 import yaml
 
-from atropos.costs.cloud_pricing import CloudCostRequest, CloudPricingEngine, request_from_scenario_yaml
+from atropos.costs.cloud_pricing import (
+    CloudCostRequest,
+    CloudPricingEngine,
+    request_from_scenario_yaml,
+)
 from atropos.io import load_scenario
 
 

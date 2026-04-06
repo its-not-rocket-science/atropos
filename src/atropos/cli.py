@@ -10,6 +10,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import yaml  # type: ignore[import-untyped]
+
 from .abtesting.models import (
     ABTestConfig,
     ExperimentStatus,
@@ -1082,7 +1084,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 }
                 content = json.dumps(output_data, indent=2)
             elif args.format == "yaml":
-                import yaml
 
                 output_data = {
                     "scenario": scenario_name,
@@ -1207,7 +1208,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(f"\nRaw metrics available: {len(telemetry.raw_metrics)} fields")
 
             if args.output:
-                import yaml
 
                 # Convert dataclass to dict for YAML output
                 scenario_dict = {
@@ -1265,7 +1265,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
 
                 scenario_path = args.output.with_suffix(".yaml")
-                import yaml
 
                 scenario_dict = {
                     "name": scenario.name,
@@ -1353,7 +1352,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
                     # Save if output specified and single run or last run
                     if args.output and len(runs) == 1:
-                        import yaml
 
                         scenario_dict = {
                             "name": scenario.name,
@@ -1465,7 +1463,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print(provider)
                 return 0
 
-            import yaml
 
             scenario_data = yaml.safe_load(args.scenario.read_text())
             if not isinstance(scenario_data, dict):
@@ -1501,7 +1498,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if estimate.risk_warning:
                     print(f"  Risk warning: {estimate.risk_warning}")
                 if estimate.commitment_buyout_cost > 0:
-                    print(f"  Commitment buyout: {estimate.commitment_buyout_cost:.2f} {estimate.currency}")
+                    print(
+                        "  Commitment buyout: "
+                        f"{estimate.commitment_buyout_cost:.2f} {estimate.currency}"
+                    )
                 if estimate.interruption_probability is not None:
                     print(f"  Interruption probability: {estimate.interruption_probability:.2%}")
                 return 0
@@ -1531,7 +1531,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 for estimate in estimates:
                     print(
                         f"  - {estimate.provider}: {estimate.monthly_total_cost:.2f} "
-                        f"{estimate.currency} ({estimate.instance_type}, {estimate.purchase_option})"
+                        f"{estimate.currency} "
+                        f"({estimate.instance_type}, {estimate.purchase_option})"
                     )
                 if len(estimates) >= 2:
                     delta = estimates[-1].monthly_total_cost - estimates[0].monthly_total_cost
@@ -1896,14 +1897,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         if args.command == "test-pruning":
             print(f"Testing pruning integration for {args.framework}...")
-            result = test_pruning_framework(args.framework)
-            if result.success:
-                mode_text = result.mode.value
+            pruning_result = test_pruning_framework(args.framework)
+            if pruning_result.success:
+                mode_text = pruning_result.mode.value
                 print(f"{args.framework} integration OK (mode={mode_text})")
-                if result.warning:
-                    print(f"warning: {result.warning}")
+                if pruning_result.warning:
+                    print(f"warning: {pruning_result.warning}")
                 return 0
-            print(result.error_message or "Unknown pruning integration error", file=sys.stderr)
+            print(
+                pruning_result.error_message or "Unknown pruning integration error",
+                file=sys.stderr,
+            )
             return 1
 
         if args.command == "ab-test":
@@ -1913,7 +1917,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             subcommand = args.subcommand
             if subcommand == "create":
                 # Load config
-                import yaml
 
                 with open(args.config) as f:
                     config_data = yaml.safe_load(f)
@@ -1981,7 +1984,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
                     print(json.dumps(exp_data, indent=2))
                 elif args.format == "yaml":
-                    import yaml
 
                     print(yaml.dump(exp_data, default_flow_style=False))
                 else:  # text
@@ -2004,7 +2006,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             elif subcommand == "stop":
                 import sys
 
-                import yaml
 
                 store = get_default_store()
                 exp_data = store.load_experiment(args.experiment_id)
@@ -2078,7 +2079,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 import json
                 import sys
 
-                import yaml
 
                 store = get_default_store()
                 exp_data = store.load_experiment(args.experiment_id)
@@ -2298,7 +2298,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             elif subcommand == "list":
                 import json
 
-                import yaml
 
                 store = get_default_store()
                 experiments = store.list_experiments(status_filter=args.status)

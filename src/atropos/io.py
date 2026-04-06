@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .models import DeploymentScenario, OptimizationOutcome
 
