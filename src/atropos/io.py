@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-from .models import DeploymentScenario, OptimizationOutcome
+from .models import DeploymentConfig, DeploymentScenario, OptimizationOutcome
 
 REQUIRED_SCENARIO_KEYS = {
     "name",
@@ -49,6 +49,8 @@ def load_scenario(path: str | Path) -> DeploymentScenario:
         missing_str = ", ".join(sorted(missing))
         raise ValueError(f"Scenario file is missing required keys: {missing_str}")
 
+    deployment_config = _parse_deployment_config(data.get("deployment"))
+
     return DeploymentScenario(
         name=str(data["name"]),
         parameters_b=float(data["parameters_b"]),
@@ -60,6 +62,42 @@ def load_scenario(path: str | Path) -> DeploymentScenario:
         electricity_cost_per_kwh=float(data["electricity_cost_per_kwh"]),
         annual_hardware_cost_usd=float(data["annual_hardware_cost_usd"]),
         one_time_project_cost_usd=float(data["one_time_project_cost_usd"]),
+        deployment=deployment_config,
+    )
+
+
+def _parse_deployment_config(raw: object) -> DeploymentConfig | None:
+    """Parse optional deployment configuration from scenario YAML."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ValueError("deployment must be a YAML mapping/object when provided.")
+    if "platform" not in raw or "instance_type" not in raw:
+        raise ValueError("deployment requires at least platform and instance_type keys.")
+    return DeploymentConfig(
+        platform=str(raw["platform"]),
+        instance_type=str(raw["instance_type"]),
+        purchase_option=str(raw.get("purchase_option", "ondemand")),  # type: ignore[arg-type]
+        region=str(raw.get("region", "us-east-1")),
+        commitment_years=int(raw.get("commitment_years", 1)),
+        data_egress_gb_per_month=float(raw.get("data_egress_gb_per_month", 0.0)),
+        storage_gb=float(raw.get("storage_gb", 0.0)),
+        hours_per_month=float(raw.get("hours_per_month", 730.0)),
+        interruption_probability=(
+            float(raw["interruption_probability"])
+            if "interruption_probability" in raw
+            else None
+        ),
+        monthly_inferences=float(raw["monthly_inferences"]) if "monthly_inferences" in raw else None,
+        memory_per_inference_gb=(
+            float(raw["memory_per_inference_gb"]) if "memory_per_inference_gb" in raw else None
+        ),
+        compute_seconds_per_inference=(
+            float(raw["compute_seconds_per_inference"])
+            if "compute_seconds_per_inference" in raw
+            else None
+        ),
+        currency=str(raw.get("currency", "USD")),
     )
 
 

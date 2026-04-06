@@ -27,6 +27,11 @@ from .calculations import combine_strategies, estimate_outcome
 from .calibration import calibrate_scenario, generate_calibration_report
 from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
 from .config import AtroposConfig
+from .costs.cloud_pricing import (
+    CloudPricingEngine,
+    find_serverless_break_even,
+    list_supported_providers,
+)
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
 from .deployment.platforms import get_platform
@@ -121,6 +126,34 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument(
         "--region", help="Region for carbon intensity (ISO code or cloud region like us-east-1)"
     )
+
+    cloud_parser = subparsers.add_parser(
+        "cloud-pricing",
+        help="Cloud provider pricing utilities (offline catalog + optional live fetch).",
+    )
+    cloud_subparsers = cloud_parser.add_subparsers(dest="cloud_command", required=True)
+
+    cloud_subparsers.add_parser("list-providers", help="List supported cloud/GPU providers.")
+
+    estimate_parser = cloud_subparsers.add_parser(
+        "estimate", help="Estimate cloud costs for a scenario deployment section."
+    )
+    estimate_parser.add_argument("--scenario", type=Path, required=True)
+    estimate_parser.add_argument("--provider", required=True)
+    estimate_parser.add_argument(
+        "--period", choices=["hourly", "monthly", "annual"], default="monthly"
+    )
+    estimate_parser.add_argument("--fetch-live-pricing", action="store_true")
+
+    compare_cloud_parser = cloud_subparsers.add_parser(
+        "compare", help="Compare cloud costs across providers for one scenario."
+    )
+    compare_cloud_parser.add_argument("--scenario", type=Path, required=True)
+    compare_cloud_parser.add_argument("--providers", required=True)
+    compare_cloud_parser.add_argument(
+        "--period", choices=["hourly", "monthly", "annual"], default="monthly"
+    )
+    compare_cloud_parser.add_argument("--fetch-live-pricing", action="store_true")
 
     batch_parser = subparsers.add_parser("batch", help="Process multiple scenario files.")
     batch_parser.add_argument("directory", type=Path)
@@ -830,6 +863,75 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 print(content)
             return 0
+
+        if args.command == "cloud-pricing":
+            if args.cloud_command == "list-providers":
+                for provider in list_supported_providers():
+                    print(provider)
+                return 0
+
+            engine = CloudPricingEngine()
+            if args.fetch_live_pricing:
+                try:
+                    live = engine.fetch_live_pricing()
+                    logger = logging.getLogger("atropos")
+                    logger.info("Fetched live pricing samples for providers: %s", ", ".join(live))
+                except Exception as exc:  # noqa: BLE001
+                    print(f"Warning: live pricing fetch failed ({exc}); using cached data.")
+
+            scenario = load_scenario(args.scenario)
+            if scenario.deployment is None:
+                print("Error: scenario must include deployment section for cloud-pricing commands.")
+                return 1
+
+            if args.cloud_command == "estimate":
+                estimate = engine.estimate(scenario, provider=args.provider, period=args.period)
+                print(f"Provider: {estimate.provider}")
+                print(f"Instance: {estimate.instance_type}")
+                print(f"Purchase option: {estimate.purchase_option}")
+                print(f"Period: {estimate.period}")
+                print(f"Compute cost: {estimate.currency} {estimate.compute_cost:,.2f}")
+                print(f"Storage cost: {estimate.currency} {estimate.storage_cost:,.2f}")
+                print(f"Network cost: {estimate.currency} {estimate.network_cost:,.2f}")
+                print(f"Total cost: {estimate.currency} {estimate.total_cost:,.2f}")
+                if estimate.per_inference_cost is not None:
+                    print(
+                        "Per inference cost: "
+                        f"{estimate.currency} {estimate.per_inference_cost:.6f}"
+                    )
+                if estimate.interruption_risk_note:
+                    print(f"Risk warning: {estimate.interruption_risk_note}")
+                if estimate.commitment_buyout_usd > 0:
+                    print(
+                        f"Commitment buyout exposure: {estimate.currency} "
+                        f"{estimate.commitment_buyout_usd:,.2f}"
+                    )
+                return 0
+
+            if args.cloud_command == "compare":
+                providers = [p.strip() for p in args.providers.split(",") if p.strip()]
+                estimates = engine.compare(scenario, providers=providers, period=args.period)
+                estimates_sorted = sorted(estimates, key=lambda e: e.total_cost)
+                print("provider,total_cost,compute,storage,network,currency")
+                for estimate in estimates_sorted:
+                    print(
+                        f"{estimate.provider},{estimate.total_cost:.2f},{estimate.compute_cost:.2f},"
+                        f"{estimate.storage_cost:.2f},{estimate.network_cost:.2f},{estimate.currency}"
+                    )
+                # Include break-even hint for serverless vs cheapest reserved/on-demand.
+                serverless = next((e for e in estimates_sorted if e.per_inference_cost), None)
+                fixed = next((e for e in estimates_sorted if e.per_inference_cost is None), None)
+                if serverless and fixed and serverless.per_inference_cost:
+                    break_even = find_serverless_break_even(
+                        reserved_monthly_cost_usd=fixed.total_cost,
+                        per_inference_cost_usd=serverless.per_inference_cost,
+                    )
+                    if break_even:
+                        print(
+                            f"serverless_break_even_inferences_per_month,{break_even},"
+                            f"against={fixed.provider}"
+                        )
+                return 0
 
         if args.command == "batch":
             batch_results = batch_process(

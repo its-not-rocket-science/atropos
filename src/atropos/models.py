@@ -9,6 +9,26 @@ if TYPE_CHECKING:
     from .hardware import GPUType
 
 QualityRisk = Literal["low", "medium", "high"]
+PurchaseOption = Literal["ondemand", "spot", "reserved"]
+
+
+@dataclass(frozen=True)
+class DeploymentConfig:
+    """Cloud deployment configuration for provider pricing models."""
+
+    platform: str
+    instance_type: str
+    purchase_option: PurchaseOption = "ondemand"
+    region: str = "us-east-1"
+    commitment_years: int = 1
+    data_egress_gb_per_month: float = 0.0
+    storage_gb: float = 0.0
+    hours_per_month: float = 730.0
+    interruption_probability: float | None = None
+    monthly_inferences: float | None = None
+    memory_per_inference_gb: float | None = None
+    compute_seconds_per_inference: float | None = None
+    currency: str = "USD"
 
 
 @dataclass(frozen=True)
@@ -50,6 +70,7 @@ class DeploymentScenario:
     pricing_model: Literal["cloud", "reserved"] = "cloud"
     utilization: float = 1.0
     annual_hardware_cost_usd: float | None = None
+    deployment: DeploymentConfig | None = None
 
 
 @dataclass(frozen=True)

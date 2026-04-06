@@ -1,0 +1,73 @@
+{
+  "as_of_date": "2026-04-06",
+  "source_notes": [
+    "Seed dataset for offline modeling",
+    "Values are representative placeholders and should be refreshed weekly"
+  ],
+  "fx_rates": {
+    "USD": 1.0,
+    "EUR": 0.92,
+    "GBP": 0.79,
+    "JPY": 151.0
+  },
+  "providers": {
+    "aws": {
+      "instances": [
+        {"instance_type": "p4d.24xlarge", "region": "us-east-1", "model": "ondemand", "price_usd_per_hour": 32.77, "spot_price_usd_per_hour": 11.50, "interruption_probability": 0.09, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.09},
+        {"instance_type": "p5.48xlarge", "region": "us-east-1", "model": "ondemand", "price_usd_per_hour": 98.32, "spot_price_usd_per_hour": 34.20, "interruption_probability": 0.12, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.09},
+        {"instance_type": "g4dn.xlarge", "region": "us-east-1", "model": "ondemand", "price_usd_per_hour": 0.526, "spot_price_usd_per_hour": 0.19, "interruption_probability": 0.07, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.09},
+        {"instance_type": "g5.2xlarge", "region": "us-east-1", "model": "ondemand", "price_usd_per_hour": 1.21, "spot_price_usd_per_hour": 0.49, "interruption_probability": 0.08, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.09},
+        {"instance_type": "sagemaker.g5.2xlarge", "region": "us-east-1", "model": "ondemand", "price_usd_per_hour": 1.40, "spot_price_usd_per_hour": 0.57, "interruption_probability": 0.08, "storage_usd_per_gb_month": 0.12, "egress_usd_per_gb": 0.09}
+      ]
+    },
+    "azure": {
+      "instances": [
+        {"instance_type": "ncas_t4_v3", "region": "eastus", "model": "ondemand", "price_usd_per_hour": 0.62, "spot_price_usd_per_hour": 0.23, "interruption_probability": 0.11, "storage_usd_per_gb_month": 0.11, "egress_usd_per_gb": 0.087},
+        {"instance_type": "nc_a100_v4", "region": "eastus", "model": "ondemand", "price_usd_per_hour": 4.10, "spot_price_usd_per_hour": 1.38, "interruption_probability": 0.12, "storage_usd_per_gb_month": 0.11, "egress_usd_per_gb": 0.087},
+        {"instance_type": "azureml.nc_a100_v4", "region": "eastus", "model": "ondemand", "price_usd_per_hour": 4.44, "spot_price_usd_per_hour": 1.52, "interruption_probability": 0.12, "storage_usd_per_gb_month": 0.12, "egress_usd_per_gb": 0.087}
+      ]
+    },
+    "gcp": {
+      "instances": [
+        {"instance_type": "g2-standard-24", "region": "us-central1", "model": "ondemand", "price_usd_per_hour": 1.30, "spot_price_usd_per_hour": 0.45, "interruption_probability": 0.10, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.12},
+        {"instance_type": "a2-highgpu-1g", "region": "us-central1", "model": "ondemand", "price_usd_per_hour": 3.67, "spot_price_usd_per_hour": 1.23, "interruption_probability": 0.13, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.12},
+        {"instance_type": "vertex-a2-prediction", "region": "us-central1", "model": "ondemand", "price_usd_per_hour": 3.98, "spot_price_usd_per_hour": 0.0, "interruption_probability": 0.0, "storage_usd_per_gb_month": 0.12, "egress_usd_per_gb": 0.12}
+      ]
+    },
+    "lambda-labs": {
+      "instances": [
+        {"instance_type": "a100-80gb", "region": "us", "model": "ondemand", "price_usd_per_hour": 1.99, "spot_price_usd_per_hour": 1.39, "interruption_probability": 0.05, "storage_usd_per_gb_month": 0.09, "egress_usd_per_gb": 0.05}
+      ]
+    },
+    "runpod": {
+      "instances": [
+        {"instance_type": "a100-80gb", "region": "us", "model": "ondemand", "price_usd_per_hour": 1.85, "spot_price_usd_per_hour": 0.99, "interruption_probability": 0.15, "storage_usd_per_gb_month": 0.08, "egress_usd_per_gb": 0.07}
+      ]
+    },
+    "vast-ai": {
+      "instances": [
+        {"instance_type": "a100-80gb", "region": "us", "model": "ondemand", "price_usd_per_hour": 1.70, "spot_price_usd_per_hour": 1.10, "interruption_probability": 0.20, "storage_usd_per_gb_month": 0.07, "egress_usd_per_gb": 0.06}
+      ]
+    },
+    "together-ai": {
+      "instances": [
+        {"instance_type": "l40s-shared", "region": "us", "model": "ondemand", "price_usd_per_hour": 2.20, "spot_price_usd_per_hour": 0.0, "interruption_probability": 0.0, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.08}
+      ]
+    },
+    "replicate": {
+      "instances": [
+        {"instance_type": "a100", "region": "global", "model": "serverless", "usd_per_inference": 0.0012, "usd_per_gb_second": 0.000016, "storage_usd_per_gb_month": 0.11, "egress_usd_per_gb": 0.12}
+      ]
+    },
+    "banana": {
+      "instances": [
+        {"instance_type": "serverless-gpu", "region": "global", "model": "serverless", "usd_per_inference": 0.0010, "usd_per_gb_second": 0.000014, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.11}
+      ]
+    },
+    "modal": {
+      "instances": [
+        {"instance_type": "a100", "region": "global", "model": "serverless", "usd_per_inference": 0.0009, "usd_per_gb_second": 0.000015, "storage_usd_per_gb_month": 0.10, "egress_usd_per_gb": 0.11}
+      ]
+    }
+  }
+}

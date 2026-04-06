@@ -209,3 +209,50 @@ def test_tune_command_with_constraints(capsys: pytest.CaptureFixture) -> None:
         assert constraints.max_power_watts == 250.0
         assert constraints.use_quantization is True
         assert constraints.prefer_fast_pruning is True
+
+
+def test_cloud_pricing_list_providers(capsys: pytest.CaptureFixture) -> None:
+    """Test cloud-pricing list-providers command."""
+    result = main(["cloud-pricing", "list-providers"])
+    captured = capsys.readouterr()
+    assert result == 0
+    assert "aws" in captured.out
+    assert "azure" in captured.out
+
+
+def test_cloud_pricing_estimate(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """Test cloud-pricing estimate command with scenario file."""
+    scenario_path = tmp_path / "cloud.yaml"
+    scenario_path.write_text(
+        """
+name: cloud-cli
+parameters_b: 7
+memory_gb: 20
+throughput_toks_per_sec: 120
+power_watts: 400
+requests_per_day: 10000
+tokens_per_request: 1024
+electricity_cost_per_kwh: 0.12
+annual_hardware_cost_usd: 10000
+one_time_project_cost_usd: 20000
+deployment:
+  platform: aws
+  instance_type: p4d.24xlarge
+  purchase_option: spot
+  region: us-east-1
+""".strip()
+    )
+    result = main(
+        [
+            "cloud-pricing",
+            "estimate",
+            "--scenario",
+            str(scenario_path),
+            "--provider",
+            "aws",
+        ]
+    )
+    captured = capsys.readouterr()
+    assert result == 0
+    assert "Total cost:" in captured.out
+    assert "Risk warning:" in captured.out
