@@ -209,3 +209,74 @@ def test_tune_command_with_constraints(capsys: pytest.CaptureFixture) -> None:
         assert constraints.max_power_watts == 250.0
         assert constraints.use_quantization is True
         assert constraints.prefer_fast_pruning is True
+
+
+def test_cloud_pricing_list_providers(capsys: pytest.CaptureFixture) -> None:
+    """Test cloud-pricing list-providers command."""
+    result = main(["cloud-pricing", "list-providers"])
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "aws" in captured.out
+
+
+def test_cloud_pricing_estimate(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """Test cloud-pricing estimate command."""
+    scenario = tmp_path / "scenario.yaml"
+    scenario.write_text(
+        """
+name: cloud-cli-test
+parameters_b: 34
+memory_gb: 20
+throughput_toks_per_sec: 40
+power_watts: 300
+requests_per_day: 20000
+tokens_per_request: 1200
+electricity_cost_per_kwh: 0.15
+one_time_project_cost_usd: 15000
+deployment:
+  platform: aws
+  instance_type: p4d.24xlarge
+  purchase_option: spot
+  region: us-east-1
+monthly_runtime_hours: 100
+"""
+    )
+    result = main(["cloud-pricing", "estimate", "--scenario", str(scenario)])
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "Monthly" in captured.out
+
+
+def test_cloud_pricing_compare(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """Test cloud-pricing compare command."""
+    scenario = tmp_path / "scenario.yaml"
+    scenario.write_text(
+        """
+name: cloud-compare-test
+parameters_b: 34
+memory_gb: 20
+throughput_toks_per_sec: 40
+power_watts: 300
+requests_per_day: 20000
+tokens_per_request: 1200
+electricity_cost_per_kwh: 0.15
+one_time_project_cost_usd: 15000
+deployment:
+  platform: aws
+  instance_type: p4d.24xlarge
+  purchase_option: ondemand
+"""
+    )
+    result = main(
+        [
+            "cloud-pricing",
+            "compare",
+            "--scenario",
+            str(scenario),
+            "--providers",
+            "aws,azure",
+        ]
+    )
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "Provider comparison" in captured.out

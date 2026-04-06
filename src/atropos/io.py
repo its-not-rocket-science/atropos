@@ -12,7 +12,7 @@ import yaml
 
 from .models import DeploymentScenario, OptimizationOutcome
 
-REQUIRED_SCENARIO_KEYS = {
+BASE_REQUIRED_SCENARIO_KEYS = {
     "name",
     "parameters_b",
     "memory_gb",
@@ -21,7 +21,6 @@ REQUIRED_SCENARIO_KEYS = {
     "requests_per_day",
     "tokens_per_request",
     "electricity_cost_per_kwh",
-    "annual_hardware_cost_usd",
     "one_time_project_cost_usd",
 }
 
@@ -44,7 +43,12 @@ def load_scenario(path: str | Path) -> DeploymentScenario:
     if not isinstance(data, dict):
         raise ValueError("Scenario file must contain a YAML mapping/object.")
 
-    missing = REQUIRED_SCENARIO_KEYS - set(data.keys())
+    required_keys = set(BASE_REQUIRED_SCENARIO_KEYS)
+    has_cloud_deployment = isinstance(data.get("deployment"), dict)
+    if not has_cloud_deployment:
+        required_keys.add("annual_hardware_cost_usd")
+
+    missing = required_keys - set(data.keys())
     if missing:
         missing_str = ", ".join(sorted(missing))
         raise ValueError(f"Scenario file is missing required keys: {missing_str}")
@@ -58,7 +62,11 @@ def load_scenario(path: str | Path) -> DeploymentScenario:
         requests_per_day=int(data["requests_per_day"]),
         tokens_per_request=int(data["tokens_per_request"]),
         electricity_cost_per_kwh=float(data["electricity_cost_per_kwh"]),
-        annual_hardware_cost_usd=float(data["annual_hardware_cost_usd"]),
+        annual_hardware_cost_usd=(
+            float(data["annual_hardware_cost_usd"])
+            if data.get("annual_hardware_cost_usd") is not None
+            else (0.0 if has_cloud_deployment else None)
+        ),
         one_time_project_cost_usd=float(data["one_time_project_cost_usd"]),
     )
 

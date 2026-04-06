@@ -1,0 +1,153 @@
+{
+  "exchange_rates": {
+    "EUR": 0.93,
+    "GBP": 0.79,
+    "INR": 83.0,
+    "JPY": 151.0,
+    "USD": 1.0
+  },
+  "metadata": {
+    "currency_base": "USD",
+    "source": "atropos-static",
+    "updated_at": "2026-04-06T15:43:36.194313+00:00"
+  },
+  "providers": {
+    "aws": {
+      "ec2": {
+        "g4dn.12xlarge": {
+          "ondemand_usd_per_hour": 3.912,
+          "spot_usd_per_hour": 1.58
+        },
+        "g5.12xlarge": {
+          "ondemand_usd_per_hour": 5.672,
+          "spot_usd_per_hour": 2.25
+        },
+        "p4d.24xlarge": {
+          "ondemand_usd_per_hour": 32.77,
+          "spot_usd_per_hour": 12.75
+        },
+        "p5.48xlarge": {
+          "ondemand_usd_per_hour": 98.32,
+          "spot_usd_per_hour": 38.1
+        }
+      },
+      "sagemaker": {
+        "ml.g5.12xlarge": {
+          "ondemand_usd_per_hour": 6.85
+        },
+        "ml.p4d.24xlarge": {
+          "ondemand_usd_per_hour": 36.3
+        }
+      },
+      "serverless": {
+        "lambda": {
+          "notes": "GPU Lambda is not broadly available; modeled as CPU/serverless baseline.",
+          "usd_per_gb_second": 1.66667e-05,
+          "usd_per_million_requests": 0.2
+        }
+      }
+    },
+    "azure": {
+      "ml_endpoints": {
+        "ManagedOnlineEndpoint_NC24ads_A100_v4": {
+          "ondemand_usd_per_hour": 16.2
+        }
+      },
+      "vm": {
+        "Standard_NC24ads_A100_v4": {
+          "ondemand_usd_per_hour": 14.69,
+          "spot_usd_per_hour": 5.65
+        },
+        "Standard_NC4as_T4_v3": {
+          "ondemand_usd_per_hour": 0.9,
+          "spot_usd_per_hour": 0.37
+        },
+        "Standard_NC96ads_A100_v4": {
+          "ondemand_usd_per_hour": 58.76,
+          "spot_usd_per_hour": 22.25
+        }
+      }
+    },
+    "banana": {
+      "serverless": {
+        "a100": {
+          "usd_per_inference": 0.0025,
+          "usd_per_second": 0.00062
+        }
+      }
+    },
+    "gcp": {
+      "compute_engine": {
+        "a2-highgpu-1g": {
+          "ondemand_usd_per_hour": 3.67,
+          "spot_usd_per_hour": 1.17
+        },
+        "a2-highgpu-8g": {
+          "ondemand_usd_per_hour": 29.36,
+          "spot_usd_per_hour": 9.36
+        },
+        "g2-standard-24-l4": {
+          "ondemand_usd_per_hour": 2.34,
+          "spot_usd_per_hour": 0.79
+        }
+      },
+      "vertex_ai": {
+        "a2-highgpu-1g": {
+          "ondemand_usd_per_hour": 4.35
+        },
+        "n1-standard-16-plus-t4": {
+          "ondemand_usd_per_hour": 1.95
+        }
+      }
+    },
+    "lambda-labs": {
+      "gpu": {
+        "a100-80gb": {
+          "ondemand_usd_per_hour": 2.49,
+          "spot_usd_per_hour": 1.69
+        }
+      }
+    },
+    "modal": {
+      "serverless": {
+        "a100": {
+          "usd_per_gb_second": 5e-06,
+          "usd_per_inference": 0.0018,
+          "usd_per_second": 0.00064
+        }
+      }
+    },
+    "replicate": {
+      "serverless": {
+        "l40s": {
+          "usd_per_inference": 0.003,
+          "usd_per_second": 0.00055
+        }
+      }
+    },
+    "runpod": {
+      "gpu": {
+        "a100-pcie-80gb": {
+          "ondemand_usd_per_hour": 2.79,
+          "spot_usd_per_hour": 1.15
+        }
+      }
+    },
+    "together.ai": {
+      "serverless": {
+        "a100-inference": {
+          "usd_per_1k_tokens": 0.0008,
+          "usd_per_inference": 0.002
+        }
+      }
+    },
+    "vast.ai": {
+      "gpu": {
+        "a100-80gb-average": {
+          "ondemand_usd_per_hour": 1.95,
+          "spot_usd_per_hour": 0.99
+        }
+      }
+    }
+  }
+}

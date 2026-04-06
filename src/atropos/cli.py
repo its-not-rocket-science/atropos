@@ -29,6 +29,7 @@ from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
 from .config import AtroposConfig
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
+from .costs.cloud_pricing import CloudPricingEngine, request_from_scenario_yaml
 from .deployment.platforms import get_platform
 from .exceptions import AtroposError
 from .integrations import TRACKERS, get_tracker, run_to_scenario
@@ -381,6 +382,32 @@ def build_parser() -> argparse.ArgumentParser:
     carbon_parser.add_argument(
         "--format", choices=["text", "json"], default="text", help="Output format"
     )
+
+    cloud_pricing_parser = subparsers.add_parser(
+        "cloud-pricing",
+        help="Estimate and compare cloud/GPU-rental pricing across providers.",
+    )
+    cloud_subparsers = cloud_pricing_parser.add_subparsers(dest="subcommand", required=True)
+
+    cloud_subparsers.add_parser("list-providers", help="List available cloud providers.")
+
+    cloud_estimate_parser = cloud_subparsers.add_parser(
+        "estimate", help="Estimate cloud pricing for a scenario."
+    )
+    cloud_estimate_parser.add_argument("--scenario", type=Path, required=True)
+    cloud_estimate_parser.add_argument("--provider", help="Override deployment.platform")
+    cloud_estimate_parser.add_argument("--fetch-live-pricing", action="store_true")
+
+    cloud_compare_parser = cloud_subparsers.add_parser(
+        "compare", help="Compare cloud pricing across providers for one scenario."
+    )
+    cloud_compare_parser.add_argument("--scenario", type=Path, required=True)
+    cloud_compare_parser.add_argument(
+        "--providers",
+        required=True,
+        help="Comma-separated providers (e.g., aws,azure,lambda-labs)",
+    )
+    cloud_compare_parser.add_argument("--fetch-live-pricing", action="store_true")
 
     calibrate_parser = subparsers.add_parser(
         "calibrate",
@@ -1425,6 +1452,89 @@ def main(argv: Sequence[str] | None = None) -> int:
                     print("\nUse --region CODE for details")
                     print("Cloud regions (e.g., us-east-1) are also supported")
             return 0
+
+        if args.command == "cloud-pricing":
+            engine = CloudPricingEngine()
+            if getattr(args, "fetch_live_pricing", False):
+                engine.refresh_live_pricing()
+
+            if args.subcommand == "list-providers":
+                for provider in engine.list_providers():
+                    print(provider)
+                return 0
+
+            import yaml
+
+            scenario_data = yaml.safe_load(args.scenario.read_text())
+            if not isinstance(scenario_data, dict):
+                raise ValueError("Scenario file must contain a YAML mapping/object.")
+
+            if args.subcommand == "estimate":
+                request = request_from_scenario_yaml(
+                    scenario_data=scenario_data,
+                    provider_override=args.provider,
+                )
+                try:
+                    estimate = engine.estimate(request)
+                except KeyError:
+                    request = dataclasses.replace(
+                        request,
+                        instance_type=engine.default_instance_type(request.provider),
+                    )
+                    estimate = engine.estimate(request)
+                print(
+                    f"{estimate.provider}/{estimate.instance_type} "
+                    f"({estimate.purchase_option}) [{estimate.currency}]"
+                )
+                print(f"  Hourly:  {estimate.hourly_total_cost:.4f}")
+                print(f"  Monthly: {estimate.monthly_total_cost:.2f}")
+                print(f"  Annual:  {estimate.annual_total_cost:.2f}")
+                print(
+                    f"  Breakdown (monthly): compute={estimate.compute_monthly_cost:.2f}, "
+                    f"serverless_req={estimate.serverless_request_monthly_cost:.2f}, "
+                    f"serverless_duration={estimate.serverless_duration_monthly_cost:.2f}, "
+                    f"storage={estimate.storage_monthly_cost:.2f}, "
+                    f"network={estimate.network_monthly_cost:.2f}"
+                )
+                if estimate.risk_warning:
+                    print(f"  Risk warning: {estimate.risk_warning}")
+                if estimate.interruption_probability is not None:
+                    print(f"  Interruption probability: {estimate.interruption_probability:.2%}")
+                return 0
+
+            if args.subcommand == "compare":
+                providers = [p.strip() for p in args.providers.split(",") if p.strip()]
+                if not providers:
+                    raise ValueError("At least one provider must be passed in --providers.")
+
+                estimates = []
+                for provider in providers:
+                    request = request_from_scenario_yaml(
+                        scenario_data=scenario_data,
+                        provider_override=provider,
+                    )
+                    try:
+                        estimates.append(engine.estimate(request))
+                    except KeyError:
+                        fallback = dataclasses.replace(
+                            request,
+                            instance_type=engine.default_instance_type(provider),
+                        )
+                        estimates.append(engine.estimate(fallback))
+                estimates.sort(key=lambda e: e.monthly_total_cost)
+
+                print("Provider comparison (monthly total):")
+                for estimate in estimates:
+                    print(
+                        f"  - {estimate.provider}: {estimate.monthly_total_cost:.2f} "
+                        f"{estimate.currency} ({estimate.instance_type}, {estimate.purchase_option})"
+                    )
+                if len(estimates) >= 2:
+                    delta = estimates[-1].monthly_total_cost - estimates[0].monthly_total_cost
+                    print(
+                        f"Spread best->worst: {delta:.2f} {estimates[0].currency} per month."
+                    )
+                return 0
 
         if args.command == "dashboard":
             try:

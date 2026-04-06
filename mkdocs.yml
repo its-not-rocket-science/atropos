@@ -7,6 +7,7 @@ nav:
   - Installation: installation.md
   - CLI Usage: cli.md
   - Python API: api.md
+  - Cloud Cost Modeling: cloud-cost-modeling.md
   - Examples: examples.md
   - Case Study: case-study.md
 
