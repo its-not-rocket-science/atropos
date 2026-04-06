@@ -247,6 +247,45 @@ monthly_runtime_hours: 100
     assert "Monthly" in captured.out
 
 
+
+
+def test_cloud_pricing_estimate_reserved_shows_buyout(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """Test reserved estimate prints commitment buyout."""
+    scenario = tmp_path / "scenario_reserved.yaml"
+    scenario.write_text(
+        """
+name: cloud-cli-reserved
+parameters_b: 34
+memory_gb: 20
+throughput_toks_per_sec: 40
+power_watts: 300
+requests_per_day: 20000
+tokens_per_request: 1200
+electricity_cost_per_kwh: 0.15
+one_time_project_cost_usd: 15000
+deployment:
+  platform: azure
+  instance_type: Standard_NC24_A100_v2
+  purchase_option: reserved
+  commitment_years: 1
+monthly_runtime_hours: 100
+"""
+    )
+    result = main(
+        [
+            "cloud-pricing",
+            "estimate",
+            "--scenario",
+            str(scenario),
+            "--fetch-live-pricing",
+            "--mock-pricing-api",
+        ]
+    )
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "Commitment buyout" in captured.out
+
+
 def test_cloud_pricing_compare(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     """Test cloud-pricing compare command."""
     scenario = tmp_path / "scenario.yaml"

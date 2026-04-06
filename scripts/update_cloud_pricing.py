@@ -15,11 +15,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Update cached cloud pricing JSON")
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--fetch-live-pricing", action="store_true")
+    parser.add_argument(
+        "--mock-api",
+        action="store_true",
+        help="Use mock provider API payloads (recommended for CI and offline tests).",
+    )
     args = parser.parse_args()
 
     engine = CloudPricingEngine(data_dir=args.data_dir)
     if args.fetch_live_pricing:
-        engine.refresh_live_pricing()
+        engine.refresh_live_pricing(use_mock_api=args.mock_api)
 
     args.data_dir.mkdir(parents=True, exist_ok=True)
     out = args.data_dir / f"cloud_pricing_{date.today().isoformat()}.json"

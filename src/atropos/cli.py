@@ -397,6 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
     cloud_estimate_parser.add_argument("--scenario", type=Path, required=True)
     cloud_estimate_parser.add_argument("--provider", help="Override deployment.platform")
     cloud_estimate_parser.add_argument("--fetch-live-pricing", action="store_true")
+    cloud_estimate_parser.add_argument("--mock-pricing-api", action="store_true")
 
     cloud_compare_parser = cloud_subparsers.add_parser(
         "compare", help="Compare cloud pricing across providers for one scenario."
@@ -408,6 +409,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated providers (e.g., aws,azure,lambda-labs)",
     )
     cloud_compare_parser.add_argument("--fetch-live-pricing", action="store_true")
+    cloud_compare_parser.add_argument("--mock-pricing-api", action="store_true")
 
     calibrate_parser = subparsers.add_parser(
         "calibrate",
@@ -1456,7 +1458,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "cloud-pricing":
             engine = CloudPricingEngine()
             if getattr(args, "fetch_live_pricing", False):
-                engine.refresh_live_pricing()
+                engine.refresh_live_pricing(use_mock_api=getattr(args, "mock_pricing_api", False))
 
             if args.subcommand == "list-providers":
                 for provider in engine.list_providers():
@@ -1498,6 +1500,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 if estimate.risk_warning:
                     print(f"  Risk warning: {estimate.risk_warning}")
+                if estimate.commitment_buyout_cost > 0:
+                    print(f"  Commitment buyout: {estimate.commitment_buyout_cost:.2f} {estimate.currency}")
                 if estimate.interruption_probability is not None:
                     print(f"  Interruption probability: {estimate.interruption_probability:.2%}")
                 return 0

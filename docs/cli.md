@@ -82,7 +82,9 @@ atropos-llm csv-to-markdown results.csv --output report.md
 ```bash
 atropos-llm cloud-pricing list-providers
 atropos-llm cloud-pricing estimate --scenario scenario.yaml --provider aws
+atropos-llm cloud-pricing estimate --scenario scenario.yaml --provider azure --fetch-live-pricing --mock-pricing-api
 atropos-llm cloud-pricing compare --scenario scenario.yaml --providers aws,azure,lambda-labs
 ```
 
 Use `--fetch-live-pricing` with `estimate` or `compare` to refresh provider catalogs before estimation.
+Use `--mock-pricing-api` for CI/offline-safe fetches with deterministic provider payloads.

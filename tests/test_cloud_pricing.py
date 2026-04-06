@@ -33,6 +33,21 @@ def test_spot_pricing_emits_risk_warning() -> None:
     assert estimate.risk_warning is not None
 
 
+def test_reserved_pricing_includes_buyout_estimate() -> None:
+    engine = CloudPricingEngine()
+    estimate = engine.estimate(
+        CloudCostRequest(
+            provider="azure",
+            instance_type="Standard_NC24_A100_v2",
+            purchase_option="reserved",
+            commitment_years=1,
+            monthly_runtime_hours=100,
+        )
+    )
+    assert estimate.monthly_total_cost > 0
+    assert estimate.commitment_buyout_cost > 0
+
+
 def test_serverless_pricing_uses_inference_dimensions() -> None:
     engine = CloudPricingEngine()
     estimate = engine.estimate(
@@ -50,6 +65,12 @@ def test_serverless_pricing_uses_inference_dimensions() -> None:
     assert estimate.serverless_request_monthly_cost > 0
     assert estimate.serverless_duration_monthly_cost > 0
     assert estimate.compute_monthly_cost == 0
+
+
+def test_refresh_live_pricing_accepts_mock_mode() -> None:
+    engine = CloudPricingEngine()
+    engine.refresh_live_pricing(use_mock_api=True)
+    assert engine.catalog["metadata"]["source"] == "atropos-live-mock"
 
 
 def test_load_scenario_allows_deployment_without_annual_hardware(tmp_path: Path) -> None:
