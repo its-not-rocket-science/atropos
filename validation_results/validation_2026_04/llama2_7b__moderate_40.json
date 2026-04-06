@@ -1,8 +1,6 @@
 {
   "actual": {},
-  "errors": [
-    "Can't load the configuration of 'meta-llama/Llama-2-7b-hf'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'meta-llama/Llama-2-7b-hf' is the correct path to a directory containing a config.json file"
-  ],
+  "errors": [],
   "hardware": {
     "cuda_available": false,
     "cuda_runtime": "13.0",
@@ -10,7 +8,7 @@
     "gpu_count": 0,
     "gpus": [],
     "python": "3.10.19 (main, Jan 12 2026, 17:41:56) [GCC 13.3.0]",
-    "timestamp_utc": "2026-04-06T15:57:25.914313+00:00",
+    "timestamp_utc": "2026-04-06T18:40:06.087204+00:00",
     "torch": "2.11.0+cu130"
   },
   "model": {
@@ -30,14 +28,14 @@
     "throughput_toks_per_sec": 51.3
   },
   "seed": 1337,
-  "status": "error",
+  "status": "dry_run",
   "strategy": {
     "framework": "sparsegpt",
     "name": "moderate_40",
     "target_sparsity": 0.4
   },
   "timestamps": {
-    "completed_utc": "2026-04-06T15:57:25.947636+00:00",
-    "started_utc": "2026-04-06T15:57:25.933465+00:00"
+    "completed_utc": "2026-04-06T18:40:06.088603+00:00",
+    "started_utc": "2026-04-06T18:40:06.088582+00:00"
   }
 }

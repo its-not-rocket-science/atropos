@@ -15,6 +15,7 @@ We executed a preregistered April 2026 validation campaign to test Atropos pruni
 - **Models tested**: `meta-llama/Llama-2-7b-hf`, `mistralai/Mistral-7B-v0.1`, `codellama/CodeLlama-13b-hf`.
 - **Pruning strategies**: mild (20%), moderate (40%), aggressive (60%), implemented via Wanda/SparseGPT adapters.
 - **Pruning framework versions**: repository-integrated pruning frameworks in `docker/pruning_frameworks/*` and runtime from local Atropos environment.
+- **Evaluation window**: runs executed during April 2026 campaign (`2026-04-01` to `2026-04-06` UTC), matching a maximum two-week compute budget.
 - **Hardware protocol**:
   - Target cloud: NVIDIA A100 40GB.
   - Target on-prem: NVIDIA T4 16GB.
@@ -51,6 +52,7 @@ We executed a preregistered April 2026 validation campaign to test Atropos pruni
 ### Statistical significance testing
 - **P-values for prediction-vs-actual error**: not computable (no actual measurements).
 - **Confidence intervals for metric errors**: not computable for the same reason.
+- **Binomial completion analysis**: run completion = 0/9, Wilson 95% CI `[0.00, 0.30]`, indicating statistically insufficient evidence for production reliability under this environment.
 
 ## Failure Analysis
 - **What went wrong**:
@@ -74,6 +76,11 @@ We executed a preregistered April 2026 validation campaign to test Atropos pruni
   - Hardware matrix execution (cloud A100 + on-prem T4) as a required CI gate.
   - Full HumanEval harness integration for code-model reporting.
 
+## Commercial baseline comparison ("just prune 30%")
+- A naïve fixed policy (`always prune 30%`) cannot be benchmarked quantitatively in this campaign because no measured post-pruning metrics were captured.
+- Operationally, a fixed-percentage baseline would have failed identically under the same artifact/GPU constraints, so the dominant risk was infrastructure readiness rather than pruning policy choice.
+- Recommendation for commercial teams: add an infra readiness gate before either Atropos-guided or fixed-policy pruning to prevent wasted GPU reservation windows.
+
 ## Visualizations
 
 - Scatter plot: predicted vs actual savings proxy (memory).  
@@ -91,6 +98,7 @@ We executed a preregistered April 2026 validation campaign to test Atropos pruni
 - Raw measurements: `validation_results/validation_2026_04/validation_runs.csv`, `validation_results/validation_2026_04/validation_runs.json`, per-run JSON files.
 - Docker environment: existing framework Dockerfiles under `docker/pruning_frameworks/`.
 - Reproduction instructions: `case_studies/validation_2026_04/README.md`.
+- Academic packaging: `case_studies/validation_2026_04/validation_2026_04.tex` and `case_studies/validation_2026_04/references.bib`.
 
 ## Strategic Path Alignment
 - **Academic**: includes explicit methodology, negative outcomes, significance status, and reproducibility pointers for arXiv packaging.
@@ -99,3 +107,8 @@ We executed a preregistered April 2026 validation campaign to test Atropos pruni
 
 ## Disclosure of manual adjustments
 No manual adjustments were applied to prediction or measurement outputs. Failed runs are reported exactly as emitted by the validation pipeline.
+
+## Selected pruning literature
+1. Frantar & Alistarh (2023), *SparseGPT: Massive Language Models Can be Accurately Pruned in One-Shot*.
+2. Sun et al. (2024), *Wanda: A Simple and Effective Pruning Approach for Large Language Models*.
+3. LeCun et al. (1990), *Optimal Brain Damage* (historical context on saliency-based pruning).

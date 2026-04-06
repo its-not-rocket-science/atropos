@@ -11,6 +11,8 @@ This folder contains the exact configuration and reproduction workflow used for 
 - `validation_results/validation_2026_04/validation_runs.json`: same raw table as JSON.
 - `validation_results/validation_2026_04/hardware_preflight.json`: hardware availability declaration.
 - `scripts/generate_validation_visualizations.py`: chart generator.
+- `case_studies/validation_2026_04/validation_2026_04.tex`: arXiv-style manuscript source.
+- `case_studies/validation_2026_04/references.bib`: bibliography for manuscript citations.
 
 ## Reproduction steps
 
@@ -33,6 +35,16 @@ python scripts/validate_on_models.py --config configs/validation_2026_04/validat
 python scripts/generate_validation_visualizations.py \
   --input validation_results/validation_2026_04/validation_runs.csv \
   --output-dir docs/case_studies/assets/validation_2026_04
+```
+
+5. Build LaTeX manuscript PDF (optional, for academic packaging):
+
+```bash
+cd case_studies/validation_2026_04
+pdflatex validation_2026_04.tex
+bibtex validation_2026_04
+pdflatex validation_2026_04.tex
+pdflatex validation_2026_04.tex
 ```
 
 ## Docker environment

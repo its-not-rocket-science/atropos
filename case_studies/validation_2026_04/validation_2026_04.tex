@@ -1,0 +1,30 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\title{Atropos Validation Study: April 2026}
+\author{Atropos Research Team}
+\date{April 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We executed a preregistered April 2026 validation campaign to test Atropos pruning predictions on Llama-2-7B, Mistral-7B, and CodeLlama-13B at 20\%, 40\%, and 60\% target sparsity. Metrics included memory, throughput, perplexity, and HumanEval-like coding quality under planned A100 40GB and T4 16GB hardware. Across nine planned runs, all executions failed before post-pruning measurement due model-artifact access failures and unavailable target GPUs. Consequently, prediction error and break-even calibration are reported as unestimated rather than imputed. We publish full negative outcomes, run configurations, and visualization code to avoid survivorship bias and enable external replication. This case study demonstrates that infrastructure readiness must be treated as a first-class uncertainty axis alongside algorithmic prediction uncertainty. We close with an auditable replication package and concrete engineering recommendations for future validation reliability.
+\end{abstract}
+
+\section{Methodology}
+Models, pruning strategies, and metrics follow the public validation suite configuration in this repository. Runs targeted cloud A100 40GB and on-prem T4 16GB environments. Full configuration and raw outputs are included in the replication package.
+
+\section{Results}
+All 9/9 runs ended in pre-measurement failure states. Because no successful post-pruning measurements were observed, memory/throughput/perplexity/HumanEval error statistics and p-values are not computable for this campaign.
+
+\section{Discussion}
+The dominant failure mode was infrastructure readiness (artifact access and GPU provisioning), not pruning policy selection. We recommend mandatory preflight checks and explicit uncertainty decomposition into algorithmic vs infrastructure components.
+
+\section{Related Work}
+This study is informed by one-shot and activation-aware pruning lines such as SparseGPT \cite{sparsegpt} and WANDA \cite{wanda}, with historical context from Optimal Brain Damage \cite{obd}.
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}
