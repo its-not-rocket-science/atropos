@@ -141,14 +141,10 @@ def write_output(
 if __name__ == "__main__":
     env = LineWorldEnv(goal=5, max_steps=20)  # 1) environment definition
     trajectory = generate_trajectory(env)  # 2) trajectory generation
-    metrics = score_trajectory(
-        trajectory, goal=env.initial_state.goal
-    )  # 3) scoring
+    metrics = score_trajectory(trajectory, goal=env.initial_state.goal)  # 3) scoring
 
     output_path = Path("minimal_trajectory_output.json")
-    write_output(
-        output_path, trajectory, metrics, goal=env.initial_state.goal
-    )  # 4) data output
+    write_output(output_path, trajectory, metrics, goal=env.initial_state.goal)  # 4) data output
 
     print(f"Wrote {output_path}")
     print(json.dumps(metrics, indent=2))
