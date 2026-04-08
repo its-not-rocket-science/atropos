@@ -10,9 +10,8 @@ This file intentionally keeps everything in one place so the data flow is easy t
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List
 
 
 # WHY: A tiny state type makes transitions explicit and testable.
@@ -69,7 +68,7 @@ class LineWorldEnv:
         out_of_steps = self.state.step_count >= self.state.max_steps
         done = reached_goal or out_of_steps
 
-        # WHY: Dense reward (+ progress each step) teaches smoother behavior than terminal-only reward.
+        # WHY: Dense reward (+ progress each step) teaches smoother behavior
         progress = self.state.position - before
         reward = progress
         if reached_goal:
@@ -93,8 +92,8 @@ def greedy_policy(state: State) -> int:
 
 
 # WHY: Generating a full trajectory object makes downstream scoring and storage straightforward.
-def generate_trajectory(env: LineWorldEnv) -> List[StepRecord]:
-    records: List[StepRecord] = []
+def generate_trajectory(env: LineWorldEnv) -> list[StepRecord]:
+    records: list[StepRecord] = []
     state = env.reset()
 
     while True:
@@ -108,7 +107,7 @@ def generate_trajectory(env: LineWorldEnv) -> List[StepRecord]:
 
 
 # WHY: Keep scoring a pure function of trajectory data, so it's easy to validate and reuse.
-def score_trajectory(records: List[StepRecord], goal: int) -> Dict[str, float | int | bool]:
+def score_trajectory(records: list[StepRecord], goal: int) -> dict[str, float | int | bool]:
     total_reward = sum(r.reward for r in records)
     steps = len(records)
     reached_goal = any(r.position_after >= goal for r in records)
@@ -127,8 +126,8 @@ def score_trajectory(records: List[StepRecord], goal: int) -> Dict[str, float | 
 # WHY: JSON output is language-agnostic and easy to inspect in notebooks, scripts, or dashboards.
 def write_output(
     path: Path,
-    trajectory: List[StepRecord],
-    metrics: Dict[str, float | int | bool],
+    trajectory: list[StepRecord],
+    metrics: dict[str, float | int | bool],
     goal: int,
 ) -> None:
     payload = {
@@ -142,10 +141,14 @@ def write_output(
 if __name__ == "__main__":
     env = LineWorldEnv(goal=5, max_steps=20)  # 1) environment definition
     trajectory = generate_trajectory(env)  # 2) trajectory generation
-    metrics = score_trajectory(trajectory, goal=env.initial_state.goal)  # 3) scoring
+    metrics = score_trajectory(
+        trajectory, goal=env.initial_state.goal
+    )  # 3) scoring
 
     output_path = Path("minimal_trajectory_output.json")
-    write_output(output_path, trajectory, metrics, goal=env.initial_state.goal)  # 4) data output
+    write_output(
+        output_path, trajectory, metrics, goal=env.initial_state.goal
+    )  # 4) data output
 
     print(f"Wrote {output_path}")
     print(json.dumps(metrics, indent=2))
