@@ -132,6 +132,47 @@ def build_parser() -> argparse.ArgumentParser:
     )
     batch_parser.add_argument("--with-quantization", action="store_true")
     batch_parser.add_argument("--output", "-o", type=Path, required=True)
+    batch_parser.add_argument(
+        "--fail-fast",
+        action="store_true",
+        help="Stop batch processing on first error (default: continue).",
+    )
+    batch_parser.add_argument(
+        "--max-errors",
+        type=int,
+        default=None,
+        help="Stop after N errors (default: unlimited).",
+    )
+    batch_parser.add_argument(
+        "--error-log",
+        type=Path,
+        default=None,
+        help="Optional JSON file for detailed error entries.",
+    )
+    batch_parser.add_argument(
+        "--retry-attempts",
+        type=int,
+        default=3,
+        help="Retry attempts for recoverable errors (default: 3).",
+    )
+    batch_parser.add_argument(
+        "--scenario-timeout-seconds",
+        type=int,
+        default=600,
+        help="Per-scenario timeout in seconds (default: 600).",
+    )
+    batch_parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=5,
+        help="Persist checkpoint every N processed rows (default: 5).",
+    )
+    batch_parser.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        help="Resume from an existing batch CSV output file.",
+    )
 
     sensitivity_parser = subparsers.add_parser("sensitivity", help="Run sensitivity analysis.")
     sensitivity_parser.add_argument("scenario", help="Scenario name or path to YAML")
@@ -862,10 +903,32 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.command == "batch":
-            batch_results = batch_process(
-                args.directory, args.strategies, args.output, args.with_quantization
+            report = batch_process(
+                args.directory,
+                args.strategies,
+                args.output,
+                args.with_quantization,
+                fail_fast=args.fail_fast,
+                max_errors=args.max_errors,
+                error_log=args.error_log,
+                retry_attempts=args.retry_attempts,
+                timeout_seconds=args.scenario_timeout_seconds,
+                checkpoint_every=args.checkpoint_every,
+                resume_file=args.resume,
+                return_report=True,
             )
-            print(f"Processed {len(batch_results)} combinations")
+            print(
+                "Batch summary: "
+                f"total={report.total_scenarios}, successful={report.successful}, "
+                f"failed={report.failed}, partial_success={report.partial_success}"
+            )
+            if report.failures:
+                print("Failures:")
+                for failure in report.failures:
+                    print(
+                        f" - {failure.scenario} [{failure.strategy}] "
+                        f"{failure.category}: {failure.error}"
+                    )
             return 0
 
         if args.command == "sensitivity":
