@@ -8,7 +8,7 @@ import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml  # type: ignore[import-untyped]
 
@@ -24,7 +24,7 @@ from .abtesting.runner import (
     analyze_experiment_results,
 )
 from .abtesting.store import get_default_store
-from .batch import batch_process
+from .batch import BatchExecutionReport, batch_process
 from .calculations import combine_strategies, estimate_outcome
 from .calibration import calibrate_scenario, generate_calibration_report
 from .carbon_presets import CARBON_PRESETS, get_carbon_intensity, list_regions
@@ -903,28 +903,31 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if args.command == "batch":
-            report = batch_process(
-                args.directory,
-                args.strategies,
-                args.output,
-                args.with_quantization,
-                fail_fast=args.fail_fast,
-                max_errors=args.max_errors,
-                error_log=args.error_log,
-                retry_attempts=args.retry_attempts,
-                timeout_seconds=args.scenario_timeout_seconds,
-                checkpoint_every=args.checkpoint_every,
-                resume_file=args.resume,
-                return_report=True,
+            batch_report = cast(
+                BatchExecutionReport,
+                batch_process(
+                    args.directory,
+                    args.strategies,
+                    args.output,
+                    args.with_quantization,
+                    fail_fast=args.fail_fast,
+                    max_errors=args.max_errors,
+                    error_log=args.error_log,
+                    retry_attempts=args.retry_attempts,
+                    timeout_seconds=args.scenario_timeout_seconds,
+                    checkpoint_every=args.checkpoint_every,
+                    resume_file=args.resume,
+                    return_report=True,
+                ),
             )
             print(
                 "Batch summary: "
-                f"total={report.total_scenarios}, successful={report.successful}, "
-                f"failed={report.failed}, partial_success={report.partial_success}"
+                f"total={batch_report.total_scenarios}, successful={batch_report.successful}, "
+                f"failed={batch_report.failed}, partial_success={batch_report.partial_success}"
             )
-            if report.failures:
+            if batch_report.failures:
                 print("Failures:")
-                for failure in report.failures:
+                for failure in batch_report.failures:
                     print(
                         f" - {failure.scenario} [{failure.strategy}] "
                         f"{failure.category}: {failure.error}"
@@ -1647,13 +1650,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
 
             # Generate report
-            report = generate_calibration_report(calibration_result, format=args.format)
+            calibration_report = generate_calibration_report(calibration_result, format=args.format)
 
             if args.output:
-                args.output.write_text(report)
+                args.output.write_text(calibration_report)
                 print(f"Calibration report saved to {args.output}")
             else:
-                print(report)
+                print(calibration_report)
 
             return 0
 
@@ -1782,15 +1785,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.format == "json":
                     import json
 
-                    report = json.dumps(validation_result.to_dict(), indent=2)
+                    validation_report = json.dumps(validation_result.to_dict(), indent=2)
                 else:
-                    report = validation_result.to_markdown()
+                    validation_report = validation_result.to_markdown()
 
                 if args.output:
-                    args.output.write_text(report)
+                    args.output.write_text(validation_report)
                     print(f"Validation report saved to {args.output}")
                 else:
-                    print(report)
+                    print(validation_report)
 
                 return 0
             except Exception as e:
@@ -1827,18 +1830,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.format == "json":
                 import json
 
-                report = json.dumps(anomaly_result.to_dict(), indent=2)
+                anomaly_report = json.dumps(anomaly_result.to_dict(), indent=2)
             elif args.format == "markdown":
-                report = anomaly_result.to_markdown()
+                anomaly_report = anomaly_result.to_markdown()
             else:
                 # text format
-                report = anomaly_result.to_markdown()  # markdown works for text
+                anomaly_report = anomaly_result.to_markdown()  # markdown works for text
 
             if args.output:
-                args.output.write_text(report)
+                args.output.write_text(anomaly_report)
                 print(f"Anomaly detection report saved to {args.output}")
             else:
-                print(report)
+                print(anomaly_report)
 
             return 0
 
@@ -1893,15 +1896,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.format == "json":
                     import json
 
-                    report = analysis_result.to_json()
+                    scaling_report = analysis_result.to_json()
                 else:
-                    report = analysis_result.to_markdown()
+                    scaling_report = analysis_result.to_markdown()
 
                 if args.output:
-                    args.output.write_text(report)
+                    args.output.write_text(scaling_report)
                     print(f"Scaling analysis report saved to {args.output}")
                 else:
-                    print(report)
+                    print(scaling_report)
 
                 return 0
             except Exception as e:

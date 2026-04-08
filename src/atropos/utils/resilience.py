@@ -7,7 +7,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from queue import Empty
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from .error_categories import is_recoverable
 
@@ -79,4 +79,4 @@ def run_with_timeout(fn: Callable[..., T], timeout_seconds: int, **kwargs: Any) 
         if isinstance(payload, Exception):
             raise payload
         raise RuntimeError(str(payload))
-    return payload
+    return cast(T, payload)
