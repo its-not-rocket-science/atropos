@@ -1,4 +1,6 @@
 # Atropos
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 
 ## Quickstart (under 10 minutes)
@@ -19,12 +21,9 @@ Atropos gives you a way to run optimization experiments for LLM inference and ke
 
 ## 2) Core concepts
 
-- **Environment**: the runtime context where one experiment step happens. It receives input, applies an action, updates state, and emits observations and metrics.
-- **Server**: the inference endpoint (for example vLLM/TGI/Triton) that provides live performance data and model responses during collection or validation.
-- **Group**: a traffic partition used for comparison, typically control vs treatment, so two variants can be evaluated under a defined split.
-- **Trajectory**: the ordered record of an experiment run: initial state, each step, each action/output pair, and final outcome.
+Canonical definitions for **environment**, **trajectory**, **group**, **rollout**, and **server** live in `/docs/canonical-glossary.md`.
 
-Use these four terms as the mental map for the rest of the system.
+Use those definitions as the single mental model across this repository.
 
 ## 3) System architecture
 
@@ -35,7 +34,8 @@ Atropos is organized as a pipeline around the concepts above.
 3. Returned outputs are parsed into typed actions, validated, and applied to transition state.
 4. Reward/statistics are computed from the transition outcome.
 5. Each step is appended to a **trajectory** store with telemetry and identifiers.
-6. For comparative experiments, results are aggregated by **group** (control/treatment) and passed to statistical analysis and promotion logic.
+6. For comparative experiments, results are aggregated by **group** (control/treatment) and passed to statistical analysis.
+7. A **rollout** decision uses explicit gates to promote, hold, or reject the treatment in production.
 
 A compact interaction view:
 
@@ -47,6 +47,7 @@ Environment
   -> Reward/statistics
   -> Trajectory append
   -> Group-level comparison (if A/B test)
+  -> Rollout gate decision
 ```
 
 This separation keeps transport, state logic, scoring, and persistence independently testable.

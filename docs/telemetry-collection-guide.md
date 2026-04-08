@@ -1,4 +1,6 @@
 # Telemetry Collection Guide
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This guide shows how to collect real performance metrics from running inference servers and use them to validate Atropos projections.
 

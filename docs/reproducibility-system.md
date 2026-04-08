@@ -1,4 +1,6 @@
 # Reproducibility System Design
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Scope
 This design defines a project-wide reproducibility contract for Atropos runs (CLI and Python API), including Monte Carlo analysis, validation benchmarks, pruning workflows, pipeline execution, and A/B test simulation paths.

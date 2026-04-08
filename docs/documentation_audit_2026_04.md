@@ -1,11 +1,13 @@
 # Documentation Audit (2026-04-08)
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This audit checks inconsistencies across README, docs, configs, and code.
 
 ## Inconsistencies
 
 ### 1) Project positioning mismatch (README vs package/docs)
-- `README.md` frames Atropos primarily as an environment/server/group/trajectory experimentation and A/B testing system.
+- `README.md` frames Atropos primarily as an environment/server/group/trajectory/rollout experimentation and A/B testing system.
 - `docs/index.md` and `pyproject.toml` frame Atropos primarily as an ROI estimator for pruning/quantization tradeoffs.
 - This causes onboarding confusion about whether Atropos is an experimentation platform first, or an ROI/optimization toolkit first.
 

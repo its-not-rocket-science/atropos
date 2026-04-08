@@ -1,4 +1,6 @@
 # RL Environment Component Contracts
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This module split separates environment concerns into explicit, independently testable units while preserving original `LineWorldEnv` behavior.
 

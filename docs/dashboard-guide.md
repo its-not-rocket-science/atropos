@@ -1,4 +1,6 @@
 # Atropos Web Dashboard Guide
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 The Atropos Web Dashboard provides an interactive, browser-based interface for exploring ROI projections for LLM pruning and optimization.
 

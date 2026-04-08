@@ -1,4 +1,6 @@
 # 10-Minute Onboarding (Golden Path)
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This guide is optimized for first-time users who want a working run in under 10 minutes.
 

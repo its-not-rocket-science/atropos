@@ -1,14 +1,25 @@
 # Atropos Documentation
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 **Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
 
 ## Quick Links
+
+- [Canonical Glossary](canonical-glossary.md)
+- [Documentation Rewrite Plan](doc-rewrite-plan.md)
 
 - [Installation](installation.md)
 - [CLI Usage](cli.md)
 - [Python API](api.md)
 - [Examples](examples.md)
 - [Environment API Stability](environment_api_stability.md)
+
+
+## Canonical terminology
+
+For core concepts, use the canonical glossary definitions and avoid redefining terms in-place:
+`/docs/canonical-glossary.md`.
 
 ## What Atropos Does
 
