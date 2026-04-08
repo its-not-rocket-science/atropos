@@ -8,6 +8,7 @@
 - [CLI Usage](cli.md)
 - [Python API](api.md)
 - [Examples](examples.md)
+- [Environment API Stability](environment_api_stability.md)
 
 ## What Atropos Does
 
