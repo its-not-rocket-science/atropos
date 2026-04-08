@@ -1,4 +1,4 @@
-.PHONY: install test lint typecheck format clean build release-test release verify-release prepare-release version dev-full
+.PHONY: install test lint typecheck format clean build release-test release verify-release prepare-release version dev-full quickstart run-golden onboarding-check
 
 install:
 	pip install -e .[dev]
@@ -60,3 +60,15 @@ version:
 	@echo "Current version:"
 	@grep '^version =' pyproject.toml | cut -d '"' -f2
 	@grep '__version__' src/atropos/__init__.py | cut -d '"' -f2
+
+
+quickstart:
+	python -m venv .venv
+	.venv/bin/python -m pip install --upgrade pip wheel
+	.venv/bin/pip install -e .
+
+run-golden:
+	.venv/bin/atropos-llm preset medium-coder --strategy mild_pruning --report markdown
+
+onboarding-check:
+	.venv/bin/python scripts/smoke_test.py

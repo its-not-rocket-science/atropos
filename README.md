@@ -1,5 +1,18 @@
 # Atropos
 
+
+## Quickstart (under 10 minutes)
+
+Use the golden onboarding path:
+
+```bash
+make quickstart
+make run-golden
+```
+
+See `docs/onboarding.md` for the full onboarding workflow and troubleshooting.
+
+
 ## 1) What problem this solves
 
 Atropos gives you a way to run optimization experiments for LLM inference and keep the decision process reproducible. It helps you move from one-off benchmark numbers to a step-by-step record of what was tried, what changed, and what the outcome was. In practice, teams struggle because model behavior, infrastructure behavior, and cost behavior are measured in different places and rarely tied together. Atropos organizes those measurements into one execution flow so analysis, validation, and rollout decisions use the same data model. The result is a system you can inspect later to answer: what input was used, what action was taken, what reward or metric changed, and whether the change should be promoted.
