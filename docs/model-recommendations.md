@@ -1,4 +1,6 @@
 # Model Recommendations for Atropos
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This guide helps you select appropriate models for testing and validating Atropos projections based on your deployment scenario.
 

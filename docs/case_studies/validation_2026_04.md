@@ -1,4 +1,6 @@
 # Atropos Validation Study: April 2026
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Abstract (150 words)
 We executed a preregistered April 2026 validation campaign to test Atropos pruning predictions on three deployment-relevant open models: Llama-2-7B, Mistral-7B, and CodeLlama-13B, each under mild (20%), moderate (40%), and aggressive (60%) sparsity targets. The protocol required measurement of memory, throughput, perplexity, and coding quality proxy (HumanEval-like) on A100 40GB (cloud) and T4 16GB (on-prem) hardware. Across nine planned model-strategy combinations, all end-to-end runs failed before post-pruning metric capture due inaccessible model artifacts in the execution environment (no successful model load from Hugging Face) and unavailable target GPUs. Therefore, prediction-accuracy and break-even calibration claims cannot be validated from this run, and we report them as unestimated rather than imputed. This case study intentionally publishes negative outcomes, complete raw logs, and exact configs to prevent survivorship bias, support external replication, and provide a concrete roadmap for reliable validation under controlled compute conditions and open governance.

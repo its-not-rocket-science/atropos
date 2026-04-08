@@ -1,4 +1,6 @@
 # Atropos Multi-Scale Validation Report
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Executive Summary (Commercial)
 - **Date:** {{DATE}}

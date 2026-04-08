@@ -1,4 +1,6 @@
 # Production Readiness Audit (2026-04-08)
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Scope
 Audit focus areas requested:

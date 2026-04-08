@@ -1,4 +1,6 @@
 # Async RL Environment Decomposition Plan (LLM-Focused)
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Objective
 Reduce cognitive complexity in a large base environment class **without reducing capability** and without a greenfield rewrite.

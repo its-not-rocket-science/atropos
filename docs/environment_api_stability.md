@@ -1,4 +1,6 @@
 # Environment API Stability Evaluation and Proposal
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 ## Scope
 This document evaluates environment-facing APIs in Atropos and proposes a stable, explicit, versioned contract for long-term compatibility.

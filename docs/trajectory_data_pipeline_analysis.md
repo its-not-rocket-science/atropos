@@ -1,4 +1,6 @@
 # Trajectory Data Pipeline Analysis
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This document maps the current codebase into an explicit, debuggable data pipeline for trajectory-like experiment flow.
 

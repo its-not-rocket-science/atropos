@@ -1,4 +1,6 @@
 # PyPI Release Guide for Maintainers
+> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+
 
 This guide documents the process for releasing Atropos to PyPI and Test PyPI.
 
