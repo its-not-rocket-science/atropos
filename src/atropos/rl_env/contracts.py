@@ -45,6 +45,25 @@ class LineWorldReward:
 
 
 @dataclass
+class StageIntrospection:
+    """Introspection payload for a single RL pipeline stage."""
+
+    stage: str
+    metadata: dict[str, str | int | float | bool]
+    intermediate_output: dict[str, str | int | float | bool]
+    reasoning_trace: list[str]
+
+
+@dataclass
+class LineWorldIntrospection:
+    """Full step-level introspection spanning generation/parsing/scoring."""
+
+    generation: StageIntrospection
+    parsing: StageIntrospection
+    scoring: StageIntrospection
+
+
+@dataclass
 class LineWorldStepRecord:
     """Trajectory artifact emitted after each step."""
 
@@ -54,6 +73,7 @@ class LineWorldStepRecord:
     position_after: int
     reward: float
     done: bool
+    introspection: LineWorldIntrospection
 
 
 @runtime_checkable
@@ -106,6 +126,7 @@ class TrajectoryBuilder(Protocol):
         self,
         transition: LineWorldTransition,
         reward: LineWorldReward,
+        introspection: LineWorldIntrospection,
     ) -> LineWorldStepRecord:
         """Create a trajectory step record.
 

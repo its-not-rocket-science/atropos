@@ -7,9 +7,11 @@ from dataclasses import asdict, dataclass
 
 from .contracts import (
     Generator,
+    LineWorldIntrospection,
     LineWorldParsedAction,
     LineWorldReward,
     LineWorldState,
+    StageIntrospection,
     LineWorldStepRecord,
     LineWorldTransition,
     Parser,
@@ -86,6 +88,7 @@ class LineWorldTrajectoryBuilder(TrajectoryBuilder):
         self,
         transition: LineWorldTransition,
         reward: LineWorldReward,
+        introspection: LineWorldIntrospection,
     ) -> LineWorldStepRecord:
         if transition.step_idx <= self._last_step_idx:
             raise RuntimeError("Step index must increase monotonically.")
@@ -97,6 +100,7 @@ class LineWorldTrajectoryBuilder(TrajectoryBuilder):
             position_after=transition.position_after,
             reward=reward.value,
             done=transition.done,
+            introspection=introspection,
         )
 
     def reset(self) -> None:
@@ -132,10 +136,91 @@ class LineWorldOrchestrator:
         return self.state
 
     async def async_step(self, raw_action: int) -> LineWorldStepRecord:
+        pre_state = LineWorldState(
+            position=self.state.position,
+            goal=self.state.goal,
+            max_steps=self.state.max_steps,
+            step_count=self.state.step_count,
+        )
         parsed = await self.parser.parse(raw_action)
         transition = await self.generator.generate(self.state, parsed)
         reward = await self.reward_function.compute(transition)
-        return await self.trajectory_builder.build_step(transition, reward)
+        introspection = self._build_introspection(
+            raw_action=raw_action,
+            pre_state=pre_state,
+            parsed=parsed,
+            transition=transition,
+            reward=reward,
+        )
+        return await self.trajectory_builder.build_step(transition, reward, introspection)
+
+    def _build_introspection(
+        self,
+        raw_action: int,
+        pre_state: LineWorldState,
+        parsed: LineWorldParsedAction,
+        transition: LineWorldTransition,
+        reward: LineWorldReward,
+    ) -> LineWorldIntrospection:
+        parsing = StageIntrospection(
+            stage="parsing",
+            metadata={
+                "parser": self.parser.__class__.__name__,
+                "action_space": "[-1, +1]",
+            },
+            intermediate_output={
+                "raw_action": raw_action,
+                "parsed_delta": parsed.delta,
+            },
+            reasoning_trace=[
+                f"Received raw action {raw_action}.",
+                f"Validated action against [-1, +1] and mapped to delta={parsed.delta}.",
+            ],
+        )
+        generation = StageIntrospection(
+            stage="generation",
+            metadata={
+                "generator": self.generator.__class__.__name__,
+                "goal": pre_state.goal,
+                "max_steps": pre_state.max_steps,
+            },
+            intermediate_output={
+                "position_before": transition.position_before,
+                "position_after": transition.position_after,
+                "step_idx": transition.step_idx,
+                "reached_goal": transition.reached_goal,
+                "out_of_steps": transition.out_of_steps,
+            },
+            reasoning_trace=[
+                f"Applied delta={parsed.delta} to position={pre_state.position}.",
+                f"New position={transition.position_after}, step_idx={transition.step_idx}.",
+                "Computed done flag from reached_goal OR out_of_steps.",
+            ],
+        )
+        scoring = StageIntrospection(
+            stage="scoring",
+            metadata={
+                "reward_model": self.reward_function.__class__.__name__,
+                "components": ",".join(sorted(reward.components.keys())),
+            },
+            intermediate_output={
+                "progress": reward.components["progress"],
+                "success_bonus": reward.components["success_bonus"],
+                "timeout_penalty": reward.components["timeout_penalty"],
+                "total_reward": reward.value,
+            },
+            reasoning_trace=[
+                "progress = position_after - position_before.",
+                "success_bonus = 10.0 when reached_goal else 0.0.",
+                "timeout_penalty = -5.0 when out_of_steps and not reached_goal.",
+                "total_reward = progress + success_bonus + timeout_penalty.",
+            ],
+        )
+        return LineWorldIntrospection(
+            generation=generation,
+            parsing=parsing,
+            scoring=scoring,
+        )
 
 
 class LineWorldEnv:
@@ -151,27 +236,45 @@ class LineWorldEnv:
             trajectory_builder=LineWorldTrajectoryBuilder(),
         )
         self.state = self._orchestrator.state
+        self._history: list[LineWorldStepRecord] = []
 
     def reset(self) -> LineWorldState:
         self.state = asyncio.run(self._orchestrator.async_reset())
+        self._history = []
         return self.state
 
     def step(self, action: int) -> LineWorldStepRecord:
         record = asyncio.run(self._orchestrator.async_step(action))
         self.state = self._orchestrator.state
+        self._history.append(record)
         return record
 
     async def async_reset(self) -> LineWorldState:
         self.state = await self._orchestrator.async_reset()
+        self._history = []
         return self.state
 
     async def async_step(self, action: int) -> LineWorldStepRecord:
         record = await self._orchestrator.async_step(action)
         self.state = self._orchestrator.state
+        self._history.append(record)
         return record
 
+    def replay(self) -> list[LineWorldStepRecord]:
+        """Return append-only step history for step-by-step debug replay."""
 
-def as_dict(record: LineWorldStepRecord) -> dict[str, int | float | bool]:
+        return list(self._history)
+
+    def explain_reward(self, step_idx: int) -> list[str]:
+        """Return scoring trace for a specific step index."""
+
+        for step in self._history:
+            if step.step_idx == step_idx:
+                return step.introspection.scoring.reasoning_trace
+        raise ValueError(f"Step {step_idx} not found in trajectory history.")
+
+
+def as_dict(record: LineWorldStepRecord) -> dict[str, object]:
     """Stable conversion helper for json serialization."""
 
     return asdict(record)

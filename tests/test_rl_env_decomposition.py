@@ -61,3 +61,30 @@ def test_legacy_behavior_preserved() -> None:
     assert total_reward == 15.0
     assert steps == 5
     assert success is True
+
+
+def test_step_contains_introspection_for_all_stages() -> None:
+    env = LineWorldEnv(goal=3, max_steps=10)
+    env.reset()
+    record = env.step(1)
+
+    assert record.introspection.parsing.stage == "parsing"
+    assert record.introspection.generation.stage == "generation"
+    assert record.introspection.scoring.stage == "scoring"
+    assert "raw_action" in record.introspection.parsing.intermediate_output
+    assert "position_after" in record.introspection.generation.intermediate_output
+    assert "total_reward" in record.introspection.scoring.intermediate_output
+    assert len(record.introspection.scoring.reasoning_trace) >= 1
+
+
+def test_replay_and_reward_explanation() -> None:
+    env = LineWorldEnv(goal=2, max_steps=10)
+    env.reset()
+    env.step(1)
+    env.step(1)
+
+    replay = env.replay()
+    assert len(replay) == 2
+    assert replay[0].step_idx == 1
+    assert replay[1].step_idx == 2
+    assert any("total_reward" in line for line in env.explain_reward(step_idx=2))
