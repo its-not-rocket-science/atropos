@@ -32,9 +32,7 @@ class Gsm8kEnvironment:
     def __init__(self, prompting: PromptingConfig):
         self._builder = PromptBuilder(
             spec=BenchmarkPromptSpec(
-                task_instructions=(
-                    "You are solving a grade-school math word problem from GSM8K."
-                ),
+                task_instructions=("You are solving a grade-school math word problem from GSM8K."),
                 output_format_requirements=(
                     "End your response with exactly one line formatted as: #### <number>."
                 ),
@@ -63,19 +61,18 @@ def migrated_gsm8k_prompt_example() -> dict[str, dict[str, str]]:
     """Illustrate the same benchmark question across supported prompt modes."""
     sample = Gsm8kExample(
         question=(
-            "Mia has 3 bags with 4 marbles each. She buys 5 more marbles. "
-            "How many marbles now?"
+            "Mia has 3 bags with 4 marbles each. She buys 5 more marbles. How many marbles now?"
         ),
         answer="#### 17",
     )
 
     modes = {
-        "no_think": Gsm8kEnvironment(
-            PromptingConfig(mode=PromptMode.NO_THINK)
-        ).build_prompt(sample),
-        "think_tag": Gsm8kEnvironment(
-            PromptingConfig(mode=PromptMode.THINK_TAG)
-        ).build_prompt(sample),
+        "no_think": Gsm8kEnvironment(PromptingConfig(mode=PromptMode.NO_THINK)).build_prompt(
+            sample
+        ),
+        "think_tag": Gsm8kEnvironment(PromptingConfig(mode=PromptMode.THINK_TAG)).build_prompt(
+            sample
+        ),
         "provider_reasoning_openai": Gsm8kEnvironment(
             PromptingConfig(mode=PromptMode.PROVIDER_REASONING, provider="openai")
         ).build_prompt(sample),
