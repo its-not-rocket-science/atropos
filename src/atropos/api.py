@@ -6,9 +6,10 @@ A/B testing architecture without removing advanced controls.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 from .abtesting.models import ABTestConfig, StatisticalTestType, Variant
 from .abtesting.runner import run_ab_test
