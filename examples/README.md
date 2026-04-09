@@ -1,6 +1,17 @@
 # Atropos Examples
 
-This directory contains example configurations and usage patterns for Atropos.
+## Minimal example set (first run)
+
+If you are new to Atropos, start here first:
+
+```bash
+python examples/minimal/toy_env.py
+python examples/minimal/toy_trainer_walkthrough.py
+```
+
+Files:
+- `examples/minimal/toy_env.py`: tiny deterministic environment (`reset` + `step`).
+- `examples/minimal/toy_trainer_walkthrough.py`: tiny trainer loop that builds a trajectory report.
 
 ## Pipeline Configuration
 

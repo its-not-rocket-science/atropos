@@ -1,101 +1,67 @@
-# 10-Minute Onboarding (Golden Path)
-> Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
+# Atropos Minimal Quickstart (Under 10 Minutes)
 
+This is the **smallest first-run path** for a new user:
+- one toy environment run
+- one toy trainer walkthrough
+- zero external services
 
-This guide is optimized for first-time users who want a working run in under 10 minutes.
+## 1) Minimum viable stack
 
-## 1) Current setup steps (what exists today)
-
-Before this guide, setup was spread across:
-
-1. `README.md` manual virtualenv + install commands.
-2. `docs/installation.md` source install + optional dev extras.
-3. `docs/cli.md` command examples for individual workflows.
-4. `Makefile` developer-oriented targets (`install`, `dev-full`, `test`, etc.).
-
-That required new users to discover and sequence commands manually.
-
-## 2) Friction removed (what is automated now)
-
-We provide a **golden path** with:
-
-- **Single command setup:** `make quickstart`
-- **Single command run:** `make run-golden`
-- **Single command sanity check:** `make onboarding-check`
-
-These targets:
-
-- create a local `.venv`
-- upgrade `pip`/`wheel`
-- install Atropos in editable mode
-- execute a prewired local run (no external model endpoint required)
-
-## 3) Golden path (copy/paste)
-
-From the repo root:
-
-```bash
-make quickstart
-make run-golden
-```
-
-Expected outcome:
-
-- setup completes with dependencies installed in `.venv`
-- a Markdown optimization report prints to terminal from the built-in `medium-coder` scenario
-
-Optional verification:
-
-```bash
-make onboarding-check
-```
-
-## 4) Default config for first run
-
-Use this minimal scenario if you want a file-based run instead of presets:
-
-```yaml
-name: onboarding-local
-parameters_b: 7
-memory_gb: 8
-throughput_toks_per_sec: 30
-power_watts: 220
-requests_per_day: 10000
-tokens_per_request: 800
-electricity_cost_per_kwh: 0.12
-annual_hardware_cost_usd: 12000
-one_time_project_cost_usd: 15000
-```
-
-Save it as `examples/onboarding_local.yaml` and run:
-
-```bash
-.venv/bin/atropos-llm scenario examples/onboarding_local.yaml --strategy mild_pruning --report markdown
-```
-
-## 5) Minimal environment
-
-Recommended baseline:
+Only install what is required for the first run:
 
 - Python 3.10+
-- GNU Make
-- no GPU required
-- no external inference server required for golden path
+- `pip`
+- local clone of this repository
 
-## 6) Prewired model strategy (mock/local)
+No GPU, Docker, model endpoints, dashboard, or optional extras are required.
 
-For onboarding, the fastest path is to use **prewired presets** (`medium-coder` + `mild_pruning`) because they are deterministic and local.
+## 2) First-run path (copy/paste)
 
-If you need server-style validation later:
+From repo root:
 
-- use `ab-test` with local endpoints
-- keep onboarding separate from endpoint bring-up
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+python examples/minimal/toy_env.py
+python examples/minimal/toy_trainer_walkthrough.py
+```
 
-## 7) Suggested tooling improvements (next)
+Expected results:
+- `toy_env.py` prints 3 deterministic transitions and a total reward.
+- `toy_trainer_walkthrough.py` prints steps, total reward, normalized score, and trajectory.
 
-1. Add `make quickstart-offline` using a lockfile + wheelhouse cache.
-2. Add `atropos-llm doctor` to validate Python/deps/system readiness.
-3. Split dependencies into `core` vs `ml` extras so onboarding avoids heavyweight installs unless needed.
-4. Add a generated `onboarding-report.md` artifact target.
-5. Add a CI check that executes `make quickstart && make run-golden` on clean environments.
+## 3) Toy environment walkthrough
 
+File: `examples/minimal/toy_env.py`
+
+What it teaches:
+1. `reset()` starts an episode.
+2. `step(action_text)` returns a deterministic transition.
+3. reward = `len(action_text)`.
+4. episode ends after `max_steps`.
+
+This is the minimum shape of an environment loop without framework complexity.
+
+## 4) Toy trainer walkthrough
+
+File: `examples/minimal/toy_trainer_walkthrough.py`
+
+What it teaches:
+1. A trainer picks an action from candidate strings.
+2. The trainer executes a short loop over the toy environment.
+3. It produces a tiny report (`steps`, `total_reward`, `normalized_score`, `trajectory`).
+
+This shows the environment → trainer contract with no extra dependencies.
+
+## 5) Onboarding checklist
+
+Use this checklist for first-time setup:
+
+- [ ] Create and activate `.venv`.
+- [ ] Install Atropos with `pip install -e .`.
+- [ ] Run `python examples/minimal/toy_env.py` successfully.
+- [ ] Run `python examples/minimal/toy_trainer_walkthrough.py` successfully.
+- [ ] Confirm you can explain: reset, step, reward, done, trajectory.
+
+If all five are complete, you are ready for non-toy examples.
