@@ -17,6 +17,11 @@ from .contracts import (
     RewardFunction,
     StageIntrospection,
     TrajectoryBuilder,
+    validate_parsed_action,
+    validate_reward,
+    validate_state,
+    validate_step_record,
+    validate_transition,
 )
 
 
@@ -24,8 +29,8 @@ class LineWorldParser(Parser):
     """Parses raw integer actions into LineWorld action deltas."""
 
     async def parse(self, raw_action: int) -> LineWorldParsedAction:
-        if not isinstance(raw_action, int):
-            raise TypeError("Action must be an int.")
+        if not isinstance(raw_action, int) or isinstance(raw_action, bool):
+            raise TypeError("Action must be an int (bool is not allowed).")
         if raw_action not in (-1, 1):
             raise ValueError("Action must be -1 or +1.")
         return LineWorldParsedAction(delta=raw_action)
@@ -39,8 +44,8 @@ class LineWorldGenerator(Generator):
         state: LineWorldState,
         parsed_action: LineWorldParsedAction,
     ) -> LineWorldTransition:
-        if state.max_steps <= 0:
-            raise RuntimeError("State max_steps must be positive.")
+        validate_state(state)
+        validate_parsed_action(parsed_action)
 
         before = state.position
         state.position += parsed_action.delta
@@ -49,7 +54,7 @@ class LineWorldGenerator(Generator):
         reached_goal = state.position >= state.goal
         out_of_steps = state.step_count >= state.max_steps
         done = reached_goal or out_of_steps
-        return LineWorldTransition(
+        transition = LineWorldTransition(
             action=parsed_action.delta,
             position_before=before,
             position_after=state.position,
@@ -58,17 +63,19 @@ class LineWorldGenerator(Generator):
             out_of_steps=out_of_steps,
             done=done,
         )
+        return validate_transition(transition)
 
 
 class LineWorldRewardFunction(RewardFunction):
     """Dense reward with success bonus and timeout penalty."""
 
     async def compute(self, transition: LineWorldTransition) -> LineWorldReward:
+        validate_transition(transition)
         progress = float(transition.position_after - transition.position_before)
         success_bonus = 10.0 if transition.reached_goal else 0.0
         timeout_penalty = -5.0 if transition.out_of_steps and not transition.reached_goal else 0.0
         total = progress + success_bonus + timeout_penalty
-        return LineWorldReward(
+        reward = LineWorldReward(
             value=total,
             components={
                 "progress": progress,
@@ -76,6 +83,7 @@ class LineWorldRewardFunction(RewardFunction):
                 "timeout_penalty": timeout_penalty,
             },
         )
+        return validate_reward(reward)
 
 
 class LineWorldTrajectoryBuilder(TrajectoryBuilder):
@@ -90,10 +98,12 @@ class LineWorldTrajectoryBuilder(TrajectoryBuilder):
         reward: LineWorldReward,
         introspection: LineWorldIntrospection,
     ) -> LineWorldStepRecord:
+        validate_transition(transition)
+        validate_reward(reward)
         if transition.step_idx <= self._last_step_idx:
             raise RuntimeError("Step index must increase monotonically.")
         self._last_step_idx = transition.step_idx
-        return LineWorldStepRecord(
+        record = LineWorldStepRecord(
             step_idx=transition.step_idx,
             action=transition.action,
             position_before=transition.position_before,
@@ -102,6 +112,7 @@ class LineWorldTrajectoryBuilder(TrajectoryBuilder):
             done=transition.done,
             introspection=introspection,
         )
+        return validate_step_record(record)
 
     def reset(self) -> None:
         self._last_step_idx = 0
@@ -118,24 +129,29 @@ class LineWorldOrchestrator:
     trajectory_builder: TrajectoryBuilder
 
     def __post_init__(self) -> None:
-        self.state = LineWorldState(
-            position=self.initial_state.position,
-            goal=self.initial_state.goal,
-            max_steps=self.initial_state.max_steps,
-            step_count=0,
+        self.state = validate_state(
+            LineWorldState(
+                position=self.initial_state.position,
+                goal=self.initial_state.goal,
+                max_steps=self.initial_state.max_steps,
+                step_count=0,
+            )
         )
 
     async def async_reset(self) -> LineWorldState:
-        self.state = LineWorldState(
-            position=self.initial_state.position,
-            goal=self.initial_state.goal,
-            max_steps=self.initial_state.max_steps,
-            step_count=0,
+        self.state = validate_state(
+            LineWorldState(
+                position=self.initial_state.position,
+                goal=self.initial_state.goal,
+                max_steps=self.initial_state.max_steps,
+                step_count=0,
+            )
         )
         self.trajectory_builder.reset()
         return self.state
 
     async def async_step(self, raw_action: int) -> LineWorldStepRecord:
+        validate_state(self.state)
         pre_state = LineWorldState(
             position=self.state.position,
             goal=self.state.goal,

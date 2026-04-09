@@ -4,6 +4,7 @@ import asyncio
 
 import pytest
 
+from atropos.rl_env.contracts import LineWorldReward, LineWorldState, LineWorldTransition
 from atropos.rl_env.line_world import LineWorldEnv
 
 
@@ -88,3 +89,33 @@ def test_replay_and_reward_explanation() -> None:
     assert replay[0].step_idx == 1
     assert replay[1].step_idx == 2
     assert any("total_reward" in line for line in env.explain_reward(step_idx=2))
+
+
+def test_state_invariants_are_enforced() -> None:
+    with pytest.raises(ValueError, match="goal must be > 0"):
+        LineWorldState(position=0, goal=0, max_steps=10)
+
+
+def test_reward_invariants_are_enforced() -> None:
+    with pytest.raises(ValueError, match="components must contain exactly"):
+        LineWorldReward(value=1.0, components={"progress": 1.0})
+
+
+def test_transition_done_invariant_is_enforced() -> None:
+    with pytest.raises(ValueError, match="done must equal reached_goal OR out_of_steps"):
+        LineWorldTransition(
+            action=1,
+            position_before=0,
+            position_after=1,
+            step_idx=1,
+            reached_goal=False,
+            out_of_steps=False,
+            done=True,
+        )
+
+
+def test_bool_action_is_rejected() -> None:
+    env = LineWorldEnv(goal=2, max_steps=5)
+    env.reset()
+    with pytest.raises(TypeError, match="bool is not allowed"):
+        env.step(True)
