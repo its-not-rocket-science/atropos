@@ -71,7 +71,11 @@ class BaseEnv:
     # -------------------------------------
     # Legacy method aliases for compatibility
     # -------------------------------------
-    def orchestrate_workers(self, work_item: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
+    def orchestrate_workers(
+        self,
+        work_item: dict[str, Any],
+        worker_count: int = 1,
+    ) -> dict[str, Any]:
         return self.runtime.run(work_item, worker_count=worker_count)
 
     def call_api(self, payload: dict[str, Any]) -> dict[str, Any]:
