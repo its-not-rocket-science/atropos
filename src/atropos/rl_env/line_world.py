@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 
 from .contracts import (
     Generator,
+    LineWorldAction,
     LineWorldIntrospection,
     LineWorldParsedAction,
     LineWorldReward,
@@ -31,9 +32,13 @@ class LineWorldParser(Parser):
     async def parse(self, raw_action: int) -> LineWorldParsedAction:
         if not isinstance(raw_action, int) or isinstance(raw_action, bool):
             raise TypeError("Action must be an int (bool is not allowed).")
-        if raw_action not in (-1, 1):
+        if raw_action == -1:
+            delta: LineWorldAction = -1
+        elif raw_action == 1:
+            delta = 1
+        else:
             raise ValueError("Action must be -1 or +1.")
-        return LineWorldParsedAction(delta=raw_action)
+        return LineWorldParsedAction(delta=delta)
 
 
 class LineWorldGenerator(Generator):
