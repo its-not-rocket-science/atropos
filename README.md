@@ -3,14 +3,17 @@
 
 ## Quickstart (under 10 minutes)
 
-Use the golden onboarding path:
+Use the minimal first-run path:
 
 ```bash
-make quickstart
-make run-golden
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
+python examples/minimal/toy_env.py
+python examples/minimal/toy_trainer_walkthrough.py
 ```
 
-See `docs/onboarding.md` for the full onboarding workflow and troubleshooting.
+See `docs/onboarding.md` for the focused quickstart + onboarding checklist.
 
 ## Install
 
