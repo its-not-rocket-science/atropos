@@ -7,19 +7,19 @@ The app intentionally keeps the runtime small but strongly typed so
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from enum import StrEnum
+from datetime import datetime, timezone
+from enum import Enum
 from threading import Lock
 from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
 
-class HardeningTier(StrEnum):
+class HardeningTier(str, Enum):
     """Deployment profiles that progressively tighten runtime controls."""
 
     RESEARCH_SAFE = "research-safe"
@@ -27,7 +27,8 @@ class HardeningTier(StrEnum):
     PRODUCTION_SAFE = "production-safe"
 
 
-class RuntimeStatus(BaseModel):
+@dataclass(slots=True)
+class RuntimeStatusRecord:
     """Status metadata for queued jobs."""
 
     job_id: str
@@ -36,17 +37,7 @@ class RuntimeStatus(BaseModel):
     updated_at: datetime
 
 
-class JobRequest(BaseModel):
-    """Minimal job payload for enqueue endpoints."""
-
-    payload: dict[str, Any] = Field(default_factory=dict)
-
-
-class EnqueueResponse(BaseModel):
-    """Response emitted when a job enters the queue."""
-
-    job_id: str
-    queue_depth: int
+RuntimeStatus = RuntimeStatusRecord
 
 
 @dataclass(slots=True)
@@ -54,7 +45,7 @@ class AppRuntimeState:
     """Typed runtime state bound once on `app.state.runtime`."""
 
     queue: deque[str]
-    status_by_job: dict[str, RuntimeStatus]
+    status_by_job: dict[str, RuntimeStatusRecord]
     lock: Lock
 
 
@@ -97,7 +88,10 @@ def get_runtime_state(request: Request) -> AppRuntimeState:
     return state
 
 
-def _build_auth_dependency(policy: RuntimePolicy, api_token: str | None):
+def _build_auth_dependency(
+    policy: RuntimePolicy,
+    api_token: str | None,
+) -> Callable[[str | None], None] | Callable[[], None]:
     if not policy.require_auth:
 
         def _allow_anonymous() -> None:
@@ -149,19 +143,17 @@ def build_runtime_app(
 
     write_access = _build_auth_dependency(policy, api_token)
 
-    @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "tier": tier.value}
 
-    @app.post("/jobs", response_model=EnqueueResponse, dependencies=[Depends(write_access)])
-    def enqueue(job: JobRequest, request: Request) -> EnqueueResponse:
+    def enqueue(job: dict[str, Any], request: Request) -> dict[str, Any]:
         runtime = get_runtime_state(request)
-        now = datetime.now(tz=UTC)
+        now = datetime.now(tz=timezone.utc)
         job_id = str(uuid4())
 
         with runtime.lock:
             runtime.queue.append(job_id)
-            runtime.status_by_job[job_id] = RuntimeStatus(
+            runtime.status_by_job[job_id] = RuntimeStatusRecord(
                 job_id=job_id,
                 state="queued",
                 created_at=now,
@@ -170,18 +162,21 @@ def build_runtime_app(
             queue_depth = len(runtime.queue)
 
         _ = job  # payload is accepted for future processing pipeline.
-        return EnqueueResponse(job_id=job_id, queue_depth=queue_depth)
+        return {"job_id": job_id, "queue_depth": queue_depth}
 
-    @app.get("/jobs/{job_id}", response_model=RuntimeStatus)
-    def get_job_status(job_id: str, request: Request) -> RuntimeStatus:
+    def get_job_status(job_id: str, request: Request) -> dict[str, Any]:
         runtime = get_runtime_state(request)
         with runtime.lock:
             status_record = runtime.status_by_job.get(job_id)
         if status_record is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown job_id")
-        return status_record
+        return {
+            "job_id": status_record.job_id,
+            "state": status_record.state,
+            "created_at": status_record.created_at,
+            "updated_at": status_record.updated_at,
+        }
 
-    @app.post("/admin/reset", dependencies=[Depends(write_access)])
     def reset_runtime(request: Request) -> dict[str, str]:
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
@@ -190,5 +185,24 @@ def build_runtime_app(
             runtime.queue.clear()
             runtime.status_by_job.clear()
         return {"status": "reset"}
+
+    app.add_api_route("/health", health, methods=["GET"])
+    app.add_api_route(
+        "/jobs",
+        enqueue,
+        methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
+    app.add_api_route(
+        "/jobs/{job_id}",
+        get_job_status,
+        methods=["GET"],
+    )
+    app.add_api_route(
+        "/admin/reset",
+        reset_runtime,
+        methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
 
     return app
