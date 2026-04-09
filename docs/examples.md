@@ -1,14 +1,17 @@
 # Examples
 
+Atropos examples focus on ROI estimation first; pipeline/validation/telemetry/A-B-testing modules can be layered on top for operational workflows.
+
+> Use `atropos` for Python imports and `atropos-llm` for the CLI.
+
 ## Basic Analysis
 
 ```python
-from atropos-llm import DeploymentScenario, estimate_outcome
+from atropos import estimate_outcome
 from atropos.presets import SCENARIOS, STRATEGIES
 
-# Use a preset
-scenario = SCENARIOS['medium-coder']
-strategy = STRATEGIES['structured_pruning']
+scenario = SCENARIOS["medium-coder"]
+strategy = STRATEGIES["structured_pruning"]
 
 outcome = estimate_outcome(scenario, strategy)
 print(f"Savings: ${outcome.annual_total_savings_usd:,.0f}")
@@ -17,7 +20,7 @@ print(f"Savings: ${outcome.annual_total_savings_usd:,.0f}")
 ## Custom Scenario
 
 ```python
-from atropos-llm import DeploymentScenario, estimate_outcome
+from atropos import DeploymentScenario, estimate_outcome
 from atropos.presets import STRATEGIES
 
 my_scenario = DeploymentScenario(
@@ -33,7 +36,7 @@ my_scenario = DeploymentScenario(
     one_time_project_cost_usd=45000.0,
 )
 
-strategy = STRATEGIES['structured_pruning']
+strategy = STRATEGIES["structured_pruning"]
 outcome = estimate_outcome(my_scenario, strategy)
 ```
 
@@ -44,15 +47,15 @@ from atropos.core.calculator import ROICalculator
 from atropos.presets import SCENARIOS, STRATEGIES
 
 calc = ROICalculator()
-calc.register_scenario(SCENARIOS['medium-coder'])
-calc.register_strategy(STRATEGIES['structured_pruning'])
+calc.register_scenario(SCENARIOS["medium-coder"])
+calc.register_strategy(STRATEGIES["structured_pruning"])
 
 results = calc.sensitivity_analysis(
-    'medium-coder',
-    'structured_pruning',
-    'memory_reduction_fraction',
+    "medium-coder",
+    "structured_pruning",
+    "memory_reduction_fraction",
     variations=5,
-    step=0.1
+    step=0.1,
 )
 
 for factor, outcome in results:
@@ -62,10 +65,10 @@ for factor, outcome in results:
 ## Comparing Strategies
 
 ```python
-from atropos-llm import estimate_outcome
+from atropos import estimate_outcome
 from atropos.presets import SCENARIOS, STRATEGIES
 
-scenario = SCENARIOS['medium-coder']
+scenario = SCENARIOS["medium-coder"]
 
 for name, strategy in STRATEGIES.items():
     outcome = estimate_outcome(scenario, strategy)

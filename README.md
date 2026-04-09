@@ -1,6 +1,10 @@
 # Atropos
 > Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
 
+Atropos is an **ROI estimation + optimization toolkit** for coding-LLM deployments. It helps teams forecast cost/energy/performance impact and decide which optimization work is worth shipping. Beyond ROI estimation, Atropos also includes practical modules for **pipeline orchestration, validation, telemetry ingestion, and A/B testing**.
+
+> Use `atropos` for Python imports and `atropos-llm` for the CLI.
+
 ## Quickstart (under 10 minutes)
 
 Use the minimal first-run path:
@@ -39,7 +43,14 @@ Python import package name is `atropos` (distribution/CLI name is `atropos-llm`)
 
 ## 1) What problem this solves
 
-Atropos gives you a way to run optimization experiments for LLM inference and keep the decision process reproducible. It helps you move from one-off benchmark numbers to a step-by-step record of what was tried, what changed, and what the outcome was. In practice, teams struggle because model behavior, infrastructure behavior, and cost behavior are measured in different places and rarely tied together. Atropos organizes those measurements into one execution flow so analysis, validation, and rollout decisions use the same data model. The result is a system you can inspect later to answer: what input was used, what action was taken, what reward or metric changed, and whether the change should be promoted.
+Atropos gives you a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment. This makes go/no-go decisions explicit instead of relying on disconnected benchmark snapshots.
+
+When you need end-to-end operational support around that ROI workflow, Atropos also provides:
+
+- **Pipeline execution** for repeatable optimization/validation flows.
+- **Validation tooling** for scenario and model checks.
+- **Telemetry ingestion** to calibrate scenarios from observed runtime data.
+- **A/B testing primitives** to compare variants and support rollout decisions.
 
 ## 2) Core concepts
 
@@ -49,30 +60,25 @@ Use those definitions as the single mental model across this repository.
 
 ## 3) System architecture
 
-Atropos is organized as a pipeline around the concepts above.
+Atropos is organized as an ROI-first toolkit with modular execution components.
 
-1. A run starts in an **environment** that owns episode lifecycle (`reset`, `step`, terminal conditions).
-2. The environment calls a model/inference **server** through a client layer that handles transport concerns (timeouts, retries, async behavior).
-3. Returned outputs are parsed into typed actions, validated, and applied to transition state.
-4. Reward/statistics are computed from the transition outcome.
-5. Each step is appended to a **trajectory** store with telemetry and identifiers.
-6. For comparative experiments, results are aggregated by **group** (control/treatment) and passed to statistical analysis.
-7. A **rollout** decision uses explicit gates to promote, hold, or reject the treatment in production.
+1. A run starts from a deployment scenario and optimization strategy (or preset pair).
+2. The calculator produces baseline vs optimized metrics and ROI outputs.
+3. Pipeline and validation modules can execute reproducible checks around those scenarios.
+4. Telemetry modules can ingest runtime signals and map them into scenario inputs.
+5. A/B testing modules can aggregate control/treatment outcomes for rollout decisions.
 
 A compact interaction view:
 
 ```text
-Environment
-  -> Server client (collect/generate)
-  -> Action parse + validate
-  -> State transition
-  -> Reward/statistics
-  -> Trajectory append
-  -> Group-level comparison (if A/B test)
-  -> Rollout gate decision
+Scenario + Strategy
+  -> ROI calculation (cost/perf/energy + break-even)
+  -> Validation / pipeline execution
+  -> Telemetry calibration (optional)
+  -> A/B comparison + rollout gate (optional)
 ```
 
-This separation keeps transport, state logic, scoring, and persistence independently testable.
+This separation keeps core ROI calculation deterministic while supporting production-oriented modules around it.
 
 ## 4) Minimal working example (end-to-end)
 

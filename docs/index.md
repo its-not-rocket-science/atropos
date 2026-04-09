@@ -1,8 +1,15 @@
 # Atropos Documentation
 > Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
 
+**Atropos** is an **ROI estimation + optimization toolkit** for coding-LLM deployments.
 
-**Atropos** estimates whether pruning and related optimizations for a coding LLM are worth the engineering effort.
+Secondary modules support production workflows:
+- pipeline orchestration
+- validation
+- telemetry ingestion
+- A/B testing
+
+> Use `atropos` for Python imports and `atropos-llm` for the CLI.
 
 ## Quick Links
 
@@ -17,7 +24,6 @@
 - [Examples](examples.md)
 - [Environment API Stability](environment_api_stability.md)
 
-
 ## Canonical terminology
 
 For core concepts, use the canonical glossary definitions and avoid redefining terms in-place:
@@ -25,12 +31,12 @@ For core concepts, use the canonical glossary definitions and avoid redefining t
 
 ## What Atropos Does
 
-Named after the Fate who cuts the thread, Atropos is built for practical deployment questions:
+Named after the Fate who cuts the thread, Atropos is built for practical deployment decisions:
 
-- How much memory, throughput, energy, and cost improvement is realistic?
-- When does a pruning project break even?
-- How do pruning-only and pruning-plus-quantization compare?
-- Which deployment scenarios justify optimization work?
+- Estimate memory, throughput, energy, and cost outcomes from optimization choices.
+- Evaluate break-even timelines for pruning and related strategy mixes.
+- Compare candidate strategies with consistent assumptions.
+- Move from estimation to execution with pipeline/validation/telemetry/A-B-test modules.
 
 ## Example
 
