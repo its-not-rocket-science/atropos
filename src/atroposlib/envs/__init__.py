@@ -9,6 +9,7 @@ from .components import (
     EnvRuntime,
     EnvTransportClient,
 )
+from .server_handling import ServerLaunchConfig, ServerManager, ServerManagerError
 
 __all__ = [
     "BaseEnv",
@@ -18,4 +19,7 @@ __all__ = [
     "EnvCheckpointManager",
     "EnvCliBuilder",
     "EnvConfigMerger",
+    "ServerLaunchConfig",
+    "ServerManager",
+    "ServerManagerError",
 ]
