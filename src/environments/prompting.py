@@ -45,13 +45,8 @@ class PromptBundle:
 
 
 _PROVIDER_REASONING_TEMPLATES: Mapping[str, str] = {
-    "openai": (
-        "Reason internally and return only the final response using the required "
-        "format."
-    ),
-    "anthropic": (
-        "Use concise internal reasoning and provide only the final formatted answer."
-    ),
+    "openai": ("Reason internally and return only the final response using the required format."),
+    "anthropic": ("Use concise internal reasoning and provide only the final formatted answer."),
     "generic": "Think step by step internally, then output only the final formatted answer.",
 }
 
