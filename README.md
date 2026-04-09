@@ -1,8 +1,6 @@
 # Atropos
 > Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
 
-
-
 ## Quickstart (under 10 minutes)
 
 Use the golden onboarding path:
@@ -14,6 +12,27 @@ make run-golden
 
 See `docs/onboarding.md` for the full onboarding workflow and troubleshooting.
 
+## Install
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
+```
+
+Optional extras:
+
+- `pip install -e .[dev]`
+- `pip install -e .[tuning]`
+- `pip install -e .[dashboard]`
+
+CLI entry point:
+
+```bash
+atropos-llm --help
+```
+
+Python import package name is `atropos` (distribution/CLI name is `atropos-llm`).
 
 ## 1) What problem this solves
 
@@ -54,17 +73,9 @@ This separation keeps transport, state logic, scoring, and persistence independe
 
 ## 4) Minimal working example (end-to-end)
 
-This example runs one control/treatment experiment against a local server, analyzes it, and exports the result.
+This example creates one control/treatment experiment, starts it, and analyzes the result.
 
-### Step A: install and prepare
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-### Step B: define an experiment with two groups
+### Step A: define an experiment with two groups
 
 Create `experiment.yaml`:
 
@@ -91,29 +102,27 @@ stopping_criteria:
   max_duration_minutes: 30
 ```
 
-### Step C: start the run
+### Step B: create the experiment
 
 ```bash
-atropos-llm ab-test create experiment.yaml --start
+atropos-llm ab-test create --config experiment.yaml
 ```
 
-This creates groups, starts collection from each server endpoint, and begins building trajectories for the run.
-
-### Step D: inspect status
+### Step C: inspect status
 
 ```bash
 atropos-llm ab-test list --status running
 atropos-llm ab-test status <experiment-id>
 ```
 
-### Step E: analyze and export
+### Step D: analyze and export
 
 ```bash
 atropos-llm ab-test analyze <experiment-id> --format markdown
 atropos-llm ab-test analyze <experiment-id> --format json > result.json
 ```
 
-At this point you have a complete chain: environment execution, server measurements, group comparison, and trajectory-backed output suitable for review or automation.
+For complete packaging/config/CLI source-of-truth tables, see `CONFIG.md`.
 
 ## 5) Common pitfalls
 
