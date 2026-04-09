@@ -1,6 +1,6 @@
 # Examples
 
-Atropos examples focus on ROI estimation first; pipeline/validation/telemetry/A-B-testing modules can be layered on top for operational workflows.
+Atropos examples focus on ROI estimation + optimization first; pipeline/validation/telemetry/A/B-testing modules are secondary layers for operational workflows.
 
 > Use `atropos` for Python imports and `atropos-llm` for the CLI.
 
@@ -75,3 +75,12 @@ for name, strategy in STRATEGIES.items():
     be_months = outcome.break_even_years * 12 if outcome.break_even_years else None
     print(f"{name}: ${outcome.annual_total_savings_usd:,.0f}/year, break-even: {be_months:.0f}mo")
 ```
+
+
+## CLI Companion Example
+
+```bash
+atropos-llm scenario my_scenario.yaml --strategy structured_pruning --report markdown
+```
+
+This mirrors the `scenario` argparse interface in `src/atropos/cli.py` and is useful when you want the same ROI outputs from the command line.

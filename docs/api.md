@@ -1,8 +1,10 @@
 # Python API
 
-Atropos exposes an ROI-first Python API for scenario/strategy modeling. Optional modules provide pipeline, validation, telemetry, and A/B testing workflows.
+Atropos exposes an ROI-estimation-and-optimization-first Python API for scenario/strategy modeling. Secondary modules provide pipeline, validation, telemetry, and A/B testing workflows around that core.
 
 > Use `atropos` for Python imports and `atropos-llm` for the CLI.
+
+For CLI workflows, use `atropos-llm --help` and the subcommands defined in `src/atropos/cli.py`.
 
 ## Core Models
 
