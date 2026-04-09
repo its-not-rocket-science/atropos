@@ -109,7 +109,7 @@ class LineWorldReward:
         if abs(self.value - total) > 1e-9:
             raise ValueError(
                 "Reward invariant violated: value must equal sum(components.values())."
-                )
+            )
 
 
 @dataclass(frozen=True, slots=True)
