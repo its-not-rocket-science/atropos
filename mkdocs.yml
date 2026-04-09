@@ -5,6 +5,7 @@ theme: readthedocs
 nav:
   - Home: index.md
   - Async RL Reproducibility: async_rl_reproducibility_architecture.md
+  - Product Strategy: product-strategy.md
   - Installation: installation.md
   - CLI Usage: cli.md
   - Python API: api.md
