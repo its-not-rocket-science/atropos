@@ -34,7 +34,6 @@ def test_ab_test_create_examples_use_config_flag() -> None:
             if ABTEST_CREATE_RE.search(line) and REQUIRED_CREATE_FLAG not in line:
                 violations.append(f"{path.relative_to(REPO_ROOT)}:{line_no}: {line.strip()}")
 
-    assert not violations, (
-        "ab-test create examples must include --config:\n"
-        + "\n".join(violations)
+    assert not violations, "ab-test create examples must include --config:\n" + "\n".join(
+        violations
     )
