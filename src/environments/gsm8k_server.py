@@ -9,7 +9,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from .prompting import BenchmarkPromptSpec, PromptBuilder, PromptMode, PromptingConfig
+from .prompting import (
+    BenchmarkPromptSpec,
+    PromptBuilder,
+    PromptingConfig,
+    PromptMode,
+)
 
 # GSM8K evaluation expects the canonical answer marker with an integer/string value.
 ANSWER_PATTERN = re.compile(r"####\s*([-+]?\d[\d,]*(?:\.\d+)?)")
@@ -57,13 +62,20 @@ class Gsm8kEnvironment:
 def migrated_gsm8k_prompt_example() -> dict[str, dict[str, str]]:
     """Illustrate the same benchmark question across supported prompt modes."""
     sample = Gsm8kExample(
-        question="Mia has 3 bags with 4 marbles each. She buys 5 more marbles. How many marbles now?",
+        question=(
+            "Mia has 3 bags with 4 marbles each. She buys 5 more marbles. "
+            "How many marbles now?"
+        ),
         answer="#### 17",
     )
 
     modes = {
-        "no_think": Gsm8kEnvironment(PromptingConfig(mode=PromptMode.NO_THINK)).build_prompt(sample),
-        "think_tag": Gsm8kEnvironment(PromptingConfig(mode=PromptMode.THINK_TAG)).build_prompt(sample),
+        "no_think": Gsm8kEnvironment(
+            PromptingConfig(mode=PromptMode.NO_THINK)
+        ).build_prompt(sample),
+        "think_tag": Gsm8kEnvironment(
+            PromptingConfig(mode=PromptMode.THINK_TAG)
+        ).build_prompt(sample),
         "provider_reasoning_openai": Gsm8kEnvironment(
             PromptingConfig(mode=PromptMode.PROVIDER_REASONING, provider="openai")
         ).build_prompt(sample),
