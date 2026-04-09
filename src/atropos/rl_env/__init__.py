@@ -2,6 +2,7 @@
 
 from .contracts import (
     Generator,
+    LineWorldIntrospection,
     LineWorldParsedAction,
     LineWorldReward,
     LineWorldState,
@@ -9,6 +10,7 @@ from .contracts import (
     LineWorldTransition,
     Parser,
     RewardFunction,
+    StageIntrospection,
     TrajectoryBuilder,
 )
 from .line_world import (
@@ -29,6 +31,8 @@ __all__ = [
     "LineWorldParsedAction",
     "LineWorldTransition",
     "LineWorldReward",
+    "StageIntrospection",
+    "LineWorldIntrospection",
     "LineWorldStepRecord",
     "LineWorldParser",
     "LineWorldGenerator",
