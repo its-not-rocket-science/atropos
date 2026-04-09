@@ -1,5 +1,9 @@
-from environments.gsm8k_server import Gsm8kEnvironment, Gsm8kExample, migrated_gsm8k_prompt_example
-from environments.prompting import PromptMode, PromptingConfig
+from environments.gsm8k_server import (
+    Gsm8kEnvironment,
+    Gsm8kExample,
+    migrated_gsm8k_prompt_example,
+)
+from environments.prompting import PromptingConfig, PromptMode
 
 
 def test_gsm8k_parser_remains_compatible() -> None:
