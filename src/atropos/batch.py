@@ -208,6 +208,7 @@ def batch_process(
                 continue
 
             attempts = 0
+            attempt_calls = 0
             try:
                 scenario_path_str = str(scenario_path)
                 strategy_name_local = strategy_name
@@ -216,6 +217,8 @@ def batch_process(
                     scenario_path_local: str = scenario_path_str,
                     strategy_name_local: str = strategy_name_local,
                 ) -> dict[str, Any]:
+                    nonlocal attempt_calls
+                    attempt_calls += 1
                     return run_with_timeout(
                         _run_scenario_in_subprocess,
                         timeout_seconds=timeout_seconds,
@@ -238,6 +241,7 @@ def batch_process(
                     )
                 )
             except Exception as exc:  # noqa: BLE001 - batch must keep processing
+                attempts = max(0, attempt_calls - 1)
                 category = categorize_error(exc)
                 failure = BatchFailure(
                     scenario=scenario_key,
