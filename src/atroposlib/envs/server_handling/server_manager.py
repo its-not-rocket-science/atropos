@@ -89,9 +89,7 @@ class ServerManager:
                 return "localhost"
             if normalized_mode == "slurm":
                 return "slurm"
-            raise ServerManagerError(
-                "CLUSTER_LAUNCH_MODE must be one of: localhost, local, slurm."
-            )
+            raise ServerManagerError("CLUSTER_LAUNCH_MODE must be one of: localhost, local, slurm.")
 
         if any(key.startswith("SLURM_") for key in env):
             return "slurm"
