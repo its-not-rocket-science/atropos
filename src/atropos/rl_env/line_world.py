@@ -11,11 +11,11 @@ from .contracts import (
     LineWorldParsedAction,
     LineWorldReward,
     LineWorldState,
-    StageIntrospection,
     LineWorldStepRecord,
     LineWorldTransition,
     Parser,
     RewardFunction,
+    StageIntrospection,
     TrajectoryBuilder,
 )
 
