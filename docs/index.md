@@ -8,6 +8,7 @@
 
 - [Canonical Glossary](canonical-glossary.md)
 - [Documentation Rewrite Plan](doc-rewrite-plan.md)
+- [Async RL Reproducibility Architecture](async_rl_reproducibility_architecture.md)
 
 - [Installation](installation.md)
 - [CLI Usage](cli.md)
