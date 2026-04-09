@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 
@@ -30,7 +31,7 @@ class ServerManager:
     default_host: str = "127.0.0.1"
     default_port: int = 8000
 
-    def from_environment(self, environ: dict[str, str] | None = None) -> ServerLaunchConfig:
+    def from_environment(self, environ: Mapping[str, str] | None = None) -> ServerLaunchConfig:
         """Build a validated launch config from environment variables."""
 
         env = os.environ if environ is None else environ
@@ -81,7 +82,7 @@ class ServerManager:
         )
 
     @staticmethod
-    def _resolve_mode(env: dict[str, str]) -> str:
+    def _resolve_mode(env: Mapping[str, str]) -> str:
         requested_mode = env.get("CLUSTER_LAUNCH_MODE")
         if requested_mode is not None:
             normalized_mode = requested_mode.strip().lower()
@@ -97,7 +98,7 @@ class ServerManager:
         return "localhost"
 
     @staticmethod
-    def _required_str(env: dict[str, str], key: str) -> str:
+    def _required_str(env: Mapping[str, str], key: str) -> str:
         value = env.get(key)
         if value is None or not value.strip():
             raise ServerManagerError(f"Missing required environment variable: {key}")
@@ -105,7 +106,7 @@ class ServerManager:
 
     @staticmethod
     def _parse_int(
-        env: dict[str, str],
+        env: Mapping[str, str],
         key: str,
         *,
         default: int | None = None,
