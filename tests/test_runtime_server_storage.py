@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from importlib.util import find_spec
 
-from fastapi.testclient import TestClient
+import pytest
 
-from atroposlib.api.server import HardeningTier, build_runtime_app
-from atroposlib.api.storage import InMemoryStore, RedisStore
+if find_spec("fastapi") is None:
+    pytestmark = pytest.mark.skip(reason="fastapi is not installed")
 
 
 class FakeRedis:
@@ -55,6 +56,11 @@ class FakeRedis:
 
 
 def test_inmemory_store_idempotency_header_deduplicates_jobs() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
     app = build_runtime_app(store=InMemoryStore())
     client = TestClient(app)
 
@@ -70,6 +76,11 @@ def test_inmemory_store_idempotency_header_deduplicates_jobs() -> None:
 
 
 def test_production_tier_uses_injected_redis_store() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import HardeningTier, build_runtime_app
+    from atroposlib.api.storage import RedisStore
+
     store = RedisStore(redis_client=FakeRedis())
     app = build_runtime_app(
         tier=HardeningTier.PRODUCTION_SAFE,
@@ -90,6 +101,8 @@ def test_production_tier_uses_injected_redis_store() -> None:
 
 
 def test_redis_store_returns_status_record() -> None:
+    from atroposlib.api.storage import RedisStore
+
     now = datetime.now(tz=timezone.utc)
     store = RedisStore(redis_client=FakeRedis())
 
