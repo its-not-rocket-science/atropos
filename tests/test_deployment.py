@@ -227,8 +227,9 @@ class TestDeploymentStrategies:
         strategy = CanaryStrategy(
             {
                 "initial_percent": 10.0,
-                "increment_percent": 20.0,
-                "interval_minutes": 0.001,  # Very short for testing
+                "increment_percent": 45.0,
+                "poll_interval_seconds": 0.0,
+                "timeout_seconds": 5.0,
                 "max_errors": 3,
             }
         )
@@ -236,10 +237,10 @@ class TestDeploymentStrategies:
         result = strategy.execute(mock_platform, sample_deployment_request)
 
         assert result.status == DeploymentStatus.SUCCESS
-        assert "100% traffic" in result.message
+        assert "not managed" in result.message.lower()
         # Should have called deploy once and get_status multiple times
         mock_platform.deploy.assert_called_once()
-        assert mock_platform.get_status.call_count > 0
+        assert mock_platform.get_status.call_count == 3
 
     def test_canary_strategy_failure(
         self, mock_platform: Mock, sample_deployment_request: DeploymentRequest
@@ -253,7 +254,8 @@ class TestDeploymentStrategies:
             {
                 "initial_percent": 10.0,
                 "increment_percent": 20.0,
-                "interval_minutes": 0.001,
+                "poll_interval_seconds": 0.0,
+                "timeout_seconds": 5.0,
                 "max_errors": 1,  # Fail immediately
             }
         )
@@ -261,7 +263,7 @@ class TestDeploymentStrategies:
         result = strategy.execute(mock_platform, sample_deployment_request)
 
         assert result.status == DeploymentStatus.FAILED
-        assert "failed at" in result.message.lower()
+        assert "rollback" in result.message.lower()
         mock_platform.rollback.assert_called_once()
 
     def test_blue_green_strategy_success(
@@ -272,7 +274,8 @@ class TestDeploymentStrategies:
 
         strategy = BlueGreenStrategy(
             {
-                "validation_duration": 0.001,  # Very short for testing
+                "timeout_seconds": 0.01,
+                "poll_interval_seconds": 0.0,
                 "auto_swap": True,
             }
         )
@@ -283,6 +286,7 @@ class TestDeploymentStrategies:
         assert "blue-green" in result.message.lower()
         mock_platform.deploy.assert_called_once()
         mock_platform.get_status.assert_called()
+        assert sample_deployment_request.metadata == {"environment": "test"}
 
     def test_blue_green_strategy_failure(
         self, mock_platform: Mock, sample_deployment_request: DeploymentRequest
@@ -292,7 +296,8 @@ class TestDeploymentStrategies:
 
         strategy = BlueGreenStrategy(
             {
-                "validation_duration": 0.001,
+                "timeout_seconds": 0.01,
+                "poll_interval_seconds": 0.0,
                 "auto_swap": True,
             }
         )
@@ -300,8 +305,36 @@ class TestDeploymentStrategies:
         result = strategy.execute(mock_platform, sample_deployment_request)
 
         assert result.status == DeploymentStatus.FAILED
-        assert "validation" in result.message.lower()
+        assert "cleaned up" in result.message.lower()
         mock_platform.delete.assert_called_once()
+
+    def test_blue_green_validation_failure_cleanup(
+        self, mock_platform: Mock, sample_deployment_request: DeploymentRequest
+    ) -> None:
+        """Validation failures should clean up green deployment and preserve request."""
+        mock_platform.get_status.return_value.status = DeploymentStatus.FAILED
+        mock_platform.get_status.return_value.message = "unhealthy"
+        strategy = BlueGreenStrategy({"timeout_seconds": 1.0, "poll_interval_seconds": 0.0})
+
+        _ = strategy.execute(mock_platform, sample_deployment_request)
+
+        deployed_request = mock_platform.deploy.call_args.args[0]
+        assert deployed_request.metadata["environment"] == "green"
+        assert sample_deployment_request.metadata == {"environment": "test"}
+        mock_platform.delete.assert_called_once_with("test-deployment-123")
+
+    def test_strategy_config_parsing(self) -> None:
+        """Strategy config should parse time options and compatibility defaults."""
+        canary_default = CanaryStrategy({"interval_minutes": 2})
+        assert canary_default.poll_interval_seconds == 120.0
+        assert canary_default.timeout_seconds == 300.0
+
+        canary_override = CanaryStrategy({"poll_interval_seconds": 3, "timeout_seconds": 12})
+        assert canary_override.poll_interval_seconds == 3.0
+        assert canary_override.timeout_seconds == 12.0
+
+        blue_green = BlueGreenStrategy({"validation_duration": 2})
+        assert blue_green.timeout_seconds == 120.0
 
     def test_rolling_update_strategy(
         self, mock_platform: Mock, sample_deployment_request: DeploymentRequest
@@ -311,7 +344,8 @@ class TestDeploymentStrategies:
         result = strategy.execute(mock_platform, sample_deployment_request)
 
         mock_platform.deploy.assert_called_once_with(sample_deployment_request)
-        assert result == mock_platform.deploy.return_value
+        assert result.status == mock_platform.deploy.return_value.status
+        assert "not managed" in result.message.lower()
 
     def test_strategy_abstract_methods(self) -> None:
         """Test DeploymentStrategy abstract methods."""

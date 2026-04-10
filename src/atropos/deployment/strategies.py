@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -67,11 +68,47 @@ class CanaryStrategy(DeploymentStrategy):
 
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
-        self.initial_percent = self.config.get("initial_percent", 10.0)
-        self.increment_percent = self.config.get("increment_percent", 10.0)
-        self.interval_minutes = self.config.get("interval_minutes", 5)
-        self.health_check_timeout = self.config.get("health_check_timeout", 300)
-        self.max_errors = self.config.get("max_errors", 5)
+        self.initial_percent = float(self.config.get("initial_percent", 10.0))
+        self.increment_percent = float(self.config.get("increment_percent", 10.0))
+        interval_minutes = float(self.config.get("interval_minutes", 5.0))
+        self.poll_interval_seconds = float(
+            self.config.get("poll_interval_seconds", interval_minutes * 60.0)
+        )
+        self.timeout_seconds = float(self.config.get("timeout_seconds", 300.0))
+        self.max_errors = int(self.config.get("max_errors", 5))
+        self._sleep = time.sleep
+        self._time = time.monotonic
+
+    def _run_canary_health_loop(
+        self,
+        platform: DeploymentPlatform,
+        deployment_id: str,
+    ) -> tuple[bool, float, str]:
+        """Run canary health checks across traffic increments."""
+        from .models import DeploymentStatus
+
+        current_percent = self.initial_percent
+        errors = 0
+        deadline = self._time() + self.timeout_seconds
+
+        while current_percent <= 100.0:
+            health_result = platform.get_status(deployment_id)
+            if health_result.status != DeploymentStatus.SUCCESS:
+                errors += 1
+                if errors >= self.max_errors:
+                    message = health_result.message or "health checks reported failure"
+                    return False, current_percent, message
+
+            if current_percent >= 100.0:
+                break
+
+            if self._time() >= deadline:
+                return False, current_percent, "timed out waiting for canary validation"
+
+            self._sleep(self.poll_interval_seconds)
+            current_percent = min(100.0, current_percent + self.increment_percent)
+
+        return True, 100.0, ""
 
     def execute(
         self,
@@ -97,47 +134,41 @@ class CanaryStrategy(DeploymentStrategy):
                 end_time=initial_result.end_time,
             )
 
-        # Simulate canary rollout (TODO: implement actual traffic shifting)
-        # For now, just simulate health checks
-        current_percent = self.initial_percent
-        errors = 0
-
-        while current_percent <= 100.0:
-            # Check health
-            health_result = platform.get_status(deployment_id)
-            if health_result.status != DeploymentStatus.SUCCESS:
-                errors += 1
-                if errors >= self.max_errors:
-                    # Rollback
-                    rollback_result = platform.rollback(deployment_id)
-                    return DeploymentResult(
-                        request=request,
-                        status=DeploymentStatus.FAILED,
-                        message=(
-                            f"Canary deployment failed at {current_percent}%: "
-                            f"{rollback_result.message}"
-                        ),
-                        start_time=initial_result.start_time,
-                        end_time=datetime.fromtimestamp(time.time()).isoformat(),
-                        deployment_id=deployment_id,
-                    )
-
-            # Simulate traffic increase
-            if current_percent < 100.0:
-                time.sleep(self.interval_minutes * 60)  # Convert minutes to seconds
-                current_percent = min(100.0, current_percent + self.increment_percent)
-            else:
-                break
+        is_healthy, failed_percent, failure_message = self._run_canary_health_loop(
+            platform,
+            deployment_id,
+        )
+        if not is_healthy:
+            rollback_result = platform.rollback(deployment_id)
+            return DeploymentResult(
+                request=request,
+                status=DeploymentStatus.FAILED,
+                message=(
+                    f"Canary validation failed at {failed_percent}% traffic. "
+                    f"Rollback result: {rollback_result.message}. "
+                    f"Note: traffic shifting is not managed by this platform abstraction."
+                ),
+                start_time=initial_result.start_time,
+                end_time=datetime.fromtimestamp(time.time()).isoformat(),
+                deployment_id=deployment_id,
+                metrics={
+                    "failure_reason": failure_message,
+                    "strategy_support": "validation-only",
+                },
+            )
 
         return DeploymentResult(
             request=request,
             status=DeploymentStatus.SUCCESS,
-            message="Canary deployment completed successfully (100% traffic)",
+            message=(
+                "Canary validation completed for 100% rollout stages. "
+                "Traffic shifting is not managed by this platform abstraction."
+            ),
             start_time=initial_result.start_time,
             end_time=datetime.fromtimestamp(time.time()).isoformat(),
             deployment_id=deployment_id,
             endpoints=initial_result.endpoints,
-            metrics=initial_result.metrics,
+            metrics={**initial_result.metrics, "strategy_support": "validation-only"},
         )
 
 
@@ -148,6 +179,29 @@ class BlueGreenStrategy(DeploymentStrategy):
         super().__init__(config)
         self.validation_duration = self.config.get("validation_duration", 15)  # minutes
         self.auto_swap = self.config.get("auto_swap", True)
+        self.poll_interval_seconds = float(self.config.get("poll_interval_seconds", 30.0))
+        self.timeout_seconds = float(
+            self.config.get("timeout_seconds", float(self.validation_duration) * 60.0)
+        )
+        self._sleep = time.sleep
+        self._time = time.monotonic
+
+    def _validate_green_deployment(
+        self,
+        platform: DeploymentPlatform,
+        deployment_id: str,
+    ) -> tuple[bool, str]:
+        """Poll deployment health until timeout."""
+        from .models import DeploymentStatus
+
+        deadline = self._time() + self.timeout_seconds
+        while self._time() < deadline:
+            health_result = platform.get_status(deployment_id)
+            if health_result.status != DeploymentStatus.SUCCESS:
+                return False, health_result.message or "health checks reported failure"
+            self._sleep(self.poll_interval_seconds)
+
+        return True, ""
 
     def execute(
         self,
@@ -160,10 +214,11 @@ class BlueGreenStrategy(DeploymentStrategy):
         # Deploy to green environment
         start_time = datetime.fromtimestamp(time.time()).isoformat()
 
-        # Modify request for green deployment
-        green_request = request
-        green_request.metadata = green_request.metadata.copy()
-        green_request.metadata["environment"] = "green"
+        # Create request for green deployment without mutating the original request
+        green_request = replace(
+            request,
+            metadata={**request.metadata, "environment": "green"},
+        )
 
         green_result = platform.deploy(green_request)
         if green_result.status != DeploymentStatus.SUCCESS:
@@ -179,34 +234,36 @@ class BlueGreenStrategy(DeploymentStrategy):
                 end_time=datetime.fromtimestamp(time.time()).isoformat(),
             )
 
-        # Validate green deployment
-        validation_start = time.time()
-        while time.time() - validation_start < self.validation_duration * 60:
-            health_result = platform.get_status(deployment_id)
-            if health_result.status != DeploymentStatus.SUCCESS:
-                # Clean up green deployment
-                platform.delete(deployment_id)
-                return DeploymentResult(
-                    request=request,
-                    status=DeploymentStatus.FAILED,
-                    message=f"Green deployment failed validation: {health_result.message}",
-                    start_time=start_time,
-                    end_time=datetime.fromtimestamp(time.time()).isoformat(),
-                )
-            time.sleep(30)  # Check every 30 seconds
-
-        # TODO: Implement actual traffic swap
-        # For now, simulate swap by updating endpoints
+        validation_ok, validation_message = self._validate_green_deployment(
+            platform,
+            deployment_id,
+        )
+        if not validation_ok:
+            platform.delete(deployment_id)
+            return DeploymentResult(
+                request=request,
+                status=DeploymentStatus.FAILED,
+                message=(
+                    "Green deployment failed validation and was cleaned up: "
+                    f"{validation_message}"
+                ),
+                start_time=start_time,
+                end_time=datetime.fromtimestamp(time.time()).isoformat(),
+                metrics={"strategy_support": "validation-only"},
+            )
 
         return DeploymentResult(
             request=request,
             status=DeploymentStatus.SUCCESS,
-            message="Blue-green deployment completed successfully",
+            message=(
+                "Blue-green validation succeeded for green environment. "
+                "Traffic swap is not managed by this platform abstraction."
+            ),
             start_time=start_time,
             end_time=datetime.fromtimestamp(time.time()).isoformat(),
             deployment_id=deployment_id,
             endpoints=green_result.endpoints,
-            metrics=green_result.metrics,
+            metrics={**green_result.metrics, "strategy_support": "validation-only"},
         )
 
 
@@ -225,10 +282,23 @@ class RollingUpdateStrategy(DeploymentStrategy):
         request: DeploymentRequest,
     ) -> DeploymentResult:
         """Execute rolling update deployment."""
+        from .models import DeploymentResult
 
-        # TODO: Implement actual rolling update across instances
-        # For now, simulate as immediate deployment
-        return platform.deploy(request)
+        base_result = platform.deploy(request)
+        return DeploymentResult(
+            request=base_result.request,
+            status=base_result.status,
+            message=(
+                f"{base_result.message} "
+                "Rolling update sequencing is not managed by this platform abstraction."
+            ).strip(),
+            start_time=base_result.start_time,
+            end_time=base_result.end_time,
+            deployment_id=base_result.deployment_id,
+            endpoints=base_result.endpoints,
+            health_check_results=base_result.health_check_results,
+            metrics={**base_result.metrics, "strategy_support": "not-implemented"},
+        )
 
 
 class ABTestStrategy(DeploymentStrategy):
