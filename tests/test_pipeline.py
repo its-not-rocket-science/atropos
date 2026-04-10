@@ -1,12 +1,14 @@
 """Tests for pipeline module."""
 
+import sys
 from pathlib import Path
 
 import pytest
 
 from atropos.models import DeploymentScenario, OptimizationStrategy
 from atropos.pipeline.config import PipelineConfig
-from atropos.pipeline.runner import PipelineRunner
+from atropos.pipeline.models import PipelineStage, StageStatus
+from atropos.pipeline.runner import PipelineRunner, _execute_external_command
 
 
 def make_scenario() -> DeploymentScenario:
@@ -175,6 +177,67 @@ pipeline:
     assert config.pruning.framework == "wanda"
     assert config.pruning.target_sparsity == 0.35
     assert config.pruning.structured is False
+
+
+def test_execute_external_command_success() -> None:
+    """External command helper should report successful execution."""
+    result = _execute_external_command(
+        stage=PipelineStage.PRUNE,
+        command=[sys.executable, "-c", "print('ok')"],
+        timeout_seconds=2,
+    )
+    assert result["succeeded"] is True
+    assert result["exit_code"] == 0
+    assert result["timed_out"] is False
+    assert "ok" in str(result["stdout_excerpt"])
+
+
+def test_execute_external_command_nonzero_exit() -> None:
+    """External command helper should report non-zero exit details."""
+    result = _execute_external_command(
+        stage=PipelineStage.VALIDATE,
+        command=[sys.executable, "-c", "import sys; print('boom', file=sys.stderr); sys.exit(5)"],
+        timeout_seconds=2,
+    )
+    assert result["succeeded"] is False
+    assert result["exit_code"] == 5
+    assert result["timed_out"] is False
+    assert "boom" in str(result["stderr_excerpt"])
+
+
+def test_execute_external_command_timeout() -> None:
+    """External command helper should surface timeout in metadata."""
+    result = _execute_external_command(
+        stage=PipelineStage.RECOVER,
+        command=[sys.executable, "-c", "import time; time.sleep(1.5)"],
+        timeout_seconds=1,
+    )
+    assert result["succeeded"] is False
+    assert result["timed_out"] is True
+    assert result["exit_code"] == -1
+
+
+def test_pipeline_runner_dry_run_custom_command_unchanged() -> None:
+    """Dry run should skip command execution even when commands are configured."""
+    scenario = make_scenario()
+    strategy = make_strategy()
+    config = PipelineConfig.from_dict(
+        {
+            "name": "dry-run-command-check",
+            "thresholds": {
+                "max_break_even_months": 1200,
+                "min_annual_savings_usd": -1.0,
+                "max_quality_risk": "high",
+                "min_expected_quality": 0.0,
+            },
+            "pruning": {"custom_command": f"{sys.executable} -c \"raise SystemExit(77)\""},
+        }
+    )
+    runner = PipelineRunner(config, dry_run=True)
+    result = runner.run(scenario, strategy, grid_co2e=0.35)
+    prune_stage = next(stage for stage in result.stages if stage.stage == PipelineStage.PRUNE)
+    assert prune_stage.status == StageStatus.SUCCESS
+    assert "[DRY RUN]" in prune_stage.message
 
 
 if __name__ == "__main__":
