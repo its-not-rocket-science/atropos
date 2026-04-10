@@ -20,7 +20,7 @@ from .transport_client import TransportClient
 from .worker_manager import WorkerManager
 
 
-@dataclass
+@dataclass(init=False)
 class BaseEnv:
     """Backward-compatible facade orchestrating composable components."""
 
@@ -29,6 +29,22 @@ class BaseEnv:
     logging_manager: LoggingManager = field(default_factory=LoggingManager)
     checkpoint_manager: CheckpointManager = field(default_factory=CheckpointManager)
     env_logic: EnvLogic = field(default_factory=PassthroughEnvLogic)
+
+    def __init__(
+        self,
+        worker_manager: WorkerManager | None = None,
+        transport_client: TransportClient | None = None,
+        *,
+        transport: TransportClient | None = None,
+        logging_manager: LoggingManager | None = None,
+        checkpoint_manager: CheckpointManager | None = None,
+        env_logic: EnvLogic | None = None,
+    ) -> None:
+        self.worker_manager = worker_manager or WorkerManager()
+        self.transport_client = transport or transport_client or TransportClient()
+        self.logging_manager = logging_manager or LoggingManager()
+        self.checkpoint_manager = checkpoint_manager or CheckpointManager()
+        self.env_logic = env_logic or PassthroughEnvLogic()
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
         self.logging_manager.log_event("step_started", worker_count=worker_count)
