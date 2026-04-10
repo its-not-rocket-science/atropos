@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -138,8 +138,10 @@ def build_runtime_app(
 
     write_access = _build_auth_dependency(policy, api_token)
 
-    @app.middleware("http")
-    async def _metrics_middleware(request: Request, call_next: Callable[..., Any]) -> Response:
+    async def _metrics_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         started_at = datetime.now(tz=timezone.utc)
         response = await call_next(request)
         duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
@@ -150,6 +152,8 @@ def build_runtime_app(
             duration_seconds=duration,
         )
         return response
+
+    app.middleware("http")(_metrics_middleware)
 
     def health(request: Request) -> dict[str, str]:
         backend_name = get_runtime_state(request).store.backend_name
