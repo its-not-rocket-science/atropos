@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from atroposlib.observability import BaseEnvTracingHooks, RuntimeMetrics
+
 from .checkpoint_manager import CheckpointManager
 from .env_logic import EnvLogic, PassthroughEnvLogic
 from .logging_manager import LoggingManager
@@ -29,6 +31,9 @@ class BaseEnv:
     logging_manager: LoggingManager = field(default_factory=LoggingManager)
     checkpoint_manager: CheckpointManager = field(default_factory=CheckpointManager)
     env_logic: EnvLogic = field(default_factory=PassthroughEnvLogic)
+    tracing_hooks: BaseEnvTracingHooks = field(default_factory=BaseEnvTracingHooks)
+    runtime_metrics: RuntimeMetrics = field(default_factory=RuntimeMetrics)
+    env_name: str = "default"
 
     def __init__(
         self,
@@ -39,21 +44,53 @@ class BaseEnv:
         logging_manager: LoggingManager | None = None,
         checkpoint_manager: CheckpointManager | None = None,
         env_logic: EnvLogic | None = None,
+        tracing_hooks: BaseEnvTracingHooks | None = None,
+        runtime_metrics: RuntimeMetrics | None = None,
+        env_name: str = "default",
     ) -> None:
         self.worker_manager = worker_manager or WorkerManager()
         self.transport_client = transport or transport_client or TransportClient()
         self.logging_manager = logging_manager or LoggingManager()
         self.checkpoint_manager = checkpoint_manager or CheckpointManager()
         self.env_logic = env_logic or PassthroughEnvLogic()
+        self.tracing_hooks = tracing_hooks or BaseEnvTracingHooks(env_name=env_name)
+        self.runtime_metrics = runtime_metrics or RuntimeMetrics()
+        self.env_name = env_name
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
-        self.logging_manager.log_event("step_started", worker_count=worker_count)
-        prepared = self.env_logic.prepare_step(payload)
-        runtime_result = self.worker_manager.orchestrate(prepared, requested_workers=worker_count)
-        transport_result = self.transport_client.send(runtime_result)
-        finalized = self.env_logic.finalize_step(transport_result)
-        self.checkpoint_manager.save(finalized)
-        self.logging_manager.log_event("step_finished", status=finalized.get("ok", False))
+        self.logging_manager.log_event("step_started", worker_count=worker_count, env=self.env_name)
+        with self.tracing_hooks.step_span(worker_count=worker_count, payload=payload) as span:
+            prepared = self.env_logic.prepare_step(payload)
+            runtime_result = self.worker_manager.orchestrate(
+                prepared,
+                requested_workers=worker_count,
+            )
+            transport_result = self.transport_client.send(runtime_result)
+            finalized = self.env_logic.finalize_step(transport_result)
+
+            backlog_size = float(runtime_result.get("backlog_size", 0))
+            selected_workers = float(runtime_result.get("worker_count", 0))
+            utilization = min(
+                1.0,
+                selected_workers / float(max(1, self.worker_manager.max_workers)),
+            )
+            self.runtime_metrics.queue_size.labels(env=self.env_name).set(backlog_size)
+            self.runtime_metrics.worker_utilization.labels(env=self.env_name).set(utilization)
+
+            if span is not None:
+                span.set_attribute("atropos.queue.size", backlog_size)
+                span.set_attribute("atropos.worker.selected", selected_workers)
+                span.set_attribute("atropos.worker.utilization", utilization)
+                span.set_attribute("atropos.step.ok", bool(finalized.get("ok", False)))
+
+            self.checkpoint_manager.save(finalized)
+        self.logging_manager.log_event(
+            "step_finished",
+            status=finalized.get("ok", False),
+            env=self.env_name,
+            worker_utilization=utilization,
+            queue_size=backlog_size,
+        )
         return finalized
 
     def reset(self) -> None:

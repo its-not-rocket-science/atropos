@@ -8,6 +8,33 @@ from atroposlib.envs.components import EnvRuntime, EnvTransportClient
 from atroposlib.envs.env_logic import EnvLogic
 
 
+class DummySpan:
+    def __init__(self) -> None:
+        self.attributes: dict[str, object] = {}
+
+    def set_attribute(self, key: str, value: object) -> None:
+        self.attributes[key] = value
+
+
+class DummyTracingHooks:
+    def __init__(self) -> None:
+        self.span = DummySpan()
+
+    def step_span(self, *, worker_count: int, payload: dict[str, Any]):
+        _ = (worker_count, payload)
+
+        tracing_span = self.span
+
+        class _Ctx:
+            def __enter__(self):
+                return tracing_span
+
+            def __exit__(self, exc_type, exc, tb):
+                _ = (exc_type, exc, tb)
+                return False
+
+        return _Ctx()
+
 @dataclass
 class PrefixLogic(EnvLogic):
     prefix: str = "prep-"
@@ -83,3 +110,14 @@ def test_backward_compatibility_shim_types_are_usable() -> None:
 
     assert output["worker_count"] == 3
     assert response["ok"] is True
+
+
+def test_step_emits_worker_utilization_and_trace_attributes() -> None:
+    tracing = DummyTracingHooks()
+    env = BaseEnv(tracing_hooks=tracing, env_name="prod")
+
+    _ = env.step({"task": "x"}, worker_count=4)
+
+    assert tracing.span.attributes["atropos.worker.requested"] == 4
+    assert "atropos.worker.utilization" in tracing.span.attributes
+    assert env.logger.events[-1]["metadata"]["env"] == "prod"
