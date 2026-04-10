@@ -1,10 +1,11 @@
-"""BaseEnv compatibility facade.
+"""Thin BaseEnv orchestration facade.
 
-`BaseEnv` previously mixed environment contract, worker orchestration, API
-transport, logging, checkpointing, CLI generation, and YAML/CLI merging.
-
-This module preserves the external behavior shape while moving each concern to
-explicit collaborators that can be swapped incrementally.
+BaseEnv now composes specialized collaborators:
+- WorkerManager
+- TransportClient
+- LoggingManager
+- CheckpointManager
+- EnvLogic
 """
 
 from __future__ import annotations
@@ -12,61 +13,54 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .components import (
-    EnvCheckpointManager,
-    EnvCliBuilder,
-    EnvConfigMerger,
-    EnvLogger,
-    EnvRuntime,
-    EnvTransportClient,
-)
+from .checkpoint_manager import CheckpointManager
+from .env_logic import EnvLogic, PassthroughEnvLogic
+from .logging_manager import LoggingManager
+from .transport_client import TransportClient
+from .worker_manager import WorkerManager
 
 
 @dataclass
 class BaseEnv:
-    """Backward-compatible environment facade with explicit collaborators."""
+    """Backward-compatible facade orchestrating composable components."""
 
-    runtime: EnvRuntime = field(default_factory=EnvRuntime)
-    transport: EnvTransportClient = field(default_factory=EnvTransportClient)
-    logger: EnvLogger = field(default_factory=EnvLogger)
-    checkpoint_manager: EnvCheckpointManager = field(default_factory=EnvCheckpointManager)
-    cli_builder: EnvCliBuilder = field(default_factory=EnvCliBuilder)
-    config_merger: EnvConfigMerger = field(default_factory=EnvConfigMerger)
+    worker_manager: WorkerManager = field(default_factory=WorkerManager)
+    transport_client: TransportClient = field(default_factory=TransportClient)
+    logging_manager: LoggingManager = field(default_factory=LoggingManager)
+    checkpoint_manager: CheckpointManager = field(default_factory=CheckpointManager)
+    env_logic: EnvLogic = field(default_factory=PassthroughEnvLogic)
 
-    # ------------------------
-    # Environment contract API
-    # ------------------------
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
-        """Execute one environment step.
-
-        Behavior remains: run workers -> call transport -> log -> checkpoint.
-        """
-
-        self.logger.info("step_started", worker_count=worker_count)
-        runtime_result = self.runtime.run(payload, worker_count=worker_count)
-        transport_result = self.transport.send(runtime_result)
-        self.checkpoint_manager.save(transport_result)
-        self.logger.info("step_finished", status=transport_result.get("ok", False))
-        return transport_result
+        self.logging_manager.log_event("step_started", worker_count=worker_count)
+        prepared = self.env_logic.prepare_step(payload)
+        runtime_result = self.worker_manager.orchestrate(prepared, requested_workers=worker_count)
+        transport_result = self.transport_client.send(runtime_result)
+        finalized = self.env_logic.finalize_step(transport_result)
+        self.checkpoint_manager.save(finalized)
+        self.logging_manager.log_event("step_finished", status=finalized.get("ok", False))
+        return finalized
 
     def reset(self) -> None:
-        """Reset volatile state while preserving configured collaborators."""
-
-        self.logger.events.clear()
-        self.checkpoint_manager.snapshots.clear()
+        self.logging_manager.reset()
+        self.checkpoint_manager.reset()
 
     # -------------------------------
     # CLI + config compatibility API
     # -------------------------------
     def build_cli_args(self, config: dict[str, Any]) -> list[str]:
-        return self.cli_builder.build(config)
+        args: list[str] = []
+        for key, value in sorted(config.items()):
+            args.extend([f"--{key.replace('_', '-')}", str(value)])
+        return args
 
     def merge_yaml_and_cli(
         self,
         yaml_config: dict[str, Any],
         cli_config: dict[str, Any],
     ) -> dict[str, Any]:
-        return self.config_merger.merge(yaml_config, cli_config)
+        merged = dict(yaml_config)
+        merged.update(cli_config)
+        return merged
 
     # -------------------------------------
     # Legacy method aliases for compatibility
@@ -76,13 +70,26 @@ class BaseEnv:
         work_item: dict[str, Any],
         worker_count: int = 1,
     ) -> dict[str, Any]:
-        return self.runtime.run(work_item, worker_count=worker_count)
+        return self.worker_manager.orchestrate(work_item, requested_workers=worker_count)
 
     def call_api(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self.transport.send(payload)
+        return self.transport_client.send(payload)
 
     def log_event(self, event: str, **metadata: Any) -> None:
-        self.logger.info(event, **metadata)
+        self.logging_manager.log_event(event, **metadata)
 
     def checkpoint(self, state: dict[str, Any]) -> None:
         self.checkpoint_manager.save(state)
+
+    # Compatibility properties for code that referenced old collaborator names.
+    @property
+    def runtime(self) -> WorkerManager:
+        return self.worker_manager
+
+    @property
+    def transport(self) -> TransportClient:
+        return self.transport_client
+
+    @property
+    def logger(self) -> LoggingManager:
+        return self.logging_manager
