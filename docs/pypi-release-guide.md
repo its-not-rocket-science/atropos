@@ -57,17 +57,17 @@ python scripts/prepare_release.py
 
 # Update CHANGELOG.md with changes for the new version
 # Commit changes
-git commit -am "Prepare release v0.3.0"
+git commit -am "Prepare release v<version>"
 ```
 
 ### 2. Create and Push Tag
 
 ```bash
 # Create an annotated tag
-git tag -a v0.3.0 -m "Release v0.3.0"
+git tag -a v<version> -m "Release v<version>"
 
 # Push the tag (triggers GitHub Actions)
-git push origin v0.3.0
+git push origin v<version>
 ```
 
 ### 3. Monitor the Release Workflow
