@@ -13,7 +13,7 @@ import urllib.request
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .logging_config import get_logger
 from .telemetry import TelemetryData
@@ -125,7 +125,8 @@ class TelemetryCollector(ABC):
         for attempt in range(1, retries + 1):
             try:
                 with urllib.request.urlopen(req, timeout=timeout) as response:
-                    return response.read().decode("utf-8")
+                    payload = cast(bytes, response.read())
+                    return payload.decode("utf-8")
             except urllib.error.HTTPError as exc:
                 last_error = exc
                 if exc.code not in retryable_status or attempt == retries:
