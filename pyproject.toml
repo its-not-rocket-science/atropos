@@ -71,7 +71,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-exclude = ["external/**"]
+exclude = ["external/**", ".git"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N"]
