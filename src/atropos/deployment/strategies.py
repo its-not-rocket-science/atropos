@@ -244,8 +244,7 @@ class BlueGreenStrategy(DeploymentStrategy):
                 request=request,
                 status=DeploymentStatus.FAILED,
                 message=(
-                    "Green deployment failed validation and was cleaned up: "
-                    f"{validation_message}"
+                    f"Green deployment failed validation and was cleaned up: {validation_message}"
                 ),
                 start_time=start_time,
                 end_time=datetime.fromtimestamp(time.time()).isoformat(),
