@@ -81,8 +81,7 @@ def check() -> list[str]:
     changelog_header = re.compile(rf"^##\s+\[{re.escape(pyproject_version)}\]", re.MULTILINE)
     if not changelog_header.search(changelog_content):
         errors.append(
-            "CHANGELOG.md does not contain a top-level release section for "
-            f"[{pyproject_version}]."
+            f"CHANGELOG.md does not contain a top-level release section for [{pyproject_version}]."
         )
 
     # The most recent concrete release section should match pyproject version.
