@@ -148,9 +148,10 @@ class PluginRegistry:
     @staticmethod
     def _entry_points() -> metadata.EntryPoints:
         entry_points = metadata.entry_points()
-        if hasattr(entry_points, "select"):
+        if isinstance(entry_points, metadata.EntryPoints):
             return entry_points
-        return metadata.EntryPoints(entry_points)  # pragma: no cover
+        all_entry_points = [entry_point for group in entry_points.values() for entry_point in group]
+        return metadata.EntryPoints(all_entry_points)  # pragma: no cover
 
     def _register_from_bundle(self, bundle: Any) -> None:
         if callable(bundle) and not isinstance(bundle, RegistryPlugin):
