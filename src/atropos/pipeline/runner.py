@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import shlex
 import subprocess
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..calculations import estimate_outcome
@@ -29,6 +32,81 @@ logger = get_logger("pipeline")
 
 if TYPE_CHECKING:
     from ..models import DeploymentScenario, OptimizationStrategy
+
+_DEFAULT_STAGE_TIMEOUT_SECONDS: dict[PipelineStage, int] = {
+    PipelineStage.PRUNE: 2 * 60 * 60,
+    PipelineStage.RECOVER: 4 * 60 * 60,
+    PipelineStage.VALIDATE: 60 * 60,
+    PipelineStage.DEPLOY: 10 * 60,
+    PipelineStage.ROLLBACK: 10 * 60,
+}
+_MAX_LOG_EXCERPT_CHARS = 4_096
+
+
+def _excerpt_from_file(path: Path, max_chars: int = _MAX_LOG_EXCERPT_CHARS) -> str:
+    """Read a bounded tail excerpt from a file."""
+    if max_chars <= 0:
+        return ""
+    with path.open("rb") as f:
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(max(0, size - max_chars))
+        excerpt = f.read(max_chars).decode("utf-8", errors="replace")
+    return excerpt
+
+
+def _normalize_command(command: str | list[str]) -> list[str]:
+    """Normalize command input into subprocess argv format."""
+    if isinstance(command, str):
+        return shlex.split(command)
+    return command
+
+
+def _execute_external_command(
+    *,
+    stage: PipelineStage,
+    command: str | list[str],
+    timeout_seconds: int,
+) -> dict[str, object]:
+    """Execute a command with bounded output capture and structured metadata."""
+    argv = _normalize_command(command)
+    cmd_display = " ".join(shlex.quote(part) for part in argv)
+    stdout_excerpt = ""
+    stderr_excerpt = ""
+    exit_code = 0
+    timed_out = False
+
+    with (
+        tempfile.NamedTemporaryFile(delete=True) as stdout_tmp,
+        tempfile.NamedTemporaryFile(delete=True) as stderr_tmp,
+    ):
+        try:
+            completed = subprocess.run(
+                argv,
+                check=False,
+                timeout=timeout_seconds,
+                stdout=stdout_tmp,
+                stderr=stderr_tmp,
+                text=False,
+            )
+            exit_code = completed.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            exit_code = -1
+
+        stdout_excerpt = _excerpt_from_file(Path(stdout_tmp.name))
+        stderr_excerpt = _excerpt_from_file(Path(stderr_tmp.name))
+
+    return {
+        "stage": stage.name.lower(),
+        "command": cmd_display,
+        "timeout_seconds": timeout_seconds,
+        "exit_code": exit_code,
+        "timed_out": timed_out,
+        "stdout_excerpt": stdout_excerpt,
+        "stderr_excerpt": stderr_excerpt,
+        "succeeded": exit_code == 0 and not timed_out,
+    }
 
 
 def _now() -> str:
@@ -331,23 +409,33 @@ class PipelineRunner:
         # In real implementation, this would call the pruning framework
         # For now, we simulate success or run custom command if provided
         if config.custom_command:
-            try:
-                logger.debug("Running custom pruning command: %s", config.custom_command)
-                # Run custom pruning command
-                subprocess.run(
-                    config.custom_command,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
+            logger.debug("Running custom pruning command: %s", config.custom_command)
+            command_result = _execute_external_command(
+                stage=PipelineStage.PRUNE,
+                command=config.custom_command,
+                timeout_seconds=_DEFAULT_STAGE_TIMEOUT_SECONDS[PipelineStage.PRUNE],
+            )
+            result.metrics["command_execution"] = command_result
+            if command_result["succeeded"]:
                 result.status = StageStatus.SUCCESS
                 result.message = "Pruning completed using custom command"
                 logger.info("Pruning completed using custom command")
-            except subprocess.CalledProcessError as e:
-                logger.error("Pruning failed: %s", e.stderr, exc_info=SHOW_TRACEBACK)
+            else:
+                logger.error(
+                    "Pruning failed (exit=%s timeout=%s): %s",
+                    command_result["exit_code"],
+                    command_result["timed_out"],
+                    command_result["stderr_excerpt"],
+                    exc_info=SHOW_TRACEBACK,
+                )
                 result.status = StageStatus.FAILED
-                result.message = f"Pruning failed: {e.stderr}"
+                result.message = "Pruning failed: custom command error"
+                result.metrics["failure"] = {
+                    "command": command_result["command"],
+                    "exit_code": command_result["exit_code"],
+                    "timed_out": command_result["timed_out"],
+                    "stderr_excerpt": command_result["stderr_excerpt"],
+                }
         else:
             # Simulated pruning
             result.status = StageStatus.SUCCESS
@@ -385,22 +473,33 @@ class PipelineRunner:
             return result
 
         if config.custom_command:
-            try:
-                logger.debug("Running custom recovery command: %s", config.custom_command)
-                subprocess.run(
-                    config.custom_command,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
+            logger.debug("Running custom recovery command: %s", config.custom_command)
+            command_result = _execute_external_command(
+                stage=PipelineStage.RECOVER,
+                command=config.custom_command,
+                timeout_seconds=_DEFAULT_STAGE_TIMEOUT_SECONDS[PipelineStage.RECOVER],
+            )
+            result.metrics["command_execution"] = command_result
+            if command_result["succeeded"]:
                 result.status = StageStatus.SUCCESS
                 result.message = "Recovery fine-tuning completed"
                 logger.info("Recovery fine-tuning completed successfully")
-            except subprocess.CalledProcessError as e:
-                logger.error("Recovery failed: %s", e.stderr, exc_info=SHOW_TRACEBACK)
+            else:
+                logger.error(
+                    "Recovery failed (exit=%s timeout=%s): %s",
+                    command_result["exit_code"],
+                    command_result["timed_out"],
+                    command_result["stderr_excerpt"],
+                    exc_info=SHOW_TRACEBACK,
+                )
                 result.status = StageStatus.FAILED
-                result.message = f"Recovery failed: {e.stderr}"
+                result.message = "Recovery failed: custom command error"
+                result.metrics["failure"] = {
+                    "command": command_result["command"],
+                    "exit_code": command_result["exit_code"],
+                    "timed_out": command_result["timed_out"],
+                    "stderr_excerpt": command_result["stderr_excerpt"],
+                }
         else:
             # Simulated recovery
             result.status = StageStatus.SUCCESS
@@ -437,22 +536,33 @@ class PipelineRunner:
             return result
 
         if config.benchmark_command:
-            try:
-                logger.debug("Running benchmark command: %s", config.benchmark_command)
-                subprocess.run(
-                    config.benchmark_command,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
+            logger.debug("Running benchmark command: %s", config.benchmark_command)
+            command_result = _execute_external_command(
+                stage=PipelineStage.VALIDATE,
+                command=config.benchmark_command,
+                timeout_seconds=_DEFAULT_STAGE_TIMEOUT_SECONDS[PipelineStage.VALIDATE],
+            )
+            result.metrics["command_execution"] = command_result
+            if command_result["succeeded"]:
                 result.status = StageStatus.SUCCESS
                 result.message = "Validation completed"
                 logger.info("Validation completed successfully")
-            except subprocess.CalledProcessError as e:
-                logger.error("Validation failed: %s", e.stderr, exc_info=SHOW_TRACEBACK)
+            else:
+                logger.error(
+                    "Validation failed (exit=%s timeout=%s): %s",
+                    command_result["exit_code"],
+                    command_result["timed_out"],
+                    command_result["stderr_excerpt"],
+                    exc_info=SHOW_TRACEBACK,
+                )
                 result.status = StageStatus.FAILED
-                result.message = f"Validation failed: {e.stderr}"
+                result.message = "Validation failed: benchmark command error"
+                result.metrics["failure"] = {
+                    "command": command_result["command"],
+                    "exit_code": command_result["exit_code"],
+                    "timed_out": command_result["timed_out"],
+                    "stderr_excerpt": command_result["stderr_excerpt"],
+                }
         else:
             # Simulated validation
             result.status = StageStatus.SUCCESS
@@ -551,22 +661,33 @@ class PipelineRunner:
                 result.message = f"Deployment failed: {e}"
         # Legacy shell command path
         elif config.deployment_command:
-            try:
-                logger.debug("Running deployment command: %s", config.deployment_command)
-                subprocess.run(
-                    config.deployment_command,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
+            logger.debug("Running deployment command: %s", config.deployment_command)
+            command_result = _execute_external_command(
+                stage=PipelineStage.DEPLOY,
+                command=config.deployment_command,
+                timeout_seconds=_DEFAULT_STAGE_TIMEOUT_SECONDS[PipelineStage.DEPLOY],
+            )
+            result.metrics["command_execution"] = command_result
+            if command_result["succeeded"]:
                 result.status = StageStatus.SUCCESS
                 result.message = "Deployment completed"
                 logger.info("Deployment completed successfully")
-            except subprocess.CalledProcessError as e:
-                logger.error("Deployment failed: %s", e.stderr, exc_info=SHOW_TRACEBACK)
+            else:
+                logger.error(
+                    "Deployment failed (exit=%s timeout=%s): %s",
+                    command_result["exit_code"],
+                    command_result["timed_out"],
+                    command_result["stderr_excerpt"],
+                    exc_info=SHOW_TRACEBACK,
+                )
                 result.status = StageStatus.FAILED
-                result.message = f"Deployment failed: {e.stderr}"
+                result.message = "Deployment failed: deployment command error"
+                result.metrics["failure"] = {
+                    "command": command_result["command"],
+                    "exit_code": command_result["exit_code"],
+                    "timed_out": command_result["timed_out"],
+                    "stderr_excerpt": command_result["stderr_excerpt"],
+                }
         else:
             result.status = StageStatus.WARNED
             result.message = "No deployment command or platform configured - skipping"
@@ -629,22 +750,33 @@ class PipelineRunner:
                 result.message = f"Rollback failed: {e}"
         # Legacy shell command path
         elif config.rollback_command:
-            try:
-                logger.debug("Running rollback command: %s", config.rollback_command)
-                subprocess.run(
-                    config.rollback_command,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
+            logger.debug("Running rollback command: %s", config.rollback_command)
+            command_result = _execute_external_command(
+                stage=PipelineStage.ROLLBACK,
+                command=config.rollback_command,
+                timeout_seconds=_DEFAULT_STAGE_TIMEOUT_SECONDS[PipelineStage.ROLLBACK],
+            )
+            result.metrics["command_execution"] = command_result
+            if command_result["succeeded"]:
                 result.status = StageStatus.SUCCESS
                 result.message = "Rollback completed"
                 logger.info("Rollback completed successfully")
-            except subprocess.CalledProcessError as e:
-                logger.error("Rollback failed: %s", e.stderr, exc_info=SHOW_TRACEBACK)
+            else:
+                logger.error(
+                    "Rollback failed (exit=%s timeout=%s): %s",
+                    command_result["exit_code"],
+                    command_result["timed_out"],
+                    command_result["stderr_excerpt"],
+                    exc_info=SHOW_TRACEBACK,
+                )
                 result.status = StageStatus.FAILED
-                result.message = f"Rollback failed: {e.stderr}"
+                result.message = "Rollback failed: rollback command error"
+                result.metrics["failure"] = {
+                    "command": command_result["command"],
+                    "exit_code": command_result["exit_code"],
+                    "timed_out": command_result["timed_out"],
+                    "stderr_excerpt": command_result["stderr_excerpt"],
+                }
         else:
             result.status = StageStatus.WARNED
             result.message = (
