@@ -1,0 +1,39 @@
+{
+  "title": "Atropos Runtime Observability",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "API Error Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_api_errors_total[5m])) by (path)",
+          "legendFormat": "{{path}}"
+        }
+      ]
+    },
+    {
+      "title": "Queue Depth by Env",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "atropos_runtime_queue_depth",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "API Latency P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_api_request_latency_seconds_bucket[5m])) by (le, path))",
+          "legendFormat": "{{path}}"
+        }
+      ]
+    }
+  ]
+}

@@ -10,9 +10,10 @@ from enum import Enum
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..observability import OBSERVABILITY, render_metrics
 from .storage import InMemoryStore, RedisStore, RuntimeStatusRecord, RuntimeStore
 
 
@@ -137,6 +138,20 @@ def build_runtime_app(
 
     write_access = _build_auth_dependency(policy, api_token)
 
+
+    @app.middleware("http")
+    async def _metrics_middleware(request: Request, call_next: Callable[..., Any]) -> Response:
+        started_at = datetime.now(tz=timezone.utc)
+        response = await call_next(request)
+        duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
+        OBSERVABILITY.observe_api_request(
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_seconds=duration,
+        )
+        return response
+
     def health(request: Request) -> dict[str, str]:
         backend_name = get_runtime_state(request).store.backend_name
         return {"status": "ok", "tier": tier.value, "store": backend_name}
@@ -153,6 +168,8 @@ def build_runtime_app(
             now=now,
             idempotency_key=x_idempotency_key,
         )
+        env_name = request.headers.get("X-Env", "default")
+        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=enqueue_result.queue_depth)
 
         _ = job  # payload is accepted for future processing pipeline.
         return {
@@ -173,6 +190,10 @@ def build_runtime_app(
             "updated_at": status_record.updated_at,
         }
 
+    def metrics() -> Response:
+        payload, content_type = render_metrics()
+        return Response(content=payload, media_type=content_type)
+
     def reset_runtime(request: Request) -> dict[str, str]:
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
@@ -181,6 +202,7 @@ def build_runtime_app(
         return {"status": "reset"}
 
     app.add_api_route("/health", health, methods=["GET"])
+    app.add_api_route("/metrics", metrics, methods=["GET"])
     app.add_api_route(
         "/jobs",
         enqueue,
