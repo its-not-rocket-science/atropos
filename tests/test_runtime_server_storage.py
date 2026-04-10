@@ -40,6 +40,12 @@ class FakeRedis:
     def llen(self, key: str) -> int:
         return len(self._lists.get(key, []))
 
+    def lrange(self, key: str, start: int, end: int) -> list[str]:
+        values = self._lists.get(key, [])
+        if end < 0:
+            return values[start:]
+        return values[start : end + 1]
+
     def scan(self, *, cursor: int, match: str, count: int) -> tuple[int, list[str]]:
         _ = count
         prefix = match.rstrip("*")
@@ -132,3 +138,77 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert metrics.status_code == 200
     assert "atropos_api_requests_total" in metrics.text
     assert "atropos_api_request_latency_seconds" in metrics.text
+
+
+def test_scored_data_requires_request_id_header() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    response = client.post(
+        "/scored_data",
+        json={"environment_id": "env-a", "records": [{"sample_id": "1", "score": 0.9}]},
+    )
+
+    assert response.status_code == 400
+    assert "X-Request-ID header is required" in response.text
+
+
+def test_scored_data_deduplicates_retry_storm_requests() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    for _ in range(50):
+        response = client.post(
+            "/scored_data",
+            json={
+                "environment_id": "env-a",
+                "records": [
+                    {"sample_id": "1", "score": 0.9},
+                    {"sample_id": "2", "score": 0.8},
+                ],
+            },
+            headers={"X-Request-ID": "retry-storm-1"},
+        )
+        assert response.status_code == 200
+
+    listed = client.get("/scored_data_list", params={"environment_id": "env-a", "limit": 100})
+    payload = listed.json()
+    assert listed.status_code == 200
+    assert payload["count"] == 2
+    assert [item["sample_id"] for item in payload["records"]] == ["1", "2"]
+
+
+def test_scored_data_accepts_distinct_request_ids() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    first = client.post(
+        "/scored_data",
+        json={"environment_id": "env-a", "records": [{"sample_id": "1", "score": 0.9}]},
+        headers={"X-Request-ID": "req-1"},
+    )
+    second = client.post(
+        "/scored_data",
+        json={"environment_id": "env-a", "records": [{"sample_id": "2", "score": 0.7}]},
+        headers={"X-Request-ID": "req-2"},
+    )
+    listed = client.get("/scored_data_list", params={"environment_id": "env-a", "limit": 100})
+
+    assert first.json()["deduplicated"] is False
+    assert second.json()["deduplicated"] is False
+    assert listed.json()["count"] == 2

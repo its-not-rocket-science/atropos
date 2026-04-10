@@ -39,6 +39,7 @@ class ToyRuntimeAPI:
     scored_store: defaultdict[str, list[dict[str, Any]]] = field(
         default_factory=lambda: defaultdict(list)
     )
+    seen_request_ids: set[str] = field(default_factory=set)
 
     def start(self) -> None:
         self.running = True
@@ -50,14 +51,23 @@ class ToyRuntimeAPI:
         self.env_registry[environment_id] = BaseEnv(transport=DeterministicScoringTransport())
         return environment_id
 
-    def produce_scored_data(self, environment_id: str, payload: dict[str, Any]) -> int:
+    def produce_scored_data(
+        self,
+        environment_id: str,
+        payload: dict[str, Any],
+        *,
+        request_id: str,
+    ) -> int:
         env = self.env_registry.get(environment_id)
         if env is None:
             raise KeyError(f"Unknown environment: {environment_id}")
+        if request_id in self.seen_request_ids:
+            return 0
 
         result = env.step(payload, worker_count=1)
         records = result["scored_records"]
         self.scored_store[environment_id].extend(records)
+        self.seen_request_ids.add(request_id)
         return len(records)
 
     def fetch_batch(self, environment_id: str, limit: int = 2) -> list[dict[str, Any]]:
@@ -110,8 +120,21 @@ def test_toy_environment_end_to_end_flow() -> None:
                 {"sample_id": "c", "text": "gamma"},
             ]
         },
+        request_id="req-1",
     )
     assert produced == 3
+
+    deduped = api.produce_scored_data(
+        env_id,
+        {
+            "samples": [
+                {"sample_id": "a", "text": "alpha"},
+                {"sample_id": "b", "text": "beta beta"},
+            ]
+        },
+        request_id="req-1",
+    )
+    assert deduped == 0
 
     batch = api.fetch_batch(env_id, limit=2)
     assert [item["sample_id"] for item in batch] == ["a", "b"]
