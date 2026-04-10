@@ -133,7 +133,13 @@ def build_runtime_app(
         allow_origins=cors_origins,
         allow_credentials=not policy.allow_all_cors_origins,
         allow_methods=["GET", "POST"],
-        allow_headers=["Authorization", "Content-Type", "X-API-Token", "X-Idempotency-Key"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-API-Token",
+            "X-Idempotency-Key",
+            "X-Request-ID",
+        ],
     )
 
     write_access = _build_auth_dependency(policy, api_token)
@@ -193,6 +199,60 @@ def build_runtime_app(
             "updated_at": status_record.updated_at,
         }
 
+    def ingest_scored_data(
+        payload: dict[str, Any],
+        request: Request,
+        x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
+    ) -> dict[str, Any]:
+        if not x_request_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="X-Request-ID header is required",
+            )
+
+        environment_id = str(payload.get("environment_id", "default"))
+        raw_records = payload.get("records")
+        if not isinstance(raw_records, list):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="records must be a list",
+            )
+        records: list[dict[str, object]] = []
+        for item in raw_records:
+            if not isinstance(item, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="each record must be an object",
+                )
+            records.append(item)
+
+        runtime = get_runtime_state(request)
+        result = runtime.store.ingest_scored_data(
+            environment_id=environment_id,
+            request_id=x_request_id,
+            records=records,
+        )
+        return {
+            "environment_id": environment_id,
+            "request_id": result.request_id,
+            "accepted_count": result.accepted_count,
+            "deduplicated": result.deduplicated,
+        }
+
+    def scored_data_list(
+        environment_id: str,
+        request: Request,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        runtime = get_runtime_state(request)
+        bounded_limit = max(0, min(limit, 1000))
+        records = runtime.store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
+        return {
+            "environment_id": environment_id,
+            "count": len(records),
+            "records": records,
+        }
+
     def metrics() -> Response:
         payload, content_type = render_metrics()
         return Response(content=payload, media_type=content_type)
@@ -216,6 +276,18 @@ def build_runtime_app(
         "/jobs/{job_id}",
         get_job_status,
         methods=["GET"],
+    )
+    app.add_api_route(
+        "/scored_data",
+        ingest_scored_data,
+        methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
+    app.add_api_route(
+        "/scored_data_list",
+        scored_data_list,
+        methods=["GET"],
+        dependencies=[Depends(write_access)],
     )
     app.add_api_route(
         "/admin/reset",
