@@ -1,0 +1,49 @@
+{
+  "title": "Atropos RL Rollout Observability",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Rollout latency (p95)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_rollout_latency_seconds_bucket[5m])) by (le, env))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue size per env",
+      "targets": [
+        {
+          "expr": "max_over_time(atropos_queue_size[5m])",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker utilization",
+      "targets": [
+        {
+          "expr": "avg_over_time(atropos_worker_utilization[5m])",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "API error rate",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_api_errors_total[5m])) by (path)",
+          "legendFormat": "{{path}}"
+        }
+      ]
+    }
+  ]
+}

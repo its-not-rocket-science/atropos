@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+
+from atroposlib.observability import RuntimeMetrics, log_json_event
 
 from .storage import InMemoryStore, RedisStore, RuntimeStatusRecord, RuntimeStore
 
@@ -31,6 +35,7 @@ class AppRuntimeState:
     """Typed runtime state bound once on `app.state.runtime`."""
 
     store: RuntimeStore
+    metrics: RuntimeMetrics
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,7 +128,8 @@ def build_runtime_app(
     policy = _POLICY_BY_TIER[tier]
     app = FastAPI(title="Atropos Runtime API")
     runtime_store = store if store is not None else _default_store_for_tier(tier)
-    app.state.runtime = AppRuntimeState(store=runtime_store)
+    runtime_metrics = RuntimeMetrics()
+    app.state.runtime = AppRuntimeState(store=runtime_store, metrics=runtime_metrics)
 
     cors_origins = ["*"] if policy.allow_all_cors_origins else list(allowed_origins or [])
     app.add_middleware(
@@ -136,6 +142,51 @@ def build_runtime_app(
 
     write_access = _build_auth_dependency(policy, api_token)
 
+    @app.middleware("http")
+    async def observability_middleware(request: Request, call_next):
+        runtime = get_runtime_state(request)
+        request_started = datetime.now(tz=timezone.utc)
+        start = time.perf_counter()
+        env_name = request.headers.get("X-Env", "default")
+
+        response = await call_next(request)
+
+        latency = max(0.0, time.perf_counter() - start)
+        status_code = str(response.status_code)
+        path = request.url.path
+        method = request.method
+
+        runtime.metrics.api_requests_total.labels(
+            method=method,
+            path=path,
+            status_code=status_code,
+        ).inc()
+        runtime.metrics.rollout_latency_seconds.labels(
+            method=method,
+            path=path,
+            env=env_name,
+        ).observe(latency)
+        if response.status_code >= status.HTTP_400_BAD_REQUEST:
+            runtime.metrics.api_errors_total.labels(
+                method=method,
+                path=path,
+                status_code=status_code,
+            ).inc()
+
+        log_json_event(
+            logger=logging.getLogger("atropos.runtime"),
+            event="http_request",
+            method=method,
+            path=path,
+            status_code=response.status_code,
+            latency_seconds=latency,
+            env=env_name,
+            started_at=request_started.isoformat(),
+        )
+
+        return response
+
+
     def health(request: Request) -> dict[str, str]:
         backend_name = get_runtime_state(request).store.backend_name
         return {"status": "ok", "tier": tier.value, "store": backend_name}
@@ -147,6 +198,7 @@ def build_runtime_app(
     ) -> dict[str, Any]:
         runtime = get_runtime_state(request)
         now = datetime.now(tz=timezone.utc)
+        env_name = request.headers.get("X-Env", "default")
         enqueue_result = runtime.store.enqueue_job(
             job_id=str(uuid4()),
             now=now,
@@ -154,6 +206,7 @@ def build_runtime_app(
         )
 
         _ = job  # payload is accepted for future processing pipeline.
+        runtime.metrics.queue_size.labels(env=env_name).set(float(enqueue_result.queue_depth))
         return {
             "job_id": enqueue_result.job_id,
             "queue_depth": enqueue_result.queue_depth,
@@ -179,7 +232,12 @@ def build_runtime_app(
         runtime.store.reset()
         return {"status": "reset"}
 
+    def metrics_endpoint(request: Request) -> Response:
+        metrics = get_runtime_state(request).metrics
+        return Response(content=metrics.generate_latest(), media_type=metrics.content_type)
+
     app.add_api_route("/health", health, methods=["GET"])
+    app.add_api_route("/metrics", metrics_endpoint, methods=["GET"])
     app.add_api_route(
         "/jobs",
         enqueue,

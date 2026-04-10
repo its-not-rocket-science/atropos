@@ -115,3 +115,21 @@ def test_redis_store_returns_status_record() -> None:
     assert status is not None
     assert status.job_id == "job-1"
     assert status.state == "queued"
+
+
+def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    _ = client.get("/health", headers={"X-Env": "staging"})
+    _ = client.post("/jobs", json={"task": "a"}, headers={"X-Env": "staging"})
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+
+    body = response.text
+    if body:
+        assert "atropos_rollout_latency_seconds" in body
+        assert "atropos_queue_size" in body
+        assert "atropos_api_requests_total" in body
