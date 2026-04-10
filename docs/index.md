@@ -3,7 +3,7 @@
 
 **Atropos** is an **ROI estimation + optimization toolkit** for coding-LLM deployments.
 
-Secondary modules support production workflows:
+Secondary modules support production workflows around the ROI core:
 - pipeline orchestration
 - validation
 - telemetry ingestion
@@ -31,7 +31,7 @@ For core concepts, use the canonical glossary definitions and avoid redefining t
 
 ## What Atropos Does
 
-Named after the Fate who cuts the thread, Atropos is built for practical deployment decisions:
+Named after the Fate who cuts the thread, Atropos is built for practical deployment decisions with an ROI-estimation-first identity:
 
 - Estimate memory, throughput, energy, and cost outcomes from optimization choices.
 - Evaluate break-even timelines for pruning and related strategy mixes.

@@ -43,9 +43,9 @@ Python import package name is `atropos` (distribution/CLI name is `atropos-llm`)
 
 ## 1) What problem this solves
 
-Atropos gives you a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment. This makes go/no-go decisions explicit instead of relying on disconnected benchmark snapshots.
+Atropos' **primary identity** is ROI estimation and optimization planning for coding-LLM deployments. It gives you a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment. This makes go/no-go decisions explicit instead of relying on disconnected benchmark snapshots.
 
-When you need end-to-end operational support around that ROI workflow, Atropos also provides:
+When you need end-to-end operational support around that ROI workflow, Atropos also provides **secondary modules**:
 
 - **Pipeline execution** for repeatable optimization/validation flows.
 - **Validation tooling** for scenario and model checks.
