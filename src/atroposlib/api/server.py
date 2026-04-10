@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -75,7 +76,7 @@ def get_runtime_state(request: Request) -> AppRuntimeState:
 def _build_auth_dependency(
     policy: RuntimePolicy,
     api_token: str | None,
-):
+) -> Callable[..., None]:
     if not policy.require_auth:
 
         def _allow_anonymous() -> None:

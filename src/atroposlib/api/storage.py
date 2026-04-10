@@ -51,6 +51,38 @@ class RuntimeStore(Protocol):
         """Clear runtime state."""
 
 
+class RedisClient(Protocol):
+    """Typed Redis client surface used by `RedisStore`."""
+
+    def hset(self, name: str, mapping: MutableMapping[str, str]) -> int: ...
+
+    def rpush(self, name: str, *values: str) -> int: ...
+
+    def llen(self, name: str) -> int: ...
+
+    def set(
+        self,
+        name: str,
+        value: str,
+        *,
+        nx: bool | None = None,
+        ex: int | None = None,
+    ) -> bool | None: ...
+
+    def get(self, name: str) -> str | None: ...
+
+    def hgetall(self, name: str) -> MutableMapping[str, str]: ...
+
+    def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[str]]: ...
+
+    def delete(self, *names: str) -> int: ...
+
+
 class InMemoryStore:
     """Single-process store that mirrors legacy app.state behavior."""
 
@@ -108,7 +140,7 @@ class RedisStore:
     def __init__(
         self,
         *,
-        redis_client: object,
+        redis_client: RedisClient,
         key_prefix: str = "atropos:runtime",
         idempotency_ttl_seconds: int = 24 * 60 * 60,
     ) -> None:
