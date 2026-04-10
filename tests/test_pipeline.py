@@ -230,7 +230,7 @@ def test_pipeline_runner_dry_run_custom_command_unchanged() -> None:
                 "max_quality_risk": "high",
                 "min_expected_quality": 0.0,
             },
-            "pruning": {"custom_command": f"{sys.executable} -c \"raise SystemExit(77)\""},
+            "pruning": {"custom_command": f'{sys.executable} -c "raise SystemExit(77)"'},
         }
     )
     runner = PipelineRunner(config, dry_run=True)
