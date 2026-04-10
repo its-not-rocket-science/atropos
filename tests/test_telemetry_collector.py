@@ -48,8 +48,7 @@ def test_vllm_collect_sample_healthy_metrics(monkeypatch: pytest.MonkeyPatch) ->
     assert sample.memory_gb == pytest.approx(40.0)
     assert sample.throughput_toks_per_sec == pytest.approx(100.0)
     assert (
-        sample.raw_metrics["metric_quality"]["throughput_toks_per_sec"]
-        == "estimated_from_metric"
+        sample.raw_metrics["metric_quality"]["throughput_toks_per_sec"] == "estimated_from_metric"
     )
 
 
