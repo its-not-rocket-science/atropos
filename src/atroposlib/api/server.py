@@ -138,7 +138,6 @@ def build_runtime_app(
 
     write_access = _build_auth_dependency(policy, api_token)
 
-
     @app.middleware("http")
     async def _metrics_middleware(request: Request, call_next: Callable[..., Any]) -> Response:
         started_at = datetime.now(tz=timezone.utc)
