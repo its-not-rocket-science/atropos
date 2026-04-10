@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -19,8 +20,9 @@ from atropos.abtesting.models import (  # noqa: E402
     ExperimentStatus,
     StatisticalTestType,
     Variant,
+    VariantMetrics,
 )
-from atropos.abtesting.runner import ExperimentRunner  # noqa: E402
+from atropos.abtesting.runner import ExperimentRunner, analyze_experiment_results  # noqa: E402
 from atropos.abtesting.statistics import (  # noqa: E402
     confidence_interval,
     independent_t_test,
@@ -365,6 +367,116 @@ def test_runner_pause_without_platform_support(
         )
     )
     runner.stop(reason="test")
+
+
+def test_analyze_experiment_results_prefers_raw_samples() -> None:
+    """Test analysis path that uses raw observations when available."""
+    config = ABTestConfig(
+        experiment_id="raw-analysis-test",
+        name="Raw Analysis Test",
+        variants=[
+            Variant(variant_id="control", name="Control", model_path="/models/control"),
+            Variant(variant_id="treatment", name="Treatment", model_path="/models/treatment"),
+        ],
+        primary_metric="throughput_toks_per_sec",
+        test_type=StatisticalTestType.T_TEST,
+    )
+    variant_metrics = {
+        "control": VariantMetrics(
+            variant_id="control",
+            sample_count=4,
+            metrics={"throughput_toks_per_sec": {"mean": 100.0, "std": 5.0, "count": 4}},
+            raw_observations={"throughput_toks_per_sec": [97.0, 99.0, 101.0, 103.0]},
+        ),
+        "treatment": VariantMetrics(
+            variant_id="treatment",
+            sample_count=4,
+            metrics={"throughput_toks_per_sec": {"mean": 120.0, "std": 5.0, "count": 4}},
+            raw_observations={"throughput_toks_per_sec": [117.0, 119.0, 121.0, 123.0]},
+        ),
+    }
+
+    results = analyze_experiment_results(variant_metrics, config)
+    assert len(results) == 1
+    result = next(iter(results.values()))
+    assert result.metadata["analysis_mode"] == "raw_observations"
+    assert result.metadata["warnings"] == []
+    assert result.sample_sizes == {"control": 4, "treatment": 4}
+
+
+def test_analyze_experiment_results_aggregate_fallback_warns() -> None:
+    """Test aggregate-only fallback path when raw observations are unavailable."""
+    config = ABTestConfig(
+        experiment_id="aggregate-analysis-test",
+        name="Aggregate Analysis Test",
+        variants=[
+            Variant(variant_id="control", name="Control", model_path="/models/control"),
+            Variant(variant_id="treatment", name="Treatment", model_path="/models/treatment"),
+        ],
+        primary_metric="throughput_toks_per_sec",
+        test_type=StatisticalTestType.T_TEST,
+    )
+    variant_metrics = {
+        "control": VariantMetrics(
+            variant_id="control",
+            sample_count=3,
+            metrics={"throughput_toks_per_sec": {"mean": 100.0, "std": 0.0, "count": 3}},
+        ),
+        "treatment": VariantMetrics(
+            variant_id="treatment",
+            sample_count=3,
+            metrics={"throughput_toks_per_sec": {"mean": 110.0, "std": 0.0, "count": 3}},
+        ),
+    }
+
+    results = analyze_experiment_results(variant_metrics, config)
+    assert len(results) == 1
+    result = next(iter(results.values()))
+    assert result.metadata["analysis_mode"] == "aggregate_only_fallback"
+    assert len(result.metadata["warnings"]) == 1
+    assert "Aggregate-only fallback used" in result.metadata["warnings"][0]
+    assert result.metadata["data_sources"] == {
+        "control": "aggregated_mean_repeated",
+        "treatment": "aggregated_mean_repeated",
+    }
+
+
+def test_auto_stop_does_not_stop_at_min_sample_size_alone(mock_platform: Mock) -> None:
+    """Test auto-stop requires more than just minimum sample size."""
+    config = ABTestConfig(
+        experiment_id="autostop-min-sample-test",
+        name="Auto-stop Min Sample Test",
+        variants=[
+            Variant(variant_id="control", name="Control", model_path="/models/control"),
+            Variant(variant_id="treatment", name="Treatment", model_path="/models/treatment"),
+        ],
+        primary_metric="throughput_toks_per_sec",
+        min_sample_size_per_variant=10,
+        max_duration_hours=48.0,
+        auto_stop_conditions={},
+    )
+    runner = ExperimentRunner(config, mock_platform)
+    runner._variant_metrics = {
+        "control": VariantMetrics(
+            variant_id="control",
+            sample_count=12,
+            metrics={"throughput_toks_per_sec": {"mean": 100.0, "std": 10.0, "count": 12}},
+        ),
+        "treatment": VariantMetrics(
+            variant_id="treatment",
+            sample_count=14,
+            metrics={"throughput_toks_per_sec": {"mean": 101.0, "std": 10.0, "count": 14}},
+        ),
+    }
+    runner._start_time = (datetime.now() - timedelta(hours=1)).isoformat()
+    runner._statistical_results = {}
+
+    should_stop, reason = runner._check_auto_stop_conditions()
+    assert should_stop is False
+    assert reason in {
+        "No statistical results available yet",
+        "Statistical target not reached yet",
+    }
 
 
 if __name__ == "__main__":

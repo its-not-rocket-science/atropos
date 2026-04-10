@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from ..deployment.models import DeploymentRequest, DeploymentStrategyType
@@ -108,20 +108,6 @@ class ExperimentRunner:
         """
         conditions = self.config.auto_stop_conditions
 
-        # Check confidence threshold
-        confidence_threshold = conditions.get("confidence_threshold")
-        if confidence_threshold is not None and self._statistical_results:
-            # Find highest confidence for primary metric
-            primary_metric = self.config.primary_metric
-            for result in self._statistical_results.values():
-                if result.metric_name == primary_metric and result.p_value is not None:
-                    confidence = 1.0 - result.p_value
-                    if confidence >= confidence_threshold:
-                        return True, (
-                            f"Confidence threshold reached: {confidence:.3f} >= "
-                            f"{confidence_threshold}"
-                        )
-
         # Check max errors
         max_errors = conditions.get("max_errors")
         if max_errors is not None:
@@ -133,32 +119,87 @@ class ExperimentRunner:
                         f"{error_count} >= {max_errors}"
                     )
 
-        # Check max duration
-        if self._start_time:
-            start_dt = datetime.fromisoformat(self._start_time)
-            duration_hours = (datetime.now() - start_dt).total_seconds() / 3600.0
-            if duration_hours >= self.config.max_duration_hours:
-                return True, (
-                    f"Max duration reached: {duration_hours:.1f}h >= "
-                    f"{self.config.max_duration_hours}h"
-                )
+        has_min_samples, sample_reason = self._has_minimum_samples()
+        if not has_min_samples:
+            return False, sample_reason
 
-        # Check min sample size
-        if self._variant_metrics:
-            # Check if all variants have sufficient samples
-            all_sufficient = True
-            insufficient_variants = []
-            for variant_id, metrics in self._variant_metrics.items():
-                if metrics.sample_count < self.config.min_sample_size_per_variant:
-                    all_sufficient = False
-                    insufficient_variants.append(variant_id)
-            if all_sufficient:
-                return True, (
-                    f"All variants reached min sample size: "
-                    f"{self.config.min_sample_size_per_variant}"
-                )
+        duration_reached, duration_reason = self._max_duration_reached()
+        if duration_reached:
+            return True, duration_reason
 
+        target_reached, target_reason = self._statistical_target_reached()
+        if target_reached:
+            return True, target_reason
+
+        return False, target_reason
+
+    def _has_minimum_samples(self) -> tuple[bool, str]:
+        """Return whether all variants have the configured minimum sample count."""
+        if not self._variant_metrics:
+            return False, "No variant metrics collected yet"
+
+        insufficient_variants = [
+            variant_id
+            for variant_id, metrics in self._variant_metrics.items()
+            if metrics.sample_count < self.config.min_sample_size_per_variant
+        ]
+        if insufficient_variants:
+            return (
+                False,
+                "Waiting for minimum samples in variants: " + ", ".join(insufficient_variants),
+            )
+        return True, ""
+
+    def _max_duration_reached(self) -> tuple[bool, str]:
+        """Return whether the configured max experiment duration has been reached."""
+        if not self._start_time:
+            return False, ""
+        start_dt = datetime.fromisoformat(self._start_time)
+        duration_hours = (datetime.now() - start_dt).total_seconds() / 3600.0
+        if duration_hours >= self.config.max_duration_hours:
+            return True, (
+                f"Max duration reached with min sample size: {duration_hours:.1f}h >= "
+                f"{self.config.max_duration_hours}h"
+            )
         return False, ""
+
+    def _statistical_target_reached(self) -> tuple[bool, str]:
+        """Return whether confidence/significance or power target has been reached."""
+        if not self._statistical_results:
+            return False, "No statistical results available yet"
+
+        conditions = self.config.auto_stop_conditions
+        confidence_threshold = conditions.get("confidence_threshold")
+        power_target = conditions.get("power_target")
+        primary_metric = self.config.primary_metric
+
+        for result in self._statistical_results.values():
+            if result.metric_name != primary_metric:
+                continue
+
+            if confidence_threshold is not None and result.p_value is not None:
+                confidence = 1.0 - result.p_value
+                if confidence >= confidence_threshold:
+                    return True, (
+                        f"Confidence threshold reached with min sample size: "
+                        f"{confidence:.3f} >= {confidence_threshold}"
+                    )
+
+            if power_target is not None and result.statistical_power is not None:
+                if result.statistical_power >= power_target:
+                    return True, (
+                        "Power target reached with min sample size: "
+                        f"{result.statistical_power:.3f} >= {power_target}"
+                    )
+
+            if (
+                confidence_threshold is None
+                and power_target is None
+                and result.is_significant
+            ):
+                return True, "Primary metric is statistically significant with min sample size"
+
+        return False, "Statistical target not reached yet"
 
     @property
     def status(self) -> ExperimentStatus:
@@ -467,7 +508,6 @@ class ExperimentRunner:
         # Mock implementation for testing/demonstration
         # Generate synthetic metrics for each variant
         import random
-        from datetime import datetime, timedelta
 
         result: dict[str, VariantMetrics] = {}
 
@@ -583,6 +623,7 @@ class ExperimentRunner:
 
                 # Convert TelemetryData to metrics dictionary
                 metrics: dict[str, dict[str, float]] = {}
+                raw_observations: dict[str, list[float]] = {}
                 for metric_name in metric_names:
                     # Map metric name to telemetry field
                     field_name = None
@@ -616,11 +657,24 @@ class ExperimentRunner:
                     if value is None:
                         continue
 
-                    # For now, assume single value (mean). In real implementation, we would
-                    # calculate std and count from samples in collection_result.samples
-                    mean = float(value)
-                    std = mean * 0.1  # Estimate variability (could compute from samples)
-                    count = len(collection_result.samples) if collection_result.samples else 1
+                    observations = _extract_metric_observations(
+                        collection_result.samples, field_name
+                    )
+                    if observations:
+                        mean = sum(observations) / len(observations)
+                        if len(observations) > 1:
+                            variance = sum((x - mean) ** 2 for x in observations) / (
+                                len(observations) - 1
+                            )
+                            std = variance**0.5
+                        else:
+                            std = 0.0
+                        count = len(observations)
+                        raw_observations[metric_name] = observations
+                    else:
+                        mean = float(value)
+                        std = mean * 0.1
+                        count = len(collection_result.samples) if collection_result.samples else 1
 
                     metrics[metric_name] = {
                         "mean": mean,
@@ -639,6 +693,7 @@ class ExperimentRunner:
                     variant_id=variant_id,
                     sample_count=sum(int(metrics[m]["count"]) for m in metrics),
                     metrics=metrics,
+                    raw_observations=raw_observations or None,
                     percentiles=None,
                     timestamp_start=(now - timedelta(minutes=5)).isoformat(),
                     timestamp_end=now.isoformat(),
@@ -733,37 +788,18 @@ def analyze_experiment_results(
 
     # For each metric, compare control against each treatment variant
     for metric_name in metric_names:
-        # Extract raw values for control
-        control_stats = control_metrics.get(metric_name, {})
-        control_mean = control_stats.get("mean", 0.0)
-        control_std = control_stats.get("std", 0.0)
-        control_count = int(control_stats.get("count", 0))
-
-        # Generate synthetic samples for control (for statistical test)
-        # This is a simplification; real implementation should use raw samples
-        import random
-
-        random.seed(42)  # For reproducibility
-        control_samples = [
-            random.gauss(control_mean, control_std if control_std > 0 else 1e-6)
-            for _ in range(max(control_count, 1))
-        ]
+        control_samples, control_count, control_mode = _samples_for_metric(
+            variant_metrics[control_id], metric_name
+        )
 
         # Compare against each treatment variant
         for variant_id, variant_metric in variant_metrics.items():
             if variant_id == control_id:
                 continue
 
-            variant_stats = variant_metric.metrics.get(metric_name, {})
-            variant_mean = variant_stats.get("mean", 0.0)
-            variant_std = variant_stats.get("std", 0.0)
-            variant_count = int(variant_stats.get("count", 0))
-
-            # Generate synthetic samples for treatment
-            variant_samples = [
-                random.gauss(variant_mean, variant_std if variant_std > 0 else 1e-6)
-                for _ in range(max(variant_count, 1))
-            ]
+            variant_samples, variant_count, variant_mode = _samples_for_metric(
+                variant_metric, metric_name
+            )
 
             # Perform statistical test
             test_result = analyze_variant_comparison(
@@ -772,6 +808,13 @@ def analyze_experiment_results(
                 test_type=str(config.test_type),
                 alpha=config.significance_level,
             )
+
+            warnings: list[str] = []
+            if control_mode != "raw_observations" or variant_mode != "raw_observations":
+                warnings.append(
+                    "Aggregate-only fallback used; "
+                    "raw observations were not available for all variants"
+                )
 
             # Create StatisticalResult
             stat_result = StatisticalResult(
@@ -788,7 +831,19 @@ def analyze_experiment_results(
                     if test_result.get("recommendation")
                     else []
                 ),
-                metadata={"comparison": f"{control_id}_vs_{variant_id}"},
+                metadata={
+                    "comparison": f"{control_id}_vs_{variant_id}",
+                    "analysis_mode": (
+                        "raw_observations"
+                        if not warnings
+                        else "aggregate_only_fallback"
+                    ),
+                    "data_sources": {
+                        control_id: control_mode,
+                        variant_id: variant_mode,
+                    },
+                    "warnings": warnings,
+                },
             )
 
             # Store result with unique key
@@ -796,3 +851,34 @@ def analyze_experiment_results(
             results[result_key] = stat_result
 
     return results
+
+
+def _extract_metric_observations(samples: list[Any], field_name: str) -> list[float]:
+    """Extract per-sample observations for a metric from telemetry samples."""
+    observations: list[float] = []
+    for sample in samples:
+        value: Any = None
+        if hasattr(sample, field_name):
+            value = getattr(sample, field_name)
+        elif hasattr(sample, "raw_metrics"):
+            value = sample.raw_metrics.get(field_name)
+
+        if isinstance(value, (int, float)):
+            observations.append(float(value))
+    return observations
+
+
+def _samples_for_metric(
+    variant_metric: VariantMetrics, metric_name: str
+) -> tuple[list[float], int, str]:
+    """Build analysis samples for a metric, preferring raw observations."""
+    if variant_metric.raw_observations:
+        raw_values = variant_metric.raw_observations.get(metric_name)
+        if raw_values:
+            return [float(x) for x in raw_values], len(raw_values), "raw_observations"
+
+    metric_stats = variant_metric.metrics.get(metric_name, {})
+    mean = float(metric_stats.get("mean", 0.0))
+    count = int(metric_stats.get("count", 0))
+    sample_count = max(count, 1)
+    return [mean] * sample_count, count, "aggregated_mean_repeated"
