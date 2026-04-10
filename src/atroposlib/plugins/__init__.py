@@ -1,13 +1,13 @@
-"""Compatibility package for modular environment refactors."""
+"""Plugin extension APIs for Atropos environments and servers."""
 
-from .plugins import (
+from .registry import (
     ENVIRONMENT_ENTRYPOINT_GROUP,
     PLUGIN_ENTRYPOINT_GROUP,
     SERVER_ENTRYPOINT_GROUP,
     PluginRegistry,
     RegisteredPlugin,
-    register_builtin_servers,
 )
+from .servers import OpenAIBackend, SGLangBackend, VLLMBackend, register_builtin_servers
 
 __all__ = [
     "PluginRegistry",
@@ -15,5 +15,8 @@ __all__ = [
     "PLUGIN_ENTRYPOINT_GROUP",
     "ENVIRONMENT_ENTRYPOINT_GROUP",
     "SERVER_ENTRYPOINT_GROUP",
+    "OpenAIBackend",
+    "VLLMBackend",
+    "SGLangBackend",
     "register_builtin_servers",
 ]
