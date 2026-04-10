@@ -1,22 +1,18 @@
-"""FastAPI runtime server with typed state and configurable hardening tiers.
-
-The app intentionally keeps the runtime small but strongly typed so
-`app.state` usage is centralized through `AppRuntimeState`.
-"""
+"""FastAPI runtime server with pluggable storage and hardening tiers."""
 
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Callable
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from threading import Lock
 from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+
+from .storage import InMemoryStore, RedisStore, RuntimeStatusRecord, RuntimeStore
 
 
 class HardeningTier(str, Enum):
@@ -27,16 +23,6 @@ class HardeningTier(str, Enum):
     PRODUCTION_SAFE = "production-safe"
 
 
-@dataclass(slots=True)
-class RuntimeStatusRecord:
-    """Status metadata for queued jobs."""
-
-    job_id: str
-    state: str
-    created_at: datetime
-    updated_at: datetime
-
-
 RuntimeStatus = RuntimeStatusRecord
 
 
@@ -44,9 +30,7 @@ RuntimeStatus = RuntimeStatusRecord
 class AppRuntimeState:
     """Typed runtime state bound once on `app.state.runtime`."""
 
-    queue: deque[str]
-    status_by_job: dict[str, RuntimeStatusRecord]
-    lock: Lock
+    store: RuntimeStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,7 +75,7 @@ def get_runtime_state(request: Request) -> AppRuntimeState:
 def _build_auth_dependency(
     policy: RuntimePolicy,
     api_token: str | None,
-) -> Callable[[str | None], None] | Callable[[], None]:
+):
     if not policy.require_auth:
 
         def _allow_anonymous() -> None:
@@ -116,11 +100,19 @@ def _build_auth_dependency(
     return _verify_token
 
 
+def _default_store_for_tier(tier: HardeningTier) -> RuntimeStore:
+    if tier is HardeningTier.PRODUCTION_SAFE:
+        redis_url = os.getenv("ATROPOS_REDIS_URL", "redis://localhost:6379/0")
+        return RedisStore.from_url(redis_url)
+    return InMemoryStore()
+
+
 def build_runtime_app(
     tier: HardeningTier = HardeningTier.RESEARCH_SAFE,
     *,
     allowed_origins: list[str] | None = None,
     api_token: str | None = None,
+    store: RuntimeStore | None = None,
 ) -> FastAPI:
     """Build the FastAPI runtime app.
 
@@ -130,7 +122,8 @@ def build_runtime_app(
 
     policy = _POLICY_BY_TIER[tier]
     app = FastAPI(title="Atropos Runtime API")
-    app.state.runtime = AppRuntimeState(queue=deque(), status_by_job={}, lock=Lock())
+    runtime_store = store if store is not None else _default_store_for_tier(tier)
+    app.state.runtime = AppRuntimeState(store=runtime_store)
 
     cors_origins = ["*"] if policy.allow_all_cors_origins else list(allowed_origins or [])
     app.add_middleware(
@@ -138,36 +131,38 @@ def build_runtime_app(
         allow_origins=cors_origins,
         allow_credentials=not policy.allow_all_cors_origins,
         allow_methods=["GET", "POST"],
-        allow_headers=["Authorization", "Content-Type", "X-API-Token"],
+        allow_headers=["Authorization", "Content-Type", "X-API-Token", "X-Idempotency-Key"],
     )
 
     write_access = _build_auth_dependency(policy, api_token)
 
-    def health() -> dict[str, str]:
-        return {"status": "ok", "tier": tier.value}
+    def health(request: Request) -> dict[str, str]:
+        backend_name = get_runtime_state(request).store.backend_name
+        return {"status": "ok", "tier": tier.value, "store": backend_name}
 
-    def enqueue(job: dict[str, Any], request: Request) -> dict[str, Any]:
+    def enqueue(
+        job: dict[str, Any],
+        request: Request,
+        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
+    ) -> dict[str, Any]:
         runtime = get_runtime_state(request)
         now = datetime.now(tz=timezone.utc)
-        job_id = str(uuid4())
-
-        with runtime.lock:
-            runtime.queue.append(job_id)
-            runtime.status_by_job[job_id] = RuntimeStatusRecord(
-                job_id=job_id,
-                state="queued",
-                created_at=now,
-                updated_at=now,
-            )
-            queue_depth = len(runtime.queue)
+        enqueue_result = runtime.store.enqueue_job(
+            job_id=str(uuid4()),
+            now=now,
+            idempotency_key=x_idempotency_key,
+        )
 
         _ = job  # payload is accepted for future processing pipeline.
-        return {"job_id": job_id, "queue_depth": queue_depth}
+        return {
+            "job_id": enqueue_result.job_id,
+            "queue_depth": enqueue_result.queue_depth,
+            "deduplicated": enqueue_result.deduplicated,
+        }
 
     def get_job_status(job_id: str, request: Request) -> dict[str, Any]:
         runtime = get_runtime_state(request)
-        with runtime.lock:
-            status_record = runtime.status_by_job.get(job_id)
+        status_record = runtime.store.get_job_status(job_id)
         if status_record is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown job_id")
         return {
@@ -181,9 +176,7 @@ def build_runtime_app(
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
         runtime = get_runtime_state(request)
-        with runtime.lock:
-            runtime.queue.clear()
-            runtime.status_by_job.clear()
+        runtime.store.reset()
         return {"status": "reset"}
 
     app.add_api_route("/health", health, methods=["GET"])
