@@ -161,6 +161,4 @@ class PluginRegistry:
             bundle.register(self)
             return
 
-        raise TypeError(
-            "Plugin bundle must be a callable(registry) or expose register(registry)."
-        )
+        raise TypeError("Plugin bundle must be a callable(registry) or expose register(registry).")
