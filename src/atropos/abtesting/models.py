@@ -156,6 +156,8 @@ class VariantMetrics:
         sample_count: Number of samples collected.
         metrics: Dictionary of metric name to aggregated values.
             Expected structure: {"mean": float, "std": float, "count": int}
+        raw_observations: Optional dictionary of metric name to raw observations.
+            When available, these values are preferred for statistical testing.
         percentiles: Optional percentile distribution (e.g., p50, p95, p99).
         timestamp_start: Start of metric collection period.
         timestamp_end: End of metric collection period.
@@ -164,6 +166,7 @@ class VariantMetrics:
     variant_id: str
     sample_count: int
     metrics: dict[str, dict[str, float]]  # metric_name -> {mean, std, count, ...}
+    raw_observations: dict[str, list[float]] | None = None
     percentiles: dict[str, dict[str, float]] | None = None
     timestamp_start: str | None = None
     timestamp_end: str | None = None
@@ -175,6 +178,8 @@ class VariantMetrics:
             "sample_count": self.sample_count,
             "metrics": self.metrics,
         }
+        if self.raw_observations is not None:
+            result["raw_observations"] = self.raw_observations
         if self.percentiles is not None:
             result["percentiles"] = self.percentiles
         if self.timestamp_start is not None:
