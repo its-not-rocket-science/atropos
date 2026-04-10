@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atropos-gsm8k-plugin"
+version = "0.1.0"
+description = "Example third-party Atropos plugin package"
+requires-python = ">=3.10"
+dependencies = ["atropos-llm>=0.5.0"]
+
+[project.entry-points."atropos.plugins"]
+gsm8k_example = "atropos_gsm8k_plugin:register"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
