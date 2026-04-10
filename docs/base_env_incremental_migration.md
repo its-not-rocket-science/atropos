@@ -1,70 +1,99 @@
-# BaseEnv Incremental Componentization Plan
+# BaseEnv Component Migration Guide
 
-## Responsibilities identified in the original monolith
+`BaseEnv` has been refactored into composable collaborators to improve testability,
+dependency injection, and control over side effects.
 
-`BaseEnv` currently combines:
-
-1. Environment lifecycle contract (`reset`, `step`, termination semantics).
-2. Worker orchestration/runtime policy.
-3. API/model transport I/O.
-4. Logging/telemetry.
-5. Checkpointing/recovery.
-6. CLI argument generation.
-7. YAML + CLI config merge behavior.
-
-## New components introduced
-
-- `EnvRuntime`: worker orchestration.
-- `EnvTransportClient`: API transport boundary.
-- `EnvLogger`: structured event logging.
-- `EnvCheckpointManager`: checkpoint persistence.
-- `EnvCliBuilder`: CLI argument construction.
-- `EnvConfigMerger`: YAML/CLI merge strategy.
-- `BaseEnv`: compatibility facade that delegates to the components above.
-
-## New file layout
+## New module structure
 
 ```text
-src/atroposlib/
-  envs/
-    __init__.py
-    base.py
-    components.py
+src/atroposlib/envs/
+  base.py                # thin orchestration facade
+  worker_manager.py      # async-worker policy, backlog, scaling decisions
+  transport_client.py    # API communication + retry policy
+  logging_manager.py     # event logging + metric recording hooks (e.g., W&B adapters)
+  checkpoint_manager.py  # checkpoint persistence API
+  env_logic.py           # user-defined environment business logic contract
+  components.py          # backward-compatibility aliases for old imports
 ```
 
-## Minimal class skeletons
+## Responsibility split
 
-See:
+1. `WorkerManager`
+   - owns queue/backlog state
+   - computes worker scaling decisions
+   - orchestrates step runtime payloads
+2. `TransportClient`
+   - owns request boundary
+   - applies retry behavior
+3. `LoggingManager`
+   - captures structured events
+   - records metrics in a dedicated channel
+4. `CheckpointManager`
+   - saves snapshots
+   - exposes recovery helpers (`latest`)
+5. `EnvLogic`
+   - defines user logic only (`prepare_step`, `finalize_step`)
 
-- `src/atroposlib/envs/base.py`
-- `src/atroposlib/envs/components.py`
+## Refactored `BaseEnv`
 
-These provide minimal implementations intended for incremental adoption while
-keeping the previous `BaseEnv` surface area available through compatibility
-methods (`step`, `reset`, `build_cli_args`, `merge_yaml_and_cli`, and legacy
-aliases like `call_api`/`checkpoint`).
+`BaseEnv` is now a thin orchestrator:
 
-## Incremental migration sequence (no greenfield rewrite)
+1. `env_logic.prepare_step(payload)`
+2. `worker_manager.orchestrate(...)`
+3. `transport_client.send(...)`
+4. `env_logic.finalize_step(...)`
+5. `checkpoint_manager.save(...)`
+6. `logging_manager.log_event(...)`
 
-### Phase 1: Internal delegation only
-- Keep `BaseEnv` import path and method names unchanged.
-- Delegate old in-class logic to component collaborators.
+This ordering is explicit and easy to test in isolation.
 
-### Phase 2: Per-responsibility adapter hardening
-- Replace default components with production adapters one-by-one
-  (`EnvTransportClient`, `EnvRuntime`, etc.).
-- Preserve output shapes and CLI flags exactly.
+## Migration examples
 
-### Phase 3: Controlled extensibility
-- Allow dependency injection for each collaborator.
-- Add tests per component boundary and facade parity tests.
+### Before
 
-### Phase 4: Deprecation runway
-- Document legacy alias methods.
-- Warn before eventual removal only after users migrate to component APIs.
+```python
+from atroposlib.envs.base import BaseEnv
 
-## CLI behavior preservation notes
+env = BaseEnv()
+result = env.step({"task": "x"}, worker_count=2)
+```
 
-- `EnvCliBuilder.build()` emits deterministic sorted flags for stable output.
-- `EnvConfigMerger.merge()` keeps current precedence: CLI overrides YAML.
+### After (no changes required)
 
+```python
+from atroposlib.envs.base import BaseEnv
+
+env = BaseEnv()
+result = env.step({"task": "x"}, worker_count=2)
+```
+
+### After (recommended dependency injection)
+
+```python
+from atroposlib.envs.base import BaseEnv
+from atroposlib.envs.worker_manager import WorkerManager
+from atroposlib.envs.transport_client import TransportClient
+from atroposlib.envs.logging_manager import LoggingManager
+from atroposlib.envs.checkpoint_manager import CheckpointManager
+from atroposlib.envs.env_logic import PassthroughEnvLogic
+
+env = BaseEnv(
+    worker_manager=WorkerManager(max_workers=64),
+    transport_client=TransportClient(max_retries=3),
+    logging_manager=LoggingManager(),
+    checkpoint_manager=CheckpointManager(),
+    env_logic=PassthroughEnvLogic(),
+)
+```
+
+## Backward compatibility shim
+
+Legacy import paths continue to work via `components.py` aliases:
+
+- `EnvRuntime -> WorkerManager`
+- `EnvTransportClient -> TransportClient`
+- `EnvLogger -> LoggingManager`
+- `EnvCheckpointManager -> CheckpointManager`
+
+Legacy `BaseEnv` aliases (`orchestrate_workers`, `call_api`, `log_event`,
+`checkpoint`) are still available for incremental adoption.
