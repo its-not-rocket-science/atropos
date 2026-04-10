@@ -11,8 +11,10 @@ BaseEnv now composes specialized collaborators:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any
 
+from ..observability import OBSERVABILITY, timed_rollout, tracing_span
 from .checkpoint_manager import CheckpointManager
 from .env_logic import EnvLogic, PassthroughEnvLogic
 from .logging_manager import LoggingManager
@@ -47,14 +49,38 @@ class BaseEnv:
         self.env_logic = env_logic or PassthroughEnvLogic()
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
-        self.logging_manager.log_event("step_started", worker_count=worker_count)
-        prepared = self.env_logic.prepare_step(payload)
-        runtime_result = self.worker_manager.orchestrate(prepared, requested_workers=worker_count)
-        transport_result = self.transport_client.send(runtime_result)
-        finalized = self.env_logic.finalize_step(transport_result)
-        self.checkpoint_manager.save(finalized)
-        self.logging_manager.log_event("step_finished", status=finalized.get("ok", False))
-        return finalized
+        env_name = str(payload.get("env", "default"))
+        self.logging_manager.log_event("step_started", worker_count=worker_count, env=env_name)
+        with tracing_span(
+            "baseenv.step",
+            attributes={"atropos.env": env_name, "atropos.worker.requested": worker_count},
+        ):
+            with timed_rollout(env_name):
+                started = perf_counter()
+                prepared = self.env_logic.prepare_step(payload)
+                runtime_result = self.worker_manager.orchestrate(
+                    prepared,
+                    requested_workers=worker_count,
+                )
+                transport_result = self.transport_client.send(runtime_result)
+                finalized = self.env_logic.finalize_step(transport_result)
+                self.checkpoint_manager.save(finalized)
+                selected_workers = int(runtime_result.get("worker_count", worker_count))
+                max_workers = max(
+                    1,
+                    int(getattr(self.worker_manager, "max_workers", selected_workers)),
+                )
+                OBSERVABILITY.set_worker_utilization(
+                    env=env_name,
+                    utilization_ratio=selected_workers / max_workers,
+                )
+                self.logging_manager.log_event(
+                    "step_finished",
+                    status=finalized.get("ok", False),
+                    env=env_name,
+                    rollout_latency_seconds=perf_counter() - started,
+                )
+                return finalized
 
     def reset(self) -> None:
         self.logging_manager.reset()
