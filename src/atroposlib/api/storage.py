@@ -1,0 +1,254 @@
+"""Pluggable runtime storage backends for the FastAPI server."""
+
+from __future__ import annotations
+
+from collections import deque
+from collections.abc import MutableMapping
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from importlib.util import find_spec
+from threading import Lock
+from typing import Protocol
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeStatusRecord:
+    """Status metadata for queued jobs."""
+
+    job_id: str
+    state: str
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class EnqueueResult:
+    """Outcome of an enqueue request, including idempotency behavior."""
+
+    job_id: str
+    queue_depth: int
+    deduplicated: bool
+
+
+class RuntimeStore(Protocol):
+    """Storage contract for runtime queue and status operations."""
+
+    backend_name: str
+
+    def enqueue_job(
+        self,
+        *,
+        job_id: str,
+        now: datetime,
+        idempotency_key: str | None,
+    ) -> EnqueueResult:
+        """Persist a queued job and return queue depth with dedupe metadata."""
+
+    def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
+        """Fetch status by job id."""
+
+    def reset(self) -> None:
+        """Clear runtime state."""
+
+
+class InMemoryStore:
+    """Single-process store that mirrors legacy app.state behavior."""
+
+    backend_name = "memory"
+
+    def __init__(self) -> None:
+        self._queue: deque[str] = deque()
+        self._status_by_job: dict[str, RuntimeStatusRecord] = {}
+        self._job_by_idempotency_key: dict[str, str] = {}
+        self._lock = Lock()
+
+    def enqueue_job(
+        self,
+        *,
+        job_id: str,
+        now: datetime,
+        idempotency_key: str | None,
+    ) -> EnqueueResult:
+        with self._lock:
+            if idempotency_key:
+                existing = self._job_by_idempotency_key.get(idempotency_key)
+                if existing is not None:
+                    return EnqueueResult(
+                        job_id=existing,
+                        queue_depth=len(self._queue),
+                        deduplicated=True,
+                    )
+                self._job_by_idempotency_key[idempotency_key] = job_id
+
+            self._queue.append(job_id)
+            self._status_by_job[job_id] = RuntimeStatusRecord(
+                job_id=job_id,
+                state="queued",
+                created_at=now,
+                updated_at=now,
+            )
+            return EnqueueResult(job_id=job_id, queue_depth=len(self._queue), deduplicated=False)
+
+    def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
+        with self._lock:
+            return self._status_by_job.get(job_id)
+
+    def reset(self) -> None:
+        with self._lock:
+            self._queue.clear()
+            self._status_by_job.clear()
+            self._job_by_idempotency_key.clear()
+
+
+class RedisStore:
+    """Redis-backed store for fault-tolerant, multi-instance runtime state."""
+
+    backend_name = "redis"
+
+    def __init__(
+        self,
+        *,
+        redis_client: object,
+        key_prefix: str = "atropos:runtime",
+        idempotency_ttl_seconds: int = 24 * 60 * 60,
+    ) -> None:
+        self._redis = redis_client
+        self._key_prefix = key_prefix
+        self._idempotency_ttl_seconds = idempotency_ttl_seconds
+
+    @classmethod
+    def from_url(
+        cls,
+        redis_url: str,
+        *,
+        key_prefix: str = "atropos:runtime",
+        idempotency_ttl_seconds: int = 24 * 60 * 60,
+    ) -> RedisStore:
+        if find_spec("redis") is None:  # pragma: no cover - exercised in runtime environments
+            raise RuntimeError(
+                "RedisStore requires the `redis` package. Install with `pip install redis`."
+            )
+
+        import redis
+
+        client = redis.Redis.from_url(redis_url, decode_responses=True)
+        return cls(
+            redis_client=client,
+            key_prefix=key_prefix,
+            idempotency_ttl_seconds=idempotency_ttl_seconds,
+        )
+
+    def _queue_key(self) -> str:
+        return f"{self._key_prefix}:queue"
+
+    def _job_key(self, job_id: str) -> str:
+        return f"{self._key_prefix}:job:{job_id}"
+
+    def _idempotency_key(self, idempotency_key: str) -> str:
+        return f"{self._key_prefix}:idempotency:{idempotency_key}"
+
+    def enqueue_job(
+        self,
+        *,
+        job_id: str,
+        now: datetime,
+        idempotency_key: str | None,
+    ) -> EnqueueResult:
+        created = now.astimezone(timezone.utc).isoformat()
+
+        if idempotency_key is None:
+            self._redis.hset(
+                self._job_key(job_id),
+                mapping={
+                    "job_id": job_id,
+                    "state": "queued",
+                    "created_at": created,
+                    "updated_at": created,
+                },
+            )
+            self._redis.rpush(self._queue_key(), job_id)
+            return EnqueueResult(
+                job_id=job_id,
+                queue_depth=int(self._redis.llen(self._queue_key())),
+                deduplicated=False,
+            )
+
+        idem_key = self._idempotency_key(idempotency_key)
+        was_created = bool(
+            self._redis.set(
+                idem_key,
+                job_id,
+                nx=True,
+                ex=self._idempotency_ttl_seconds,
+            )
+        )
+        if not was_created:
+            existing_job_id = self._redis.get(idem_key)
+            if existing_job_id is None:
+                return self.enqueue_job(job_id=job_id, now=now, idempotency_key=idempotency_key)
+            return EnqueueResult(
+                job_id=str(existing_job_id),
+                queue_depth=int(self._redis.llen(self._queue_key())),
+                deduplicated=True,
+            )
+
+        self._redis.hset(
+            self._job_key(job_id),
+            mapping={
+                "job_id": job_id,
+                "state": "queued",
+                "created_at": created,
+                "updated_at": created,
+            },
+        )
+        self._redis.rpush(self._queue_key(), job_id)
+        return EnqueueResult(
+            job_id=job_id,
+            queue_depth=int(self._redis.llen(self._queue_key())),
+            deduplicated=False,
+        )
+
+    def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
+        payload: MutableMapping[str, str] = self._redis.hgetall(self._job_key(job_id))
+        if not payload:
+            return None
+        return RuntimeStatusRecord(
+            job_id=payload["job_id"],
+            state=payload["state"],
+            created_at=datetime.fromisoformat(payload["created_at"]),
+            updated_at=datetime.fromisoformat(payload["updated_at"]),
+        )
+
+    def reset(self) -> None:
+        pattern = f"{self._key_prefix}:*"
+        cursor = 0
+        while True:
+            cursor, keys = self._redis.scan(cursor=cursor, match=pattern, count=100)
+            if keys:
+                self._redis.delete(*keys)
+            if cursor == 0:
+                break
+
+
+class PostgresStore:
+    """Placeholder for a future Postgres-backed implementation."""
+
+    backend_name = "postgres"
+
+    def __init__(self, dsn: str) -> None:
+        self.dsn = dsn
+
+    def enqueue_job(
+        self,
+        *,
+        job_id: str,
+        now: datetime,
+        idempotency_key: str | None,
+    ) -> EnqueueResult:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def reset(self) -> None:
+        raise NotImplementedError("PostgresStore is not implemented yet")
