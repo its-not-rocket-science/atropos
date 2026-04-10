@@ -192,11 +192,7 @@ class ExperimentRunner:
                         f"{result.statistical_power:.3f} >= {power_target}"
                     )
 
-            if (
-                confidence_threshold is None
-                and power_target is None
-                and result.is_significant
-            ):
+            if confidence_threshold is None and power_target is None and result.is_significant:
                 return True, "Primary metric is statistically significant with min sample size"
 
         return False, "Statistical target not reached yet"
@@ -834,9 +830,7 @@ def analyze_experiment_results(
                 metadata={
                     "comparison": f"{control_id}_vs_{variant_id}",
                     "analysis_mode": (
-                        "raw_observations"
-                        if not warnings
-                        else "aggregate_only_fallback"
+                        "raw_observations" if not warnings else "aggregate_only_fallback"
                     ),
                     "data_sources": {
                         control_id: control_mode,
