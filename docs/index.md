@@ -16,6 +16,7 @@ Secondary modules support production workflows around the ROI core:
 - [Canonical Glossary](canonical-glossary.md)
 - [Documentation Rewrite Plan](doc-rewrite-plan.md)
 - [Product Strategy](product-strategy.md)
+- [Positioning RFC](positioning_rfc.md)
 - [Async RL Reproducibility Architecture](async_rl_reproducibility_architecture.md)
 
 - [Installation](installation.md)
