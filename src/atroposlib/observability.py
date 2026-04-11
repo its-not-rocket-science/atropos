@@ -124,6 +124,8 @@ class Observability:
     runtime_queue_depth: Any
     rollout_latency_seconds: Any
     worker_utilization_ratio: Any
+    trainer_queue_depth: Any
+    env_rate_limit_ratio: Any
 
     @classmethod
     def create(cls) -> Observability:
@@ -158,6 +160,16 @@ class Observability:
                 "Worker utilization ratio by environment",
                 ["env"],
             ),
+            trainer_queue_depth=Gauge(
+                "atropos_trainer_queue_depth",
+                "Observed trainer/API queue depth by environment",
+                ["env"],
+            ),
+            env_rate_limit_ratio=Gauge(
+                "atropos_env_rate_limit_ratio",
+                "Adaptive environment rate limit ratio",
+                ["env"],
+            ),
         )
 
     def observe_api_request(
@@ -184,6 +196,13 @@ class Observability:
     def set_worker_utilization(self, *, env: str, utilization_ratio: float) -> None:
         clipped = max(0.0, min(utilization_ratio, 1.0))
         self.worker_utilization_ratio.labels(env=env).set(clipped)
+
+    def set_trainer_queue_depth(self, *, env: str, queue_depth: int) -> None:
+        self.trainer_queue_depth.labels(env=env).set(max(0, queue_depth))
+
+    def set_env_rate_limit(self, *, env: str, rate_limit: float) -> None:
+        clipped = max(0.0, min(rate_limit, 1.0))
+        self.env_rate_limit_ratio.labels(env=env).set(clipped)
 
 
 OBSERVABILITY = Observability.create()
