@@ -319,3 +319,20 @@ deployment:
     assert result == 0
     captured = capsys.readouterr()
     assert "Provider comparison" in captured.out
+
+
+def test_replay_rollout_command(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """Replay-rollout validates deterministic trajectory artifacts."""
+    from atropos.rl_env.line_world import LineWorldEnv
+
+    env = LineWorldEnv(goal=2, max_steps=10, seed=11)
+    env.reset()
+    env.step(1)
+    env.step(1)
+    rollout = tmp_path / "rollout.json"
+    env.save_rollout(rollout)
+
+    result = main(["replay-rollout", str(rollout)])
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "Replay succeeded" in captured.out

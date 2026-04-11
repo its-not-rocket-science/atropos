@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -119,3 +120,17 @@ def test_bool_action_is_rejected() -> None:
     env.reset()
     with pytest.raises(TypeError, match="bool is not allowed"):
         env.step(True)
+
+
+def test_save_rollout_and_replay_exact(tmp_path: Path) -> None:
+    env = LineWorldEnv(goal=3, max_steps=10, seed=7)
+    env.reset()
+    env.step(1)
+    env.step(1)
+    env.step(1)
+    path = tmp_path / "rollout.json"
+    env.save_rollout(path)
+
+    replayed = LineWorldEnv.replay_from_rollout(path)
+    assert len(replayed) == 3
+    assert replayed[-1].done is True

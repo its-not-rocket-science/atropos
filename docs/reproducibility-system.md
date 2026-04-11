@@ -203,6 +203,30 @@ A run is **replayable** if another operator can reproduce outputs within declare
 
 ---
 
+## Current implementation guarantees (April 2026)
+
+Atropos now ships a baseline reproducibility stack focused on environment debugging and publishable RL rollouts:
+
+- **Global seed propagation**
+  - CLI-level `--global-seed` initializes a root reproducibility context and seeds Python/NumPy/PyTorch (if installed).
+  - `BaseEnv(seed=...)` propagates deterministic derived seeds to worker orchestration and attaches an `inference_seed` to transport payloads.
+  - `WorkerManager` emits a stable `worker_seed` derived from root seed + worker selection context.
+
+- **Deterministic replay mode**
+  - `LineWorldEnv.save_rollout(path)` stores initial state, seed, and full step history.
+  - `LineWorldEnv.replay_from_rollout(path)` replays actions and validates exact record equality at every step.
+  - CLI command: `atropos-llm replay-rollout <path>` for one-command deterministic replay verification.
+
+### Guarantee boundary
+
+- **Exact replay is guaranteed for LineWorld rollouts** when:
+  - the rollout artifact is unchanged,
+  - the same Atropos code version is used,
+  - deterministic parser/generator/reward components are retained.
+- **Inference seeding is best-effort** for external model APIs: Atropos forwards deterministic seeds (`inference_seed`) but upstream provider behavior may vary by SDK/backend.
+
+---
+
 ## 4) CLI / API changes to enforce reproducibility
 
 ## CLI additions

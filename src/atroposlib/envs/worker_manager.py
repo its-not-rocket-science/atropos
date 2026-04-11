@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from atropos.reproducibility import SeedManager
+
 
 @dataclass
 class WorkerManager:
@@ -17,6 +19,7 @@ class WorkerManager:
     min_workers: int = 1
     max_workers: int = 32
     backlog: list[dict[str, Any]] = field(default_factory=list)
+    seed_manager: SeedManager | None = None
 
     def enqueue(self, work_item: dict[str, Any]) -> int:
         self.backlog.append(dict(work_item))
@@ -36,9 +39,17 @@ class WorkerManager:
         self.enqueue(work_item)
         selected_workers = self.recommended_workers(requested_workers)
         next_item = self.pop_next()
+        worker_seed = None
+        if self.seed_manager is not None:
+            worker_seed = self.seed_manager.derive_seed(
+                "worker_manager",
+                stage="orchestrate",
+                worker_id=selected_workers,
+            )
         return {
             "worker_count": selected_workers,
             "work_item": next_item,
             "status": "processed",
             "backlog_size": len(self.backlog),
+            "worker_seed": worker_seed,
         }
