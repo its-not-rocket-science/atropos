@@ -103,7 +103,16 @@ jobs:
       - run: pip install --retries 3 -e .[dev]
       - run: python scripts/health_check.py
       - run: mkdir -p $HOME/tmp_cache
-      - run: pytest -m "not integration"
+      - run: pytest -m "not integration and not stress" --cov-report=xml:coverage.xml
+      - run: pytest -m "integration or stress" --cov-report=xml:coverage-integration.xml
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            coverage-integration.xml
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v7
