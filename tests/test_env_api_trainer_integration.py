@@ -18,8 +18,7 @@ class ScoringTransport(TransportClient):
     def send(self, payload: dict[str, Any]) -> dict[str, Any]:
         samples = payload["work_item"]["samples"]
         scored = [
-            {"sample_id": item["sample_id"], "score": float(len(item["text"]))}
-            for item in samples
+            {"sample_id": item["sample_id"], "score": float(len(item["text"]))} for item in samples
         ]
         return {"ok": True, "scored_records": scored, "payload": payload}
 
@@ -35,7 +34,7 @@ class ToyTrainer:
 
 def test_env_to_api_to_trainer_loop() -> None:
     from fastapi.testclient import TestClient
-    
+
     from atroposlib.api.server import build_runtime_app
     from atroposlib.api.storage import InMemoryStore
 
