@@ -46,7 +46,7 @@ Python import package name is `atropos` (distribution/CLI name is `atropos-llm`)
 Use the demo command to run a full local workflow end to end:
 
 ```bash
-atropos demo
+atropos-llm demo
 ```
 
 What this does automatically:
@@ -59,7 +59,7 @@ What this does automatically:
 The default demo settings live in `configs/demo.yaml`. You can override them:
 
 ```bash
-atropos demo --config configs/demo.yaml
+atropos-llm demo --config configs/demo.yaml
 ```
 
 ## 1) What problem this solves
