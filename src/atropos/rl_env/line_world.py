@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
+
+from atropos.reproducibility import SeedManager, apply_global_seed
 
 from .contracts import (
     Generator,
@@ -247,8 +252,13 @@ class LineWorldOrchestrator:
 class LineWorldEnv:
     """Compatibility facade with synchronous API plus async support."""
 
-    def __init__(self, goal: int = 5, max_steps: int = 20) -> None:
+    def __init__(self, goal: int = 5, max_steps: int = 20, seed: int | None = None) -> None:
         self.initial_state = LineWorldState(position=0, goal=goal, max_steps=max_steps)
+        self.seed_manager: SeedManager | None = None
+        self.seed_metadata: dict[str, Any] = {}
+        if seed is not None:
+            self.seed_manager = SeedManager(seed)
+            self.seed_metadata = apply_global_seed(seed, component="line_world")
         self._orchestrator = LineWorldOrchestrator(
             initial_state=self.initial_state,
             parser=LineWorldParser(),
@@ -285,6 +295,42 @@ class LineWorldEnv:
         """Return append-only step history for step-by-step debug replay."""
 
         return list(self._history)
+
+    def save_rollout(self, path: Path) -> Path:
+        """Persist deterministic rollout history for exact replay."""
+
+        artifact = {
+            "format_version": "1.0",
+            "seed": None if self.seed_manager is None else self.seed_manager.root_seed,
+            "initial_state": asdict(self.initial_state),
+            "history": [as_dict(step) for step in self._history],
+        }
+        path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+        return path
+
+    @classmethod
+    def replay_from_rollout(cls, path: Path) -> list[LineWorldStepRecord]:
+        """Load a rollout artifact and replay it with exact step matching."""
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        initial_state = payload["initial_state"]
+        env = cls(
+            goal=int(initial_state["goal"]),
+            max_steps=int(initial_state["max_steps"]),
+            seed=payload.get("seed"),
+        )
+        env.reset()
+        replayed: list[LineWorldStepRecord] = []
+        for expected in payload["history"]:
+            action = int(expected["action"])
+            record = env.step(action)
+            actual = as_dict(record)
+            if actual != expected:
+                raise RuntimeError(
+                    f"Replay mismatch at step {record.step_idx}: expected {expected}, got {actual}."
+                )
+            replayed.append(record)
+        return replayed
 
     def explain_reward(self, step_idx: int) -> list[str]:
         """Return scoring trace for a specific step index."""

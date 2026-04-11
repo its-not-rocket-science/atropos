@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any
 
+from atropos.reproducibility import SeedManager, apply_global_seed
+
 from ..observability import OBSERVABILITY, timed_rollout, tracing_span
 from .checkpoint_manager import CheckpointManager
 from .env_logic import EnvLogic, PassthroughEnvLogic
@@ -41,12 +43,19 @@ class BaseEnv:
         logging_manager: LoggingManager | None = None,
         checkpoint_manager: CheckpointManager | None = None,
         env_logic: EnvLogic | None = None,
+        seed: int | None = None,
     ) -> None:
         self.worker_manager = worker_manager or WorkerManager()
         self.transport_client = transport or transport_client or TransportClient()
         self.logging_manager = logging_manager or LoggingManager()
         self.checkpoint_manager = checkpoint_manager or CheckpointManager()
         self.env_logic = env_logic or PassthroughEnvLogic()
+        self.seed_manager: SeedManager | None = None
+        self.seed_metadata: dict[str, Any] = {}
+        if seed is not None:
+            self.seed_manager = SeedManager(seed)
+            self.seed_metadata = apply_global_seed(seed, component="base_env")
+            self.worker_manager.seed_manager = self.seed_manager
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
         env_name = str(payload.get("env", "default"))
@@ -62,6 +71,13 @@ class BaseEnv:
                     prepared,
                     requested_workers=worker_count,
                 )
+                if self.seed_manager is not None:
+                    inference_seed = self.seed_manager.derive_seed(
+                        env_name,
+                        stage="inference",
+                        worker_id=int(runtime_result.get("worker_count", worker_count)),
+                    )
+                    runtime_result["inference_seed"] = inference_seed
                 transport_result = self.transport_client.send(runtime_result)
                 finalized = self.env_logic.finalize_step(transport_result)
                 self.checkpoint_manager.save(finalized)

@@ -47,6 +47,8 @@ from .pipeline import PipelineConfig, run_pipeline
 from .presets import QUANTIZATION_BONUS, SCENARIOS, STRATEGIES
 from .pruning.manager import setup_pruning_environment, test_pruning_framework
 from .reporting import generate_comparison_json, generate_comparison_table
+from .reproducibility import apply_global_seed
+from .rl_env.line_world import LineWorldEnv
 from .telemetry import (
     PARSERS,
     get_parser,
@@ -91,9 +93,20 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Write logs to specified file (overrides ATROPOS_LOG_FILE)",
     )
+    parser.add_argument(
+        "--global-seed",
+        type=int,
+        default=None,
+        help="Global reproducibility seed propagated across env, workers, and inference layers.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("list-presets", help="List built-in deployment and strategy presets.")
+    replay_parser = subparsers.add_parser(
+        "replay-rollout",
+        help="Replay a saved RL rollout artifact and verify exact step-by-step determinism.",
+    )
+    replay_parser.add_argument("path", type=Path, help="Path to rollout JSON artifact.")
 
     preset_parser = subparsers.add_parser("preset", help="Run a built-in scenario preset.")
     preset_parser.add_argument("name", choices=sorted(SCENARIOS.keys()))
@@ -830,6 +843,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             traceback=args.traceback,
             log_file=args.log_file,
         )
+        if args.global_seed is not None:
+            seed_metadata = apply_global_seed(args.global_seed, component="cli")
+            logging.getLogger(__name__).info("Applied global seed: %s", seed_metadata)
 
         if args.command == "list-presets":
             print("Deployment Scenarios:")
@@ -844,6 +860,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"throughput, {strategy.memory_reduction_fraction * 100:.0f}% memory, "
                     f"risk={strategy.quality_risk}"
                 )
+            return 0
+
+        if args.command == "replay-rollout":
+            records = LineWorldEnv.replay_from_rollout(args.path)
+            print(f"Replay succeeded for {args.path} ({len(records)} steps).")
             return 0
 
         if args.command == "preset":
