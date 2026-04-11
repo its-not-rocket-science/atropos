@@ -16,7 +16,14 @@ if find_spec("prometheus_client") is not None:
 else:  # pragma: no cover - exercised when optional dependency is missing
     CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
 
+    _FALLBACK_METRIC_NAMES: set[str] = set()
+
     class _NoOpMetric:
+        def __init__(self, name: str, metric_type: str) -> None:
+            self._name = name
+            self._metric_type = metric_type
+            _FALLBACK_METRIC_NAMES.add(name)
+
         def labels(self, **_: str) -> _NoOpMetric:
             return self
 
@@ -29,17 +36,18 @@ else:  # pragma: no cover - exercised when optional dependency is missing
         def observe(self, value: float) -> None:
             _ = value
 
-    def _counter(*_: Any, **__: Any) -> _NoOpMetric:
-        return _NoOpMetric()
+    def _counter(name: str, *_: Any, **__: Any) -> _NoOpMetric:
+        return _NoOpMetric(name=name, metric_type="counter")
 
-    def _gauge(*_: Any, **__: Any) -> _NoOpMetric:
-        return _NoOpMetric()
+    def _gauge(name: str, *_: Any, **__: Any) -> _NoOpMetric:
+        return _NoOpMetric(name=name, metric_type="gauge")
 
-    def _histogram(*_: Any, **__: Any) -> _NoOpMetric:
-        return _NoOpMetric()
+    def _histogram(name: str, *_: Any, **__: Any) -> _NoOpMetric:
+        return _NoOpMetric(name=name, metric_type="histogram")
 
     def generate_latest() -> bytes:  # type: ignore[misc]
-        return b""
+        lines = [f"{name} 0" for name in sorted(_FALLBACK_METRIC_NAMES)]
+        return ("\n".join(lines) + "\n").encode("utf-8")
 
     Counter = _counter
     Gauge = _gauge
