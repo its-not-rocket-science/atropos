@@ -17,7 +17,6 @@ class ArrowTableAdapter:
     rows: list[dict[str, Any]]
 
 
-
 def to_json(record: TrajectoryRecord, *, indent: int = 2) -> str:
     """Serialize a trajectory record to JSON."""
 
