@@ -1,0 +1,8 @@
+# Minimal config for `atropos demo`
+api_host: 127.0.0.1
+api_port: 8011
+trainer_steps: 12
+step_sleep_seconds: 0.15
+environment_goal: 6
+environment_max_steps: 20
+environment_seed: 7
