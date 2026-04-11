@@ -35,9 +35,7 @@ class WorkerManager:
     scale_down_gain: float = 0.15
     max_rate_limit: float = 1.0
     min_rate_limit: float = 0.2
-    execution_backend: TaskExecutionBackend = field(
-        default_factory=AsyncioTaskExecutionBackend
-    )
+    execution_backend: TaskExecutionBackend = field(default_factory=AsyncioTaskExecutionBackend)
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
 
     def enqueue(self, work_item: dict[str, Any]) -> int:
