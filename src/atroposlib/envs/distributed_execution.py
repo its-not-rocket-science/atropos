@@ -197,16 +197,16 @@ class RayTaskExecutionBackend(TaskExecutionBackend):
     ) -> list[TaskResult]:
         ray = self._ensure_initialized()
 
-        @ray.remote
         def _ray_worker(payload: dict[str, Any], task_id: str) -> tuple[str, str, Any]:
             import socket
 
             return task_id, socket.gethostname(), task_fn(payload)
+        ray_worker = ray.remote(_ray_worker)
 
         pending: dict[str, tuple[TaskSpec, int]] = {task.task_id: (task, 1) for task in tasks}
         started_by_id = {task.task_id: perf_counter() for task in tasks}
         refs = {
-            task_id: _ray_worker.options(num_cpus=1).remote(spec.payload, task_id)
+            task_id: ray_worker.options(num_cpus=1).remote(spec.payload, task_id)
             for task_id, (spec, _) in pending.items()
         }
         ordered_results: dict[str, TaskResult] = {}
@@ -234,7 +234,7 @@ class RayTaskExecutionBackend(TaskExecutionBackend):
                 except retry_policy.retryable_exceptions as exc:
                     if attempt <= retry_policy.max_retries:
                         pending[task_id] = (task, attempt + 1)
-                        refs[task_id] = _ray_worker.options(num_cpus=1).remote(
+                        refs[task_id] = ray_worker.options(num_cpus=1).remote(
                             task.payload, task_id
                         )
                     else:
