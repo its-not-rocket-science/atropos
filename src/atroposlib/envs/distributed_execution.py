@@ -201,6 +201,7 @@ class RayTaskExecutionBackend(TaskExecutionBackend):
             import socket
 
             return task_id, socket.gethostname(), task_fn(payload)
+
         ray_worker = ray.remote(_ray_worker)
 
         pending: dict[str, tuple[TaskSpec, int]] = {task.task_id: (task, 1) for task in tasks}
@@ -234,9 +235,7 @@ class RayTaskExecutionBackend(TaskExecutionBackend):
                 except retry_policy.retryable_exceptions as exc:
                     if attempt <= retry_policy.max_retries:
                         pending[task_id] = (task, attempt + 1)
-                        refs[task_id] = ray_worker.options(num_cpus=1).remote(
-                            task.payload, task_id
-                        )
+                        refs[task_id] = ray_worker.options(num_cpus=1).remote(task.payload, task_id)
                     else:
                         ordered_results[task_id] = TaskResult(
                             task_id=task_id,
