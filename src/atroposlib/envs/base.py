@@ -67,9 +67,14 @@ class BaseEnv:
             with timed_rollout(env_name):
                 started = perf_counter()
                 prepared = self.env_logic.prepare_step(payload)
+                trainer_feedback = payload.get("trainer_feedback")
                 runtime_result = self.worker_manager.orchestrate(
                     prepared,
                     requested_workers=worker_count,
+                    env=env_name,
+                    trainer_feedback=(
+                        trainer_feedback if isinstance(trainer_feedback, dict) else None
+                    ),
                 )
                 if self.seed_manager is not None:
                     inference_seed = self.seed_manager.derive_seed(
@@ -90,6 +95,13 @@ class BaseEnv:
                     env=env_name,
                     utilization_ratio=selected_workers / max_workers,
                 )
+                trainer_queue_depth = int(runtime_result.get("trainer_queue_depth", 0))
+                OBSERVABILITY.set_trainer_queue_depth(
+                    env=env_name,
+                    queue_depth=trainer_queue_depth,
+                )
+                rate_limit = float(runtime_result.get("rate_limit", 1.0))
+                OBSERVABILITY.set_env_rate_limit(env=env_name, rate_limit=rate_limit)
                 self.logging_manager.log_event(
                     "step_finished",
                     status=finalized.get("ok", False),

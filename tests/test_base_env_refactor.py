@@ -83,3 +83,39 @@ def test_backward_compatibility_shim_types_are_usable() -> None:
 
     assert output["worker_count"] == 3
     assert response["ok"] is True
+
+
+def test_trainer_feedback_reduces_env_rate_limit() -> None:
+    env = BaseEnv()
+
+    overloaded = env.step(
+        {"env": "math", "task": "x", "trainer_feedback": {"queue_depth": 32}},
+        worker_count=8,
+    )
+    recovered = env.step(
+        {"env": "math", "task": "y", "trainer_feedback": {"queue_depth": 0}},
+        worker_count=8,
+    )
+
+    overloaded_runtime = overloaded["payload"]
+    recovered_runtime = recovered["payload"]
+    assert overloaded_runtime["rate_limit"] < 1.0
+    assert overloaded_runtime["worker_count"] < 8
+    assert recovered_runtime["rate_limit"] > overloaded_runtime["rate_limit"]
+
+
+def test_dynamic_scaling_accounts_for_trainer_queue_depth() -> None:
+    runtime = EnvRuntime(max_workers=10)
+    baseline = runtime.orchestrate({"task": "base"}, requested_workers=2, env="qa")
+    for idx in range(6):
+        runtime.enqueue({"task": f"queued-{idx}"})
+    saturated = runtime.orchestrate(
+        {"task": "heavy"},
+        requested_workers=2,
+        env="qa",
+        trainer_feedback={"queue_depth": 6},
+    )
+
+    assert baseline["worker_count"] == 2
+    assert saturated["worker_count"] > baseline["worker_count"]
+    assert saturated["trainer_queue_depth"] == 6
