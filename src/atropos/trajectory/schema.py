@@ -11,15 +11,7 @@ SCHEMA_NAME = "atropos.trajectory"
 SCHEMA_VERSION = "1.0.0"
 
 
-JSONValue = (
-    dict[str, "JSONValue"]
-    | list["JSONValue"]
-    | str
-    | int
-    | float
-    | bool
-    | None
-)
+JSONValue = dict[str, "JSONValue"] | list["JSONValue"] | str | int | float | bool | None
 
 
 @dataclass(slots=True)
