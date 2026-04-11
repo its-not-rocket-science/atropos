@@ -10,6 +10,14 @@ from .components import (
     EnvRuntime,
     EnvTransportClient,
 )
+from .distributed_execution import (
+    AsyncioTaskExecutionBackend,
+    RayTaskExecutionBackend,
+    RetryPolicy,
+    TaskExecutionBackend,
+    TaskResult,
+    TaskSpec,
+)
 from .env_logic import EnvLogic, PassthroughEnvLogic
 from .logging_manager import LoggingManager
 from .server_handling import ServerLaunchConfig, ServerManager, ServerManagerError
@@ -33,4 +41,10 @@ __all__ = [
     "ServerLaunchConfig",
     "ServerManager",
     "ServerManagerError",
+    "TaskExecutionBackend",
+    "RetryPolicy",
+    "TaskSpec",
+    "TaskResult",
+    "AsyncioTaskExecutionBackend",
+    "RayTaskExecutionBackend",
 ]
