@@ -18,6 +18,15 @@ def test_list_presets_runs(capsys) -> None:  # type: ignore[no-untyped-def]
     assert "structured_pruning" in captured.out
 
 
+def test_demo_command_calls_runner() -> None:
+    """Test demo command delegates to demo runner with config path."""
+    with patch("atropos.cli.run_demo") as mock_run_demo:
+        mock_run_demo.return_value = 0
+        result = main(["demo", "--config", "configs/demo.yaml"])
+        assert result == 0
+        mock_run_demo.assert_called_once()
+
+
 def test_preset_json_runs(capsys) -> None:  # type: ignore[no-untyped-def]
     """Test that preset command with JSON report runs successfully."""
     result = main(["preset", "medium-coder", "--report", "json"])

@@ -32,6 +32,7 @@ from .config import AtroposConfig
 from .core.calculator import ROICalculator
 from .core.uncertainty import ParameterDistribution
 from .costs.cloud_pricing import CloudPricingEngine, request_from_scenario_yaml
+from .demo import run_demo
 from .deployment.platforms import get_platform
 from .exceptions import AtroposError
 from .integrations import TRACKERS, get_tracker, run_to_scenario
@@ -107,6 +108,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replay a saved RL rollout artifact and verify exact step-by-step determinism.",
     )
     replay_parser.add_argument("path", type=Path, help="Path to rollout JSON artifact.")
+    demo_parser = subparsers.add_parser(
+        "demo",
+        help="Run a complete local demo (API server + environment + trainer loop + live metrics).",
+    )
+    demo_parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("configs/demo.yaml"),
+        help="Path to demo config YAML (default: configs/demo.yaml).",
+    )
 
     preset_parser = subparsers.add_parser("preset", help="Run a built-in scenario preset.")
     preset_parser.add_argument("name", choices=sorted(SCENARIOS.keys()))
@@ -866,6 +877,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             records = LineWorldEnv.replay_from_rollout(args.path)
             print(f"Replay succeeded for {args.path} ({len(records)} steps).")
             return 0
+
+        if args.command == "demo":
+            return run_demo(args.config)
 
         if args.command == "preset":
             scenario = SCENARIOS[args.name]

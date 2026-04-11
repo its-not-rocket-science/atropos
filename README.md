@@ -41,6 +41,27 @@ atropos-llm --help
 
 Python import package name is `atropos` (distribution/CLI name is `atropos-llm`).
 
+## One-command demo (<5 minutes to first success)
+
+Use the demo command to run a full local workflow end to end:
+
+```bash
+atropos demo
+```
+
+What this does automatically:
+
+1. Starts a local Atropos API server.
+2. Starts a simple `LineWorld` environment.
+3. Simulates a trainer loop.
+4. Streams live metrics in the terminal (`reward`, `position`, `queue_depth`).
+
+The default demo settings live in `configs/demo.yaml`. You can override them:
+
+```bash
+atropos demo --config configs/demo.yaml
+```
+
 ## 1) What problem this solves
 
 Atropos' **primary identity** is ROI estimation and optimization planning for coding-LLM deployments. It gives you a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment. This makes go/no-go decisions explicit instead of relying on disconnected benchmark snapshots.
