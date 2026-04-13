@@ -30,13 +30,13 @@ from .worker_runtime import WorkerRuntime
 class BaseEnv:
     """Backward-compatible facade orchestrating composable components."""
 
+    runtime_controller: RuntimeController
     worker_runtime: WorkerRuntime = field(default_factory=WorkerRuntime)
     transport_client: TransportClient = field(default_factory=TransportClient)
     metrics_logger: MetricsLogger = field(default_factory=MetricsLogger)
     checkpoint_manager: CheckpointManager = field(default_factory=CheckpointManager)
     cli_adapter: CliAdapter = field(default_factory=CliAdapter)
     env_logic: EnvLogic = field(default_factory=PassthroughEnvLogic)
-    runtime_controller: RuntimeController
 
     def __init__(
         self,
