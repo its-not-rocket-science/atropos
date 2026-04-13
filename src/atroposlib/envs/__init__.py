@@ -19,9 +19,17 @@ from .distributed_execution import (
     TaskResult,
     TaskSpec,
 )
-from .env_logic import EnvLogic, PassthroughEnvLogic
+from .env_logic import EnvLogic, EnvLogicItemSource, EnvLogicRolloutCollector, PassthroughEnvLogic
 from .logging_manager import LoggingManager
 from .metrics_logger import MetricsLogger
+from .runtime_controller import RuntimeController
+from .runtime_interfaces import (
+    BacklogManager,
+    EvalRunner,
+    ItemSource,
+    RolloutCollector,
+    SendToApiPath,
+)
 from .server_handling import ServerLaunchConfig, ServerManager, ServerManagerError
 from .transport_client import TransportClient
 from .worker_manager import WorkerManager
@@ -38,6 +46,14 @@ __all__ = [
     "CliAdapter",
     "EnvLogic",
     "PassthroughEnvLogic",
+    "EnvLogicItemSource",
+    "EnvLogicRolloutCollector",
+    "RuntimeController",
+    "ItemSource",
+    "RolloutCollector",
+    "BacklogManager",
+    "SendToApiPath",
+    "EvalRunner",
     "EnvRuntime",
     "EnvTransportClient",
     "EnvLogger",

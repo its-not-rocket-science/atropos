@@ -13,16 +13,15 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from time import perf_counter
 from typing import Any
 
 from atropos.reproducibility import SeedManager, apply_global_seed
 
-from ..observability import OBSERVABILITY, timed_rollout, tracing_span
 from .checkpoint_manager import CheckpointManager
 from .cli_adapter import CliAdapter
-from .env_logic import EnvLogic, PassthroughEnvLogic
+from .env_logic import EnvLogic, EnvLogicItemSource, EnvLogicRolloutCollector, PassthroughEnvLogic
 from .metrics_logger import MetricsLogger
+from .runtime_controller import RuntimeController
 from .transport_client import TransportClient
 from .worker_runtime import WorkerRuntime
 
@@ -37,6 +36,7 @@ class BaseEnv:
     checkpoint_manager: CheckpointManager = field(default_factory=CheckpointManager)
     cli_adapter: CliAdapter = field(default_factory=CliAdapter)
     env_logic: EnvLogic = field(default_factory=PassthroughEnvLogic)
+    runtime_controller: RuntimeController
 
     def __init__(
         self,
@@ -66,59 +66,18 @@ class BaseEnv:
             self.seed_manager = SeedManager(seed)
             self.seed_metadata = apply_global_seed(seed, component="base_env")
             self.worker_runtime.seed_manager = self.seed_manager
+        self.runtime_controller = RuntimeController(
+            item_source=EnvLogicItemSource(self.env_logic),
+            backlog_manager=self.worker_runtime,
+            send_to_api=self.transport_client,
+            rollout_collector=EnvLogicRolloutCollector(self.env_logic),
+            metrics_logger=self.metrics_logger,
+            checkpoint_manager=self.checkpoint_manager,
+            seed_manager=self.seed_manager,
+        )
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
-        env_name = str(payload.get("env", "default"))
-        self.metrics_logger.log_event("step_started", worker_count=worker_count, env=env_name)
-        with tracing_span(
-            "baseenv.step",
-            attributes={"atropos.env": env_name, "atropos.worker.requested": worker_count},
-        ):
-            with timed_rollout(env_name):
-                started = perf_counter()
-                prepared = self.env_logic.prepare_step(payload)
-                trainer_feedback = payload.get("trainer_feedback")
-                runtime_result = self.worker_runtime.orchestrate(
-                    prepared,
-                    requested_workers=worker_count,
-                    env=env_name,
-                    trainer_feedback=(
-                        trainer_feedback if isinstance(trainer_feedback, dict) else None
-                    ),
-                )
-                if self.seed_manager is not None:
-                    inference_seed = self.seed_manager.derive_seed(
-                        env_name,
-                        stage="inference",
-                        worker_id=int(runtime_result.get("worker_count", worker_count)),
-                    )
-                    runtime_result["inference_seed"] = inference_seed
-                transport_result = self.transport_client.send(runtime_result)
-                finalized = self.env_logic.finalize_step(transport_result)
-                self.checkpoint_manager.save(finalized)
-                selected_workers = int(runtime_result.get("worker_count", worker_count))
-                max_workers = max(
-                    1,
-                    int(getattr(self.worker_runtime, "max_workers", selected_workers)),
-                )
-                OBSERVABILITY.set_worker_utilization(
-                    env=env_name,
-                    utilization_ratio=selected_workers / max_workers,
-                )
-                trainer_queue_depth = int(runtime_result.get("trainer_queue_depth", 0))
-                OBSERVABILITY.set_trainer_queue_depth(
-                    env=env_name,
-                    queue_depth=trainer_queue_depth,
-                )
-                rate_limit = float(runtime_result.get("rate_limit", 1.0))
-                OBSERVABILITY.set_env_rate_limit(env=env_name, rate_limit=rate_limit)
-                self.metrics_logger.log_event(
-                    "step_finished",
-                    status=finalized.get("ok", False),
-                    env=env_name,
-                    rollout_latency_seconds=perf_counter() - started,
-                )
-                return finalized
+        return self.runtime_controller.run_step(payload=payload, worker_count=worker_count)
 
     def process(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
         """Compatibility alias for step()."""
@@ -128,7 +87,7 @@ class BaseEnv:
     def evaluate(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
         """Compatibility alias for step() used by evaluation flows."""
 
-        return self.step(payload=payload, worker_count=worker_count)
+        return self.runtime_controller.evaluate(payload=payload, worker_count=worker_count)
 
     def serve(
         self,
