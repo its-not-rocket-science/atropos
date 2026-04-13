@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from .runtime_interfaces import ItemSource, RolloutCollector
+
 
 class EnvLogic(Protocol):
     """User-defined business logic for preparing and finalizing steps."""
@@ -25,3 +27,23 @@ class PassthroughEnvLogic:
 
     def finalize_step(self, transport_result: dict[str, Any]) -> dict[str, Any]:
         return dict(transport_result)
+
+
+@dataclass
+class EnvLogicItemSource(ItemSource):
+    """Adapter turning EnvLogic into an ItemSource."""
+
+    env_logic: EnvLogic
+
+    def prepare_item(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self.env_logic.prepare_step(payload)
+
+
+@dataclass
+class EnvLogicRolloutCollector(RolloutCollector):
+    """Adapter turning EnvLogic into a RolloutCollector."""
+
+    env_logic: EnvLogic
+
+    def collect(self, transport_result: dict[str, Any]) -> dict[str, Any]:
+        return self.env_logic.finalize_step(transport_result)
