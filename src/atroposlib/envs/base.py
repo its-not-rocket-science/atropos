@@ -16,9 +16,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from atropos.reproducibility import SeedManager, apply_global_seed
+from atroposlib.cli.adapters import CliAdapter
 
 from .checkpoint_manager import CheckpointManager
-from .cli_adapter import CliAdapter
 from .env_logic import EnvLogic, EnvLogicItemSource, EnvLogicRolloutCollector, PassthroughEnvLogic
 from .metrics_logger import MetricsLogger
 from .runtime_controller import RuntimeController

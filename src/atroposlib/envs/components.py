@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from atroposlib.cli.adapters import CliAdapter
+
 from .checkpoint_manager import CheckpointManager
-from .cli_adapter import CliAdapter
 from .metrics_logger import MetricsLogger
 from .transport_client import TransportClient
 from .worker_runtime import WorkerRuntime
