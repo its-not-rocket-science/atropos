@@ -40,7 +40,7 @@ class IngestScoredDataResult:
     deduplicated: bool
 
 
-class RuntimeStore(Protocol):
+class AtroposStore(Protocol):
     """Storage contract for runtime queue and status operations."""
 
     backend_name: str
@@ -394,3 +394,7 @@ class PostgresStore:
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         raise NotImplementedError("PostgresStore is not implemented yet")
+
+
+# Backwards compatibility alias.
+RuntimeStore = AtroposStore
