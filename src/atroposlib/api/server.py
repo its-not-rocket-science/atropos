@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, 
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..observability import OBSERVABILITY, render_metrics
-from .storage import InMemoryStore, RedisStore, RuntimeStatusRecord, RuntimeStore
+from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord
 
 
 class HardeningTier(str, Enum):
@@ -26,13 +26,6 @@ class HardeningTier(str, Enum):
 
 
 RuntimeStatus = RuntimeStatusRecord
-
-
-@dataclass(slots=True)
-class AppRuntimeState:
-    """Typed runtime state bound once on `app.state.runtime`."""
-
-    store: RuntimeStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,14 +56,12 @@ _POLICY_BY_TIER: dict[HardeningTier, RuntimePolicy] = {
 }
 
 
-def get_runtime_state(request: Request) -> AppRuntimeState:
-    """Typed accessor for runtime state.
+def get_runtime_state(request: Request) -> AtroposStore:
+    """Compatibility accessor for the configured runtime store."""
 
-    Raises a clear error if startup wiring is incomplete.
-    """
-    state = getattr(request.app.state, "runtime", None)
-    if not isinstance(state, AppRuntimeState):
-        raise RuntimeError("Application runtime state was not initialized")
+    state = getattr(request.app.state, "runtime_store", None)
+    if state is None:
+        raise RuntimeError("Application runtime store was not initialized")
     return state
 
 
@@ -102,7 +93,7 @@ def _build_auth_dependency(
     return _verify_token
 
 
-def _default_store_for_tier(tier: HardeningTier) -> RuntimeStore:
+def _default_store_for_tier(tier: HardeningTier) -> AtroposStore:
     if tier is HardeningTier.PRODUCTION_SAFE:
         redis_url = os.getenv("ATROPOS_REDIS_URL", "redis://localhost:6379/0")
         return RedisStore.from_url(redis_url)
@@ -114,7 +105,7 @@ def build_runtime_app(
     *,
     allowed_origins: list[str] | None = None,
     api_token: str | None = None,
-    store: RuntimeStore | None = None,
+    store: AtroposStore | None = None,
 ) -> FastAPI:
     """Build the FastAPI runtime app.
 
@@ -125,7 +116,13 @@ def build_runtime_app(
     policy = _POLICY_BY_TIER[tier]
     app = FastAPI(title="Atropos Runtime API")
     runtime_store = store if store is not None else _default_store_for_tier(tier)
-    app.state.runtime = AppRuntimeState(store=runtime_store)
+
+    @app.on_event("startup")
+    async def _startup_store_binding() -> None:
+        app.state.runtime_store = runtime_store
+
+    async def _get_store() -> AtroposStore:
+        return runtime_store
 
     cors_origins = ["*"] if policy.allow_all_cors_origins else list(allowed_origins or [])
     app.add_middleware(
@@ -161,18 +158,18 @@ def build_runtime_app(
 
     app.middleware("http")(_metrics_middleware)
 
-    def health(request: Request) -> dict[str, str]:
-        backend_name = get_runtime_state(request).store.backend_name
+    def health(store: Annotated[AtroposStore, Depends(_get_store)]) -> dict[str, str]:
+        backend_name = store.backend_name
         return {"status": "ok", "tier": tier.value, "store": backend_name}
 
     def enqueue(
         job: dict[str, Any],
         request: Request,
+        store: Annotated[AtroposStore, Depends(_get_store)],
         x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
-        runtime = get_runtime_state(request)
         now = datetime.now(tz=timezone.utc)
-        enqueue_result = runtime.store.enqueue_job(
+        enqueue_result = store.enqueue_job(
             job_id=str(uuid4()),
             now=now,
             idempotency_key=x_idempotency_key,
@@ -187,9 +184,11 @@ def build_runtime_app(
             "deduplicated": enqueue_result.deduplicated,
         }
 
-    def get_job_status(job_id: str, request: Request) -> dict[str, Any]:
-        runtime = get_runtime_state(request)
-        status_record = runtime.store.get_job_status(job_id)
+    def get_job_status(
+        job_id: str,
+        store: Annotated[AtroposStore, Depends(_get_store)],
+    ) -> dict[str, Any]:
+        status_record = store.get_job_status(job_id)
         if status_record is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown job_id")
         return {
@@ -201,7 +200,7 @@ def build_runtime_app(
 
     def ingest_scored_data(
         payload: dict[str, Any],
-        request: Request,
+        store: Annotated[AtroposStore, Depends(_get_store)],
         x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
     ) -> dict[str, Any]:
         if not x_request_id:
@@ -226,8 +225,7 @@ def build_runtime_app(
                 )
             records.append(item)
 
-        runtime = get_runtime_state(request)
-        result = runtime.store.ingest_scored_data(
+        result = store.ingest_scored_data(
             environment_id=environment_id,
             request_id=x_request_id,
             records=records,
@@ -241,12 +239,11 @@ def build_runtime_app(
 
     def scored_data_list(
         environment_id: str,
-        request: Request,
+        store: Annotated[AtroposStore, Depends(_get_store)],
         limit: int = 100,
     ) -> dict[str, Any]:
-        runtime = get_runtime_state(request)
         bounded_limit = max(0, min(limit, 1000))
-        records = runtime.store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
+        records = store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
         return {
             "environment_id": environment_id,
             "count": len(records),
@@ -257,11 +254,10 @@ def build_runtime_app(
         payload, content_type = render_metrics()
         return Response(content=payload, media_type=content_type)
 
-    def reset_runtime(request: Request) -> dict[str, str]:
+    def reset_runtime(store: Annotated[AtroposStore, Depends(_get_store)]) -> dict[str, str]:
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-        runtime = get_runtime_state(request)
-        runtime.store.reset()
+        store.reset()
         return {"status": "reset"}
 
     app.add_api_route("/health", health, methods=["GET"])
