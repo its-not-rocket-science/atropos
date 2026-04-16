@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from importlib.util import find_spec
 from time import perf_counter
 from typing import Any
+
+from .logging_utils import configure_logging
 
 if find_spec("prometheus_client") is not None:
     from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
@@ -59,67 +59,10 @@ else:  # pragma: no cover - exercised when optional dependency is missing
     otel_trace = None
 
 
-class JsonLogFormatter(logging.Formatter):
-    """Production JSON formatter suitable for log aggregation systems."""
-
-    _reserved = {
-        "name",
-        "msg",
-        "args",
-        "levelname",
-        "levelno",
-        "pathname",
-        "filename",
-        "module",
-        "exc_info",
-        "exc_text",
-        "stack_info",
-        "lineno",
-        "funcName",
-        "created",
-        "msecs",
-        "relativeCreated",
-        "thread",
-        "threadName",
-        "processName",
-        "process",
-        "message",
-        "asctime",
-    }
-
-    def format(self, record: logging.LogRecord) -> str:
-        payload: dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "function": record.funcName,
-            "line": record.lineno,
-        }
-        extra = {
-            key: value
-            for key, value in record.__dict__.items()
-            if key not in self._reserved and not key.startswith("_")
-        }
-        if extra:
-            payload["extra"] = extra
-        if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
-        return json.dumps(payload, default=str)
-
-
 def setup_json_logging(logger_name: str = "atropos", *, level: int = logging.INFO) -> None:
     """Enable structured JSON logs for the provided logger hierarchy."""
 
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(level)
-    logger.handlers.clear()
-
-    handler = logging.StreamHandler()
-    handler.setLevel(level)
-    handler.setFormatter(JsonLogFormatter())
-    logger.addHandler(handler)
+    configure_logging(logger_name=logger_name, level=level, log_format="json")
 
 
 @dataclass(slots=True)

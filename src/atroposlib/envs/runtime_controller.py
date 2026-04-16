@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
 
 from atropos.reproducibility import SeedManager
 
+from ..logging_utils import build_log_context
 from ..observability import OBSERVABILITY, timed_rollout, tracing_span
 from .checkpoint_manager import CheckpointManager
 from .metrics_logger import MetricsLogger
@@ -18,6 +20,8 @@ from .runtime_interfaces import (
     RolloutCollector,
     SendToApiPath,
 )
+
+RUNTIME_LOGGER = logging.getLogger("atroposlib.envs.runtime")
 
 
 @dataclass
@@ -34,7 +38,20 @@ class RuntimeController(EvalRunner):
 
     def run_step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
         env_name = str(payload.get("env", "default"))
+        request_id = payload.get("request_id")
+        batch_id = payload.get("batch_id")
+        current_step = payload.get("current_step")
         self.metrics_logger.log_event("step_started", worker_count=worker_count, env=env_name)
+        RUNTIME_LOGGER.info(
+            "runtime_step_started",
+            extra=build_log_context(
+                env_id=env_name,
+                request_id=request_id,
+                batch_id=batch_id,
+                worker_id=worker_count,
+                current_step=current_step,
+            ),
+        )
         with tracing_span(
             "baseenv.step",
             attributes={"atropos.env": env_name, "atropos.worker.requested": worker_count},
@@ -77,11 +94,24 @@ class RuntimeController(EvalRunner):
                 )
                 rate_limit = float(runtime_result.get("rate_limit", 1.0))
                 OBSERVABILITY.set_env_rate_limit(env=env_name, rate_limit=rate_limit)
+                duration = perf_counter() - started
                 self.metrics_logger.log_event(
                     "step_finished",
                     status=finalized.get("ok", False),
                     env=env_name,
-                    rollout_latency_seconds=perf_counter() - started,
+                    rollout_latency_seconds=duration,
+                )
+                RUNTIME_LOGGER.info(
+                    "runtime_step_finished",
+                    extra=build_log_context(
+                        env_id=env_name,
+                        request_id=request_id,
+                        batch_id=batch_id,
+                        worker_id=int(runtime_result.get("worker_count", worker_count)),
+                        current_step=current_step,
+                        status=bool(finalized.get("ok", False)),
+                        rollout_latency_seconds=duration,
+                    ),
                 )
                 return finalized
 
