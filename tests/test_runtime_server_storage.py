@@ -155,7 +155,7 @@ def test_scored_data_requires_request_id_header() -> None:
     )
 
     assert response.status_code == 400
-    assert "X-Request-ID header is required" in response.text
+    assert "X-Request-ID or X-Idempotency-Key header is required" in response.text
 
 
 def test_scored_data_deduplicates_retry_storm_requests() -> None:
@@ -211,4 +211,96 @@ def test_scored_data_accepts_distinct_request_ids() -> None:
 
     assert first.json()["deduplicated"] is False
     assert second.json()["deduplicated"] is False
+    assert listed.json()["count"] == 2
+
+
+def test_scored_data_list_post_deduplicates_groups() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    payload = {
+        "groups": [
+            {
+                "group_id": "g-1",
+                "environment_id": "env-a",
+                "records": [{"sample_id": "1", "score": 0.9}],
+            },
+            {
+                "group_id": "g-2",
+                "environment_id": "env-a",
+                "records": [{"sample_id": "2", "score": 0.8}],
+            },
+        ]
+    }
+    first = client.post("/scored_data_list", json=payload, headers={"X-Request-ID": "req-batch-1"})
+    second = client.post("/scored_data_list", json=payload, headers={"X-Request-ID": "req-batch-1"})
+
+    listed = client.get("/scored_data_list", params={"environment_id": "env-a", "limit": 100})
+    assert first.status_code == 200
+    assert first.json()["accepted_groups"] == 2
+    assert first.json()["accepted_count"] == 2
+    assert second.status_code == 200
+    assert second.json()["deduplicated"] is True
+    assert listed.json()["count"] == 2
+
+
+def test_scored_data_list_partial_failure_retry_only_accepts_new_groups() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    first = client.post(
+        "/scored_data_list",
+        json={
+            "groups": [
+                {
+                    "group_id": "g-1",
+                    "environment_id": "env-a",
+                    "records": [{"sample_id": "1", "score": 0.9}],
+                },
+                {
+                    "group_id": "g-2",
+                    "environment_id": "env-a",
+                    "records": ["invalid-record"],
+                },
+            ]
+        },
+        headers={"X-Request-ID": "req-partial-1"},
+    )
+    retry = client.post(
+        "/scored_data_list",
+        json={
+            "groups": [
+                {
+                    "group_id": "g-1",
+                    "environment_id": "env-a",
+                    "records": [{"sample_id": "1", "score": 0.9}],
+                },
+                {
+                    "group_id": "g-2",
+                    "environment_id": "env-a",
+                    "records": [{"sample_id": "2", "score": 0.8}],
+                },
+            ]
+        },
+        headers={"X-Request-ID": "req-partial-1"},
+    )
+
+    listed = client.get("/scored_data_list", params={"environment_id": "env-a", "limit": 100})
+    assert first.status_code == 200
+    assert first.json()["status"] == "partial_failed"
+    assert first.json()["accepted_groups"] == 1
+    assert first.json()["failed_groups"] == 1
+    assert retry.status_code == 200
+    assert retry.json()["status"] == "completed"
+    assert retry.json()["accepted_groups"] == 1
     assert listed.json()["count"] == 2
