@@ -74,10 +74,17 @@ class Observability:
     api_errors_total: Any
     runtime_queue_depth: Any
     runtime_queue_oldest_age_seconds: Any
+    buffered_groups: Any
+    ingestion_records_total: Any
+    duplicate_ingestion_rejections_total: Any
+    batch_formation_latency_seconds: Any
     rollout_latency_seconds: Any
+    worker_count: Any
     worker_utilization_ratio: Any
     trainer_queue_depth: Any
     env_rate_limit_ratio: Any
+    failed_sends_total: Any
+    eval_duration_seconds: Any
 
     @classmethod
     def create(cls) -> Observability:
@@ -107,9 +114,34 @@ class Observability:
                 "Oldest queued group age in seconds by environment",
                 ["env"],
             ),
+            buffered_groups=Gauge(
+                "atropos_buffered_groups",
+                "Buffered scored-data groups by environment",
+                ["env"],
+            ),
+            ingestion_records_total=Counter(
+                "atropos_ingestion_records_total",
+                "Total ingested scored-data records",
+                ["env"],
+            ),
+            duplicate_ingestion_rejections_total=Counter(
+                "atropos_duplicate_ingestion_rejections_total",
+                "Total duplicate ingestion requests rejected",
+                ["env", "endpoint"],
+            ),
+            batch_formation_latency_seconds=Histogram(
+                "atropos_batch_formation_latency_seconds",
+                "Latency between buffered and batched group states",
+                ["env"],
+            ),
             rollout_latency_seconds=Histogram(
                 "atropos_rollout_latency_seconds",
                 "Rollout latency in seconds",
+                ["env"],
+            ),
+            worker_count=Gauge(
+                "atropos_worker_count",
+                "Selected worker count by environment",
                 ["env"],
             ),
             worker_utilization_ratio=Gauge(
@@ -125,6 +157,16 @@ class Observability:
             env_rate_limit_ratio=Gauge(
                 "atropos_env_rate_limit_ratio",
                 "Adaptive environment rate limit ratio",
+                ["env"],
+            ),
+            failed_sends_total=Counter(
+                "atropos_failed_sends_total",
+                "Total failed sends from runtime to API/model transport",
+                ["env"],
+            ),
+            eval_duration_seconds=Histogram(
+                "atropos_eval_duration_seconds",
+                "End-to-end evaluation duration in seconds",
                 ["env"],
             ),
         )
@@ -150,8 +192,24 @@ class Observability:
     def set_queue_oldest_age(self, *, env: str, oldest_age_seconds: float) -> None:
         self.runtime_queue_oldest_age_seconds.labels(env=env).set(max(0.0, oldest_age_seconds))
 
+    def set_buffered_groups(self, *, env: str, group_count: int) -> None:
+        self.buffered_groups.labels(env=env).set(max(0, group_count))
+
+    def observe_ingestion(self, *, env: str, accepted_count: int) -> None:
+        if accepted_count > 0:
+            self.ingestion_records_total.labels(env=env).inc(accepted_count)
+
+    def observe_duplicate_rejection(self, *, env: str, endpoint: str) -> None:
+        self.duplicate_ingestion_rejections_total.labels(env=env, endpoint=endpoint).inc()
+
+    def observe_batch_formation_latency(self, *, env: str, latency_seconds: float) -> None:
+        self.batch_formation_latency_seconds.labels(env=env).observe(max(0.0, latency_seconds))
+
     def observe_rollout(self, *, env: str, latency_seconds: float) -> None:
         self.rollout_latency_seconds.labels(env=env).observe(latency_seconds)
+
+    def set_worker_count(self, *, env: str, worker_count: int) -> None:
+        self.worker_count.labels(env=env).set(max(0, worker_count))
 
     def set_worker_utilization(self, *, env: str, utilization_ratio: float) -> None:
         clipped = max(0.0, min(utilization_ratio, 1.0))
@@ -163,6 +221,12 @@ class Observability:
     def set_env_rate_limit(self, *, env: str, rate_limit: float) -> None:
         clipped = max(0.0, min(rate_limit, 1.0))
         self.env_rate_limit_ratio.labels(env=env).set(clipped)
+
+    def observe_failed_send(self, *, env: str) -> None:
+        self.failed_sends_total.labels(env=env).inc()
+
+    def observe_eval_duration(self, *, env: str, duration_seconds: float) -> None:
+        self.eval_duration_seconds.labels(env=env).observe(max(0.0, duration_seconds))
 
 
 OBSERVABILITY = Observability.create()

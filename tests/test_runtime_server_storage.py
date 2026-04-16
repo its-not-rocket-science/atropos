@@ -134,12 +134,28 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     client = TestClient(app)
 
     _ = client.get("/health", headers={"X-Env": "staging"})
+    _ = client.post(
+        "/scored_data",
+        json={"environment_id": "staging", "records": [{"sample_id": "s1", "score": 0.5}]},
+        headers={"X-Request-ID": "req-1"},
+    )
+    _ = client.post(
+        "/scored_data",
+        json={"environment_id": "staging", "records": [{"sample_id": "s1", "score": 0.5}]},
+        headers={"X-Request-ID": "req-1"},
+    )
     metrics = client.get("/metrics")
 
     assert metrics.status_code == 200
     assert "atropos_api_requests_total" in metrics.text
     assert "atropos_api_request_latency_seconds" in metrics.text
     assert "atropos_runtime_queue_oldest_age_seconds" in metrics.text
+    assert "atropos_buffered_groups" in metrics.text
+    assert "atropos_ingestion_records_total" in metrics.text
+    assert "atropos_duplicate_ingestion_rejections_total" in metrics.text
+    assert "atropos_batch_formation_latency_seconds" in metrics.text
+    assert "atropos_failed_sends_total" in metrics.text
+    assert "atropos_eval_duration_seconds" in metrics.text
 
 
 def test_scored_data_requires_request_id_header() -> None:

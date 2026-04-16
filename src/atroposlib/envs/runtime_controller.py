@@ -75,10 +75,15 @@ class RuntimeController(EvalRunner):
                         worker_id=int(runtime_result.get("worker_count", worker_count)),
                     )
                     runtime_result["inference_seed"] = inference_seed
-                transport_result = self.send_to_api.send(runtime_result)
+                try:
+                    transport_result = self.send_to_api.send(runtime_result)
+                except Exception:
+                    OBSERVABILITY.observe_failed_send(env=env_name)
+                    raise
                 finalized = self.rollout_collector.collect(transport_result)
                 self.checkpoint_manager.save(finalized)
                 selected_workers = int(runtime_result.get("worker_count", worker_count))
+                OBSERVABILITY.set_worker_count(env=env_name, worker_count=selected_workers)
                 max_workers = max(
                     1,
                     int(getattr(self.backlog_manager, "max_workers", selected_workers)),
@@ -116,4 +121,12 @@ class RuntimeController(EvalRunner):
                 return finalized
 
     def evaluate(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
-        return self.run_step(payload, worker_count=worker_count)
+        env_name = str(payload.get("env", "default"))
+        started = perf_counter()
+        try:
+            return self.run_step(payload, worker_count=worker_count)
+        finally:
+            OBSERVABILITY.observe_eval_duration(
+                env=env_name,
+                duration_seconds=perf_counter() - started,
+            )
