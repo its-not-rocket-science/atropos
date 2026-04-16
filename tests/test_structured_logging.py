@@ -67,8 +67,7 @@ class ToyApiSender:
         return {
             "ok": True,
             "records": [
-                {"text": sample["text"], "score": len(sample["text"])}
-                for sample in item["samples"]
+                {"text": sample["text"], "score": len(sample["text"])} for sample in item["samples"]
             ],
             "payload": payload,
         }
