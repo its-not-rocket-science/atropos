@@ -26,7 +26,8 @@ class FakeRedis:
         return self._kv.get(key)
 
     def hset(self, key: str, mapping: dict[str, str]) -> int:
-        self._hashes[key] = dict(mapping)
+        bucket = self._hashes.setdefault(key, {})
+        bucket.update(mapping)
         return len(mapping)
 
     def hgetall(self, key: str) -> dict[str, str]:
@@ -138,6 +139,7 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert metrics.status_code == 200
     assert "atropos_api_requests_total" in metrics.text
     assert "atropos_api_request_latency_seconds" in metrics.text
+    assert "atropos_runtime_queue_oldest_age_seconds" in metrics.text
 
 
 def test_scored_data_requires_request_id_header() -> None:
