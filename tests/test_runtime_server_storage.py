@@ -61,6 +61,12 @@ class FakeRedis:
             deleted += int(self._lists.pop(key, None) is not None)
         return deleted
 
+    def ping(self) -> bool:
+        return True
+
+    def close(self) -> None:
+        return None
+
 
 def test_inmemory_store_idempotency_header_deduplicates_jobs() -> None:
     from fastapi.testclient import TestClient
@@ -156,6 +162,61 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert "atropos_batch_formation_latency_seconds" in metrics.text
     assert "atropos_failed_sends_total" in metrics.text
     assert "atropos_eval_duration_seconds" in metrics.text
+
+
+def test_runtime_startup_with_empty_store_reports_ready() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    with TestClient(app) as client:
+        live = client.get("/health/live")
+        ready = client.get("/health/ready")
+        dependencies = client.get("/health/dependencies")
+
+    assert live.status_code == 200
+    assert live.json()["status"] == "alive"
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "ready"
+    assert ready.json()["store_durable"] is False
+    assert ready.json()["recovered_items"] == 0
+    assert dependencies.status_code == 200
+    assert dependencies.json()["status"] == "ok"
+
+
+def test_runtime_startup_with_warm_durable_store_recovers_state() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import HardeningTier, build_runtime_app
+    from atroposlib.api.storage import RedisStore
+
+    redis = FakeRedis()
+    store = RedisStore(redis_client=redis)
+    store.enqueue_job(
+        job_id="job-existing",
+        now=datetime.now(tz=timezone.utc),
+        idempotency_key="warm-start-key",
+    )
+
+    app = build_runtime_app(
+        tier=HardeningTier.PRODUCTION_SAFE,
+        api_token="secret",
+        allowed_origins=["https://internal.example"],
+        store=store,
+    )
+    with TestClient(app) as client:
+        ready = client.get("/health/ready")
+        dependencies = client.get("/health/dependencies")
+
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "ready"
+    assert ready.json()["store"] == "redis"
+    assert ready.json()["store_durable"] is True
+    assert ready.json()["recovered_items"] >= 1
+    assert dependencies.status_code == 200
+    assert dependencies.json()["dependency"] == "redis"
 
 
 def test_scored_data_requires_request_id_header() -> None:

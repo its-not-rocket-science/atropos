@@ -17,7 +17,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..logging_utils import build_log_context, configure_logging
 from ..observability import OBSERVABILITY, configure_tracing, render_metrics, tracing_span
-from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord, ScoredDataGroup
+from .storage import (
+    AtroposStore,
+    DependencyHealth,
+    InMemoryStore,
+    RedisStore,
+    RuntimeStatusRecord,
+    ScoredDataGroup,
+    StoreStartupState,
+)
 
 
 class HardeningTier(str, Enum):
@@ -128,9 +136,31 @@ def build_runtime_app(
 
     async def _startup_store_binding() -> None:
         app.state.runtime_store = runtime_store
+        app.state.is_shutting_down = False
+        app.state.ready = False
+        app.state.startup_error = None
+        try:
+            startup_state = runtime_store.startup()
+            app.state.store_startup_state = startup_state
+            app.state.ready = startup_state.dependency_healthy
+        except Exception as exc:
+            app.state.startup_error = str(exc)
+            app.state.store_startup_state = StoreStartupState(
+                backend_name=runtime_store.backend_name,
+                durable=getattr(runtime_store, "durable", False),
+                recovered_items=0,
+                dependency_healthy=False,
+            )
+            raise
         configure_tracing()
 
+    async def _shutdown_store_binding() -> None:
+        app.state.is_shutting_down = True
+        app.state.ready = False
+        runtime_store.shutdown()
+
     app.add_event_handler("startup", _startup_store_binding)
+    app.add_event_handler("shutdown", _shutdown_store_binding)
 
     async def _get_store() -> AtroposStore:
         return runtime_store
@@ -184,6 +214,70 @@ def build_runtime_app(
     def health(store: Annotated[AtroposStore, Depends(_get_store)]) -> dict[str, str]:
         backend_name = store.backend_name
         return {"status": "ok", "tier": tier.value, "store": backend_name}
+
+    def liveness() -> tuple[dict[str, Any], int]:
+        startup_error = getattr(app.state, "startup_error", None)
+        if startup_error:
+            return (
+                {"status": "error", "reason": startup_error},
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return ({"status": "alive"}, status.HTTP_200_OK)
+
+    def dependency_health() -> tuple[dict[str, Any], int]:
+        dependency = runtime_store.dependency_health()
+        if dependency.healthy:
+            return (
+                {
+                    "status": "ok",
+                    "dependency": dependency.name,
+                    "detail": dependency.detail,
+                },
+                status.HTTP_200_OK,
+            )
+        return (
+            {
+                "status": "error",
+                "dependency": dependency.name,
+                "detail": dependency.detail,
+            },
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    def readiness() -> tuple[dict[str, Any], int]:
+        startup_state: StoreStartupState = getattr(
+            app.state,
+            "store_startup_state",
+            StoreStartupState(
+                backend_name=runtime_store.backend_name,
+                durable=getattr(runtime_store, "durable", False),
+                recovered_items=0,
+                dependency_healthy=False,
+            ),
+        )
+        dependency: DependencyHealth = runtime_store.dependency_health()
+        is_shutting_down = bool(getattr(app.state, "is_shutting_down", False))
+        ready = (
+            bool(getattr(app.state, "ready", False))
+            and dependency.healthy
+            and not is_shutting_down
+        )
+        response = {
+            "status": "ready" if ready else "not_ready",
+            "store": startup_state.backend_name,
+            "store_durable": startup_state.durable,
+            "recovered_items": startup_state.recovered_items,
+            "dependency": {
+                "name": dependency.name,
+                "healthy": dependency.healthy,
+                "detail": dependency.detail,
+            },
+            "is_shutting_down": is_shutting_down,
+        }
+        return (
+            response,
+            status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     def enqueue(
         job: dict[str, Any],
@@ -392,6 +486,9 @@ def build_runtime_app(
         return {"status": "reset"}
 
     app.add_api_route("/health", health, methods=["GET"])
+    app.add_api_route("/health/live", liveness, methods=["GET"])
+    app.add_api_route("/health/ready", readiness, methods=["GET"])
+    app.add_api_route("/health/dependencies", dependency_health, methods=["GET"])
     app.add_api_route("/metrics", metrics, methods=["GET"])
     app.add_api_route(
         "/jobs",
