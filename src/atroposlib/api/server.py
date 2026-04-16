@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..logging_utils import build_log_context, configure_logging
 from ..observability import OBSERVABILITY, render_metrics
 from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord, ScoredDataGroup
 
@@ -107,6 +109,7 @@ def build_runtime_app(
     allowed_origins: list[str] | None = None,
     api_token: str | None = None,
     store: AtroposStore | None = None,
+    log_format: str | None = None,
 ) -> FastAPI:
     """Build the FastAPI runtime app.
 
@@ -117,6 +120,11 @@ def build_runtime_app(
     policy = _POLICY_BY_TIER[tier]
     app = FastAPI(title="Atropos Runtime API")
     runtime_store = store if store is not None else _default_store_for_tier(tier)
+    api_logger = configure_logging(
+        logger_name="atroposlib.api.server",
+        level=logging.INFO,
+        log_format=log_format,
+    )
 
     @app.on_event("startup")
     async def _startup_store_binding() -> None:
@@ -149,11 +157,23 @@ def build_runtime_app(
         started_at = datetime.now(tz=timezone.utc)
         response = await call_next(request)
         duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
+        request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Idempotency-Key")
         OBSERVABILITY.observe_api_request(
             method=request.method,
             path=request.url.path,
             status=response.status_code,
             duration_seconds=duration,
+        )
+        api_logger.info(
+            "request_completed",
+            extra=build_log_context(
+                request_id=request_id,
+                endpoint=request.url.path,
+                env_id=request.headers.get("X-Env", "default"),
+                duration_seconds=duration,
+                status_code=response.status_code,
+                method=request.method,
+            ),
         )
         return response
 
@@ -176,7 +196,20 @@ def build_runtime_app(
             idempotency_key=x_idempotency_key,
         )
         env_name = request.headers.get("X-Env", "default")
+        request_id = request.headers.get("X-Request-ID") or x_idempotency_key
         OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=enqueue_result.queue_depth)
+
+        api_logger.info(
+            "job_enqueued",
+            extra=build_log_context(
+                env_id=env_name,
+                request_id=request_id,
+                batch_id=enqueue_result.job_id,
+                endpoint="/jobs",
+                deduplicated=enqueue_result.deduplicated,
+                queue_depth=enqueue_result.queue_depth,
+            ),
+        )
 
         _ = job  # payload is accepted for future processing pipeline.
         return {
@@ -222,6 +255,17 @@ def build_runtime_app(
         OBSERVABILITY.set_queue_oldest_age(
             env=env_name,
             oldest_age_seconds=queue_metrics.oldest_age_seconds,
+        )
+        api_logger.info(
+            "scored_data_ingested",
+            extra=build_log_context(
+                env_id=env_name,
+                request_id=request_id,
+                batch_id=group.group_id,
+                endpoint="/scored_data",
+                accepted_count=result.accepted_count,
+                deduplicated=result.deduplicated,
+            ),
         )
         return {
             "request_id": result.request_id,
@@ -270,6 +314,18 @@ def build_runtime_app(
             env=env_name,
             oldest_age_seconds=queue_metrics.oldest_age_seconds,
         )
+        api_logger.info(
+            "scored_data_list_ingested",
+            extra=build_log_context(
+                env_id=env_name,
+                request_id=request_id,
+                batch_id=(groups[0].group_id if groups else None),
+                endpoint="/scored_data_list",
+                accepted_count=result.accepted_count,
+                deduplicated=result.deduplicated,
+                group_count=len(groups),
+            ),
+        )
         return {
             "request_id": result.request_id,
             "accepted_count": result.accepted_count,
@@ -300,6 +356,10 @@ def build_runtime_app(
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
         store.reset()
+        api_logger.warning(
+            "runtime_reset",
+            extra=build_log_context(endpoint="/admin/reset"),
+        )
         return {"status": "reset"}
 
     app.add_api_route("/health", health, methods=["GET"])
