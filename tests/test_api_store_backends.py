@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from atroposlib.api.storage import AtroposStore, InMemoryStore, RedisStore
+from atroposlib.api.storage import AtroposStore, InMemoryStore, RedisStore, ScoredDataGroup
 
 
 class FakeRedis:
@@ -102,20 +102,73 @@ def test_enqueue_idempotency_consistency(store: AtroposStore) -> None:
 
 def test_scored_data_deduplication_consistency(store: AtroposStore) -> None:
     first = store.ingest_scored_data(
-        environment_id="env-a",
         request_id="req-1",
-        records=[{"sample_id": "1", "score": 0.7}],
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-1",
+                records=[{"sample_id": "1", "score": 0.7}],
+            )
+        ],
     )
     duplicate = store.ingest_scored_data(
-        environment_id="env-a",
         request_id="req-1",
-        records=[{"sample_id": "2", "score": 0.1}],
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-1",
+                records=[{"sample_id": "2", "score": 0.1}],
+            )
+        ],
     )
 
     listed = store.list_scored_data(environment_id="env-a", limit=10)
 
     assert first.accepted_count == 1
+    assert first.accepted_groups == 1
     assert first.deduplicated is False
     assert duplicate.accepted_count == 0
+    assert duplicate.accepted_groups == 0
     assert duplicate.deduplicated is True
     assert listed == [{"sample_id": "1", "score": 0.7}]
+
+
+def test_scored_data_partial_failure_resume_consistency(store: AtroposStore) -> None:
+    first = store.ingest_scored_data(
+        request_id="req-partial",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-1",
+                records=[{"sample_id": "1", "score": 0.7}],
+            ),
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-2",
+                records=["not-an-object"],  # type: ignore[list-item]
+            ),
+        ],
+    )
+    retry = store.ingest_scored_data(
+        request_id="req-partial",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-1",
+                records=[{"sample_id": "1", "score": 0.7}],
+            ),
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-2",
+                records=[{"sample_id": "2", "score": 0.6}],
+            ),
+        ],
+    )
+
+    listed = store.list_scored_data(environment_id="env-a", limit=10)
+    assert first.status == "partial_failed"
+    assert first.accepted_groups == 1
+    assert first.failed_groups == 1
+    assert retry.status == "completed"
+    assert retry.accepted_groups == 1
+    assert listed == [{"sample_id": "1", "score": 0.7}, {"sample_id": "2", "score": 0.6}]

@@ -37,7 +37,19 @@ class IngestScoredDataResult:
 
     request_id: str
     accepted_count: int
+    accepted_groups: int
     deduplicated: bool
+    status: str
+    failed_groups: int
+
+
+@dataclass(frozen=True, slots=True)
+class ScoredDataGroup:
+    """A logical scored-data ingestion group."""
+
+    environment_id: str
+    records: list[dict[str, object]]
+    group_id: str
 
 
 class AtroposStore(Protocol):
@@ -63,11 +75,10 @@ class AtroposStore(Protocol):
     def ingest_scored_data(
         self,
         *,
-        environment_id: str,
         request_id: str,
-        records: list[dict[str, object]],
+        groups: list[ScoredDataGroup],
     ) -> IngestScoredDataResult:
-        """Ingest scored data with request-level deduplication."""
+        """Ingest scored data groups with request-level deduplication."""
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         """List scored records for an environment."""
@@ -116,7 +127,9 @@ class InMemoryStore:
         self._status_by_job: dict[str, RuntimeStatusRecord] = {}
         self._job_by_idempotency_key: dict[str, str] = {}
         self._scored_by_environment: dict[str, list[dict[str, object]]] = {}
-        self._scored_request_ids: set[str] = set()
+        self._accepted_group_keys: set[str] = set()
+        self._request_status_by_id: dict[str, str] = {}
+        self._request_accepted_groups: dict[str, set[str]] = {}
         self._lock = Lock()
 
     def enqueue_job(
@@ -156,29 +169,56 @@ class InMemoryStore:
             self._status_by_job.clear()
             self._job_by_idempotency_key.clear()
             self._scored_by_environment.clear()
-            self._scored_request_ids.clear()
+            self._accepted_group_keys.clear()
+            self._request_status_by_id.clear()
+            self._request_accepted_groups.clear()
 
     def ingest_scored_data(
         self,
         *,
-        environment_id: str,
         request_id: str,
-        records: list[dict[str, object]],
+        groups: list[ScoredDataGroup],
     ) -> IngestScoredDataResult:
         with self._lock:
-            if request_id in self._scored_request_ids:
+            if self._request_status_by_id.get(request_id) == "completed":
                 return IngestScoredDataResult(
                     request_id=request_id,
                     accepted_count=0,
+                    accepted_groups=0,
                     deduplicated=True,
+                    status="completed",
+                    failed_groups=0,
                 )
-            self._scored_request_ids.add(request_id)
-            bucket = self._scored_by_environment.setdefault(environment_id, [])
-            bucket.extend(records)
+
+            self._request_status_by_id[request_id] = "processing"
+            already_seen = self._request_accepted_groups.setdefault(request_id, set())
+            accepted_count = 0
+            accepted_groups = 0
+            failed_groups = 0
+
+            for group in groups:
+                group_key = f"{group.environment_id}:{group.group_id}"
+                if group_key in already_seen or group_key in self._accepted_group_keys:
+                    continue
+                if any(not isinstance(item, dict) for item in group.records):
+                    failed_groups += 1
+                    continue
+                bucket = self._scored_by_environment.setdefault(group.environment_id, [])
+                bucket.extend(group.records)
+                self._accepted_group_keys.add(group_key)
+                already_seen.add(group_key)
+                accepted_count += len(group.records)
+                accepted_groups += 1
+
+            status = "completed" if failed_groups == 0 else "partial_failed"
+            self._request_status_by_id[request_id] = status
             return IngestScoredDataResult(
                 request_id=request_id,
-                accepted_count=len(records),
-                deduplicated=False,
+                accepted_count=accepted_count,
+                accepted_groups=accepted_groups,
+                deduplicated=accepted_groups == 0 and failed_groups == 0 and bool(groups),
+                status=status,
+                failed_groups=failed_groups,
             )
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
@@ -236,6 +276,15 @@ class RedisStore:
 
     def _scored_request_key(self, request_id: str) -> str:
         return f"{self._key_prefix}:scored:request:{request_id}"
+
+    def _scored_request_status_key(self, request_id: str) -> str:
+        return f"{self._key_prefix}:scored:request_status:{request_id}"
+
+    def _scored_request_groups_key(self, request_id: str) -> str:
+        return f"{self._key_prefix}:scored:request_groups:{request_id}"
+
+    def _scored_group_key(self, environment_id: str, group_id: str) -> str:
+        return f"{self._key_prefix}:scored:group:{environment_id}:{group_id}"
 
     def _scored_list_key(self, environment_id: str) -> str:
         return f"{self._key_prefix}:scored:environment:{environment_id}"
@@ -325,32 +374,61 @@ class RedisStore:
     def ingest_scored_data(
         self,
         *,
-        environment_id: str,
         request_id: str,
-        records: list[dict[str, object]],
+        groups: list[ScoredDataGroup],
     ) -> IngestScoredDataResult:
-        was_created = bool(
-            self._redis.set(
-                self._scored_request_key(request_id),
-                "1",
-                nx=True,
-                ex=self._idempotency_ttl_seconds,
-            )
-        )
-        if not was_created:
+        status_key = self._scored_request_status_key(request_id)
+        existing_status = self._redis.get(status_key)
+        if existing_status == "completed":
             return IngestScoredDataResult(
                 request_id=request_id,
                 accepted_count=0,
+                accepted_groups=0,
                 deduplicated=True,
+                status="completed",
+                failed_groups=0,
             )
 
-        list_key = self._scored_list_key(environment_id)
-        for record in records:
-            self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
+        self._redis.set(status_key, "processing", ex=self._idempotency_ttl_seconds)
+        accepted_count = 0
+        accepted_groups = 0
+        failed_groups = 0
+        request_groups_key = self._scored_request_groups_key(request_id)
+        for group in groups:
+            if any(not isinstance(item, dict) for item in group.records):
+                failed_groups += 1
+                continue
+            group_key = self._scored_group_key(group.environment_id, group.group_id)
+            claimed = bool(
+                self._redis.set(
+                    group_key,
+                    request_id,
+                    nx=True,
+                    ex=self._idempotency_ttl_seconds,
+                )
+            )
+            if not claimed:
+                continue
+            self._redis.set(
+                f"{request_groups_key}:{group.group_id}",
+                "1",
+                ex=self._idempotency_ttl_seconds,
+            )
+            list_key = self._scored_list_key(group.environment_id)
+            for record in group.records:
+                self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
+            accepted_count += len(group.records)
+            accepted_groups += 1
+
+        final_status = "completed" if failed_groups == 0 else "partial_failed"
+        self._redis.set(status_key, final_status, ex=self._idempotency_ttl_seconds)
         return IngestScoredDataResult(
             request_id=request_id,
-            accepted_count=len(records),
-            deduplicated=False,
+            accepted_count=accepted_count,
+            accepted_groups=accepted_groups,
+            deduplicated=accepted_groups == 0 and failed_groups == 0 and bool(groups),
+            status=final_status,
+            failed_groups=failed_groups,
         )
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
@@ -386,9 +464,8 @@ class PostgresStore:
     def ingest_scored_data(
         self,
         *,
-        environment_id: str,
         request_id: str,
-        records: list[dict[str, object]],
+        groups: list[ScoredDataGroup],
     ) -> IngestScoredDataResult:
         raise NotImplementedError("PostgresStore is not implemented yet")
 

@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from hashlib import sha256
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -14,7 +15,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, 
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..observability import OBSERVABILITY, render_metrics
-from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord
+from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord, ScoredDataGroup
 
 
 class HardeningTier(str, Enum):
@@ -202,38 +203,65 @@ def build_runtime_app(
         payload: dict[str, Any],
         store: Annotated[AtroposStore, Depends(_get_store)],
         x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
+        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
-        if not x_request_id:
+        request_id = x_request_id or x_idempotency_key
+        if not request_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="X-Request-ID header is required",
+                detail="X-Request-ID or X-Idempotency-Key header is required",
             )
-
-        environment_id = str(payload.get("environment_id", "default"))
-        raw_records = payload.get("records")
-        if not isinstance(raw_records, list):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="records must be a list",
-            )
-        records: list[dict[str, object]] = []
-        for item in raw_records:
-            if not isinstance(item, dict):
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="each record must be an object",
-                )
-            records.append(item)
-
+        group = _coerce_scored_data_group(payload)
         result = store.ingest_scored_data(
-            environment_id=environment_id,
-            request_id=x_request_id,
-            records=records,
+            request_id=request_id,
+            groups=[group],
         )
         return {
-            "environment_id": environment_id,
             "request_id": result.request_id,
             "accepted_count": result.accepted_count,
+            "accepted_groups": result.accepted_groups,
+            "failed_groups": result.failed_groups,
+            "status": result.status,
+            "deduplicated": result.deduplicated,
+        }
+
+    def ingest_scored_data_list(
+        payload: dict[str, Any],
+        store: Annotated[AtroposStore, Depends(_get_store)],
+        x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
+        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
+    ) -> dict[str, Any]:
+        request_id = x_request_id or x_idempotency_key
+        if not request_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="X-Request-ID or X-Idempotency-Key header is required",
+            )
+        raw_groups = payload.get("groups")
+        if not isinstance(raw_groups, list):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="groups must be a list",
+            )
+        groups: list[ScoredDataGroup] = []
+        for group_payload in raw_groups:
+            if not isinstance(group_payload, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="each group must be an object",
+                )
+            groups.append(_coerce_scored_data_group(group_payload))
+
+        result = store.ingest_scored_data(
+            request_id=request_id,
+            groups=groups,
+        )
+        return {
+            "request_id": result.request_id,
+            "accepted_count": result.accepted_count,
+            "accepted_groups": result.accepted_groups,
+            "failed_groups": result.failed_groups,
+            "status": result.status,
             "deduplicated": result.deduplicated,
         }
 
@@ -286,6 +314,12 @@ def build_runtime_app(
         dependencies=[Depends(write_access)],
     )
     app.add_api_route(
+        "/scored_data_list",
+        ingest_scored_data_list,
+        methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
+    app.add_api_route(
         "/admin/reset",
         reset_runtime,
         methods=["POST"],
@@ -293,3 +327,31 @@ def build_runtime_app(
     )
 
     return app
+
+
+def _coerce_scored_data_group(payload: dict[str, Any]) -> ScoredDataGroup:
+    environment_id = str(payload.get("environment_id", "default"))
+    raw_records = payload.get("records")
+    if not isinstance(raw_records, list):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="records must be a list",
+        )
+    records: list[dict[str, object]] = []
+    for item in raw_records:
+        if not isinstance(item, dict):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="each record must be an object",
+            )
+        records.append(item)
+    raw_group_id = payload.get("group_id")
+    if raw_group_id is not None:
+        group_id = str(raw_group_id)
+    else:
+        digest = sha256()
+        digest.update(environment_id.encode("utf-8"))
+        digest.update(b":")
+        digest.update(str(sorted(records, key=lambda r: str(sorted(r.items())))).encode("utf-8"))
+        group_id = digest.hexdigest()
+    return ScoredDataGroup(environment_id=environment_id, records=records, group_id=group_id)
