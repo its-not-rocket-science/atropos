@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib.util import find_spec
@@ -57,6 +58,119 @@ if find_spec("opentelemetry") is not None:
     from opentelemetry import trace as otel_trace
 else:  # pragma: no cover - exercised when optional dependency is missing
     otel_trace = None
+
+_TRACING_CONFIGURED = False
+_TRACING_CONFIG_ERROR: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TracingConfig:
+    """Toggleable OpenTelemetry tracing configuration."""
+
+    enabled: bool = False
+    service_name: str = "atropos-runtime"
+    exporter: str = "otlp"
+    endpoint: str | None = None
+    insecure: bool = True
+    sample_ratio: float = 1.0
+
+
+def tracing_config_from_env() -> TracingConfig:
+    """Build tracing config from environment variables."""
+
+    enabled = os.getenv("ATROPOS_TRACING_ENABLED", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    exporter = os.getenv("ATROPOS_TRACING_EXPORTER", "otlp").strip().lower()
+    endpoint = os.getenv("ATROPOS_TRACING_ENDPOINT")
+    service_name = os.getenv("ATROPOS_TRACING_SERVICE_NAME", "atropos-runtime")
+    insecure = os.getenv("ATROPOS_TRACING_INSECURE", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    try:
+        sample_ratio = float(os.getenv("ATROPOS_TRACING_SAMPLE_RATIO", "1.0"))
+    except ValueError:
+        sample_ratio = 1.0
+    clipped_sample_ratio = max(0.0, min(sample_ratio, 1.0))
+    return TracingConfig(
+        enabled=enabled,
+        service_name=service_name,
+        exporter=exporter,
+        endpoint=endpoint,
+        insecure=insecure,
+        sample_ratio=clipped_sample_ratio,
+    )
+
+
+def configure_tracing(config: TracingConfig | None = None) -> bool:
+    """Configure global OpenTelemetry tracer provider.
+
+    Returns True when tracing is enabled and initialized, otherwise False.
+    """
+
+    global _TRACING_CONFIGURED, _TRACING_CONFIG_ERROR
+    if _TRACING_CONFIGURED:
+        return True
+    resolved = config or tracing_config_from_env()
+    if not resolved.enabled:
+        return False
+    if find_spec("opentelemetry.sdk") is None:
+        _TRACING_CONFIG_ERROR = (
+            "Tracing enabled but OpenTelemetry SDK is not installed "
+            "(install opentelemetry-sdk + exporter package)."
+        )
+        return False
+
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+
+    exporter: Any
+    if resolved.exporter == "console":
+        exporter = ConsoleSpanExporter()
+    elif resolved.exporter == "jaeger":
+        if find_spec("opentelemetry.exporter.jaeger.thrift") is None:
+            _TRACING_CONFIG_ERROR = (
+                "Jaeger exporter selected but package is missing "
+                "(install opentelemetry-exporter-jaeger-thrift)."
+            )
+            return False
+        from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+
+        exporter = JaegerExporter(
+            collector_endpoint=resolved.endpoint or "http://localhost:14268/api/traces",
+        )
+    else:
+        if find_spec("opentelemetry.exporter.otlp.proto.http.trace_exporter") is None:
+            _TRACING_CONFIG_ERROR = (
+                "OTLP exporter selected but package is missing "
+                "(install opentelemetry-exporter-otlp-proto-http)."
+            )
+            return False
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+        exporter = OTLPSpanExporter(
+            endpoint=resolved.endpoint or "http://localhost:4318/v1/traces",
+        )
+
+    provider = TracerProvider(
+        resource=Resource.create({"service.name": resolved.service_name}),
+        sampler=TraceIdRatioBased(resolved.sample_ratio),
+    )
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    if otel_trace is None:
+        return False
+    otel_trace.set_tracer_provider(provider)
+    _TRACING_CONFIGURED = True
+    _TRACING_CONFIG_ERROR = None
+    return True
 
 
 def setup_json_logging(logger_name: str = "atropos", *, level: int = logging.INFO) -> None:
@@ -244,7 +358,11 @@ def tracing_span(name: str, *, attributes: dict[str, Any] | None = None) -> Any:
     with tracer.start_as_current_span(name) as span:
         for key, value in (attributes or {}).items():
             span.set_attribute(key, value)
-        yield span
+        try:
+            yield span
+        except Exception as exc:
+            span.record_exception(exc)
+            raise
 
 
 @contextmanager

@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, 
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..logging_utils import build_log_context, configure_logging
-from ..observability import OBSERVABILITY, render_metrics
+from ..observability import OBSERVABILITY, configure_tracing, render_metrics, tracing_span
 from .storage import AtroposStore, InMemoryStore, RedisStore, RuntimeStatusRecord, ScoredDataGroup
 
 
@@ -128,6 +128,7 @@ def build_runtime_app(
 
     async def _startup_store_binding() -> None:
         app.state.runtime_store = runtime_store
+        configure_tracing()
 
     app.add_event_handler("startup", _startup_store_binding)
 
@@ -246,10 +247,19 @@ def build_runtime_app(
                 detail="X-Request-ID or X-Idempotency-Key header is required",
             )
         group = _coerce_scored_data_group(payload)
-        result = store.ingest_scored_data(
-            request_id=request_id,
-            groups=[group],
-        )
+        with tracing_span(
+            "runtime.ingest_scored_data",
+            attributes={
+                "atropos.env": group.environment_id,
+                "atropos.request_id": request_id,
+                "atropos.group_count": 1,
+                "atropos.record_count": len(group.records),
+            },
+        ):
+            result = store.ingest_scored_data(
+                request_id=request_id,
+                groups=[group],
+            )
         env_name = group.environment_id
         _record_ingestion_metrics(
             store=store,
@@ -305,10 +315,19 @@ def build_runtime_app(
                 )
             groups.append(_coerce_scored_data_group(group_payload))
 
-        result = store.ingest_scored_data(
-            request_id=request_id,
-            groups=groups,
-        )
+        with tracing_span(
+            "runtime.ingest_scored_data",
+            attributes={
+                "atropos.env": groups[0].environment_id if groups else "default",
+                "atropos.request_id": request_id,
+                "atropos.group_count": len(groups),
+                "atropos.record_count": sum(len(group.records) for group in groups),
+            },
+        ):
+            result = store.ingest_scored_data(
+                request_id=request_id,
+                groups=groups,
+            )
         env_name = groups[0].environment_id if groups else "default"
         _record_ingestion_metrics(
             store=store,
@@ -344,7 +363,14 @@ def build_runtime_app(
         limit: int = 100,
     ) -> dict[str, Any]:
         bounded_limit = max(0, min(limit, 1000))
-        records = store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
+        with tracing_span(
+            "runtime.trainer_batch_fetch",
+            attributes={
+                "atropos.env": environment_id,
+                "atropos.limit": bounded_limit,
+            },
+        ):
+            records = store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
         return {
             "environment_id": environment_id,
             "count": len(records),
