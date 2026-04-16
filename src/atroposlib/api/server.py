@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
@@ -65,7 +65,7 @@ def get_runtime_state(request: Request) -> AtroposStore:
     state = getattr(request.app.state, "runtime_store", None)
     if state is None:
         raise RuntimeError("Application runtime store was not initialized")
-    return state
+    return cast(AtroposStore, state)
 
 
 def _build_auth_dependency(
@@ -126,9 +126,10 @@ def build_runtime_app(
         log_format=log_format,
     )
 
-    @app.on_event("startup")
     async def _startup_store_binding() -> None:
         app.state.runtime_store = runtime_store
+
+    app.add_event_handler("startup", _startup_store_binding)
 
     async def _get_store() -> AtroposStore:
         return runtime_store

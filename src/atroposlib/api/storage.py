@@ -353,9 +353,7 @@ class InMemoryStore:
     def get_scored_queue_metrics(self, *, now: datetime) -> QueueMetrics:
         with self._lock:
             queued = [
-                item
-                for item in self._group_status_by_key.values()
-                if item.state != "acknowledged"
+                item for item in self._group_status_by_key.values() if item.state != "acknowledged"
             ]
             if not queued:
                 return QueueMetrics(depth=0, oldest_age_seconds=0.0)
@@ -673,9 +671,7 @@ class RedisStore:
                 else None
             ),
             batched_at=(
-                datetime.fromisoformat(payload["batched_at"])
-                if payload.get("batched_at")
-                else None
+                datetime.fromisoformat(payload["batched_at"]) if payload.get("batched_at") else None
             ),
             delivered_at=(
                 datetime.fromisoformat(payload["delivered_at"])

@@ -96,7 +96,12 @@ class PrettyLogFormatter(logging.Formatter):
 def resolve_log_format(raw_format: str | None = None) -> str:
     """Resolve requested output format with safe fallback."""
 
-    requested = (raw_format or os.getenv(ENV_LOG_FORMAT, DEFAULT_LOG_FORMAT)).lower()
+    requested_value = raw_format
+    if requested_value is None:
+        requested_value = os.getenv(ENV_LOG_FORMAT)
+    if requested_value is None:
+        requested_value = DEFAULT_LOG_FORMAT
+    requested = requested_value.lower()
     aliases = {"text": "pretty", "human": "pretty"}
     resolved = aliases.get(requested, requested)
     if resolved not in {"json", "pretty"}:
