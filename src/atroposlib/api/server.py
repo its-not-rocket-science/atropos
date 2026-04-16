@@ -250,11 +250,12 @@ def build_runtime_app(
             groups=[group],
         )
         env_name = group.environment_id
-        queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
-        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
-        OBSERVABILITY.set_queue_oldest_age(
-            env=env_name,
-            oldest_age_seconds=queue_metrics.oldest_age_seconds,
+        _record_ingestion_metrics(
+            store=store,
+            env_name=env_name,
+            endpoint="/scored_data",
+            result=result,
+            groups=[group],
         )
         api_logger.info(
             "scored_data_ingested",
@@ -308,11 +309,12 @@ def build_runtime_app(
             groups=groups,
         )
         env_name = groups[0].environment_id if groups else "default"
-        queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
-        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
-        OBSERVABILITY.set_queue_oldest_age(
-            env=env_name,
-            oldest_age_seconds=queue_metrics.oldest_age_seconds,
+        _record_ingestion_metrics(
+            store=store,
+            env_name=env_name,
+            endpoint="/scored_data_list",
+            result=result,
+            groups=groups,
         )
         api_logger.info(
             "scored_data_list_ingested",
@@ -429,3 +431,42 @@ def _coerce_scored_data_group(payload: dict[str, Any]) -> ScoredDataGroup:
         digest.update(str(sorted(records, key=lambda r: str(sorted(r.items())))).encode("utf-8"))
         group_id = digest.hexdigest()
     return ScoredDataGroup(environment_id=environment_id, records=records, group_id=group_id)
+
+
+def _record_ingestion_metrics(
+    *,
+    store: AtroposStore,
+    env_name: str,
+    endpoint: str,
+    result: Any,
+    groups: list[ScoredDataGroup],
+) -> None:
+    queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
+    OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
+    OBSERVABILITY.set_queue_oldest_age(
+        env=env_name,
+        oldest_age_seconds=queue_metrics.oldest_age_seconds,
+    )
+    OBSERVABILITY.set_buffered_groups(env=env_name, group_count=result.accepted_groups)
+    OBSERVABILITY.observe_ingestion(env=env_name, accepted_count=result.accepted_count)
+    if result.deduplicated:
+        OBSERVABILITY.observe_duplicate_rejection(env=env_name, endpoint=endpoint)
+    for group in groups:
+        group_status = store.get_scored_group_status(
+            environment_id=group.environment_id,
+            group_id=group.group_id,
+        )
+        if (
+            group_status is None
+            or group_status.buffered_at is None
+            or group_status.batched_at is None
+        ):
+            continue
+        latency_seconds = (
+            group_status.batched_at.astimezone(timezone.utc)
+            - group_status.buffered_at.astimezone(timezone.utc)
+        ).total_seconds()
+        OBSERVABILITY.observe_batch_formation_latency(
+            env=group.environment_id,
+            latency_seconds=latency_seconds,
+        )

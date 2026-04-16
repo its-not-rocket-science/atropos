@@ -3,10 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import pytest
+
 from atroposlib.envs.checkpoint_manager import CheckpointManager
 from atroposlib.envs.metrics_logger import MetricsLogger
 from atroposlib.envs.runtime_controller import RuntimeController
 from atroposlib.envs.runtime_interfaces import BacklogManager, ItemSource, RolloutCollector
+from atroposlib.observability import render_metrics
 
 
 @dataclass
@@ -96,3 +99,47 @@ def test_runtime_controller_runs_toy_env_end_to_end_without_baseenv() -> None:
     assert [item["score"] for item in result["scored_records"]] == [5, 9]
     assert result["worker_count"] == 2
     assert runtime.checkpoint_manager.latest() == result
+
+
+def test_runtime_controller_evaluate_records_eval_and_worker_metrics() -> None:
+    runtime = RuntimeController(
+        item_source=ToyItemSource(),
+        backlog_manager=InMemoryBacklog(),
+        send_to_api=ToyApiSender(),
+        rollout_collector=ToyRolloutCollector(),
+        metrics_logger=MetricsLogger(),
+        checkpoint_manager=CheckpointManager(),
+    )
+
+    result = runtime.evaluate({"env": "toy", "samples": [{"text": "alpha"}]}, worker_count=2)
+
+    assert result["ok"] is True
+    metrics_text, _ = render_metrics()
+    decoded = metrics_text.decode("utf-8")
+    assert "atropos_eval_duration_seconds" in decoded
+    assert "atropos_worker_count" in decoded
+
+
+@dataclass
+class FailingSender:
+    def send(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _ = payload
+        msg = "network failure"
+        raise RuntimeError(msg)
+
+
+def test_runtime_controller_failed_send_increments_metric() -> None:
+    runtime = RuntimeController(
+        item_source=ToyItemSource(),
+        backlog_manager=InMemoryBacklog(),
+        send_to_api=FailingSender(),
+        rollout_collector=ToyRolloutCollector(),
+        metrics_logger=MetricsLogger(),
+        checkpoint_manager=CheckpointManager(),
+    )
+
+    with pytest.raises(RuntimeError, match="network failure"):
+        runtime.run_step({"env": "toy", "samples": [{"text": "alpha"}]}, worker_count=1)
+
+    metrics_text, _ = render_metrics()
+    assert "atropos_failed_sends_total" in metrics_text.decode("utf-8")
