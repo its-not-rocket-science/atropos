@@ -11,6 +11,8 @@ from importlib.util import find_spec
 from threading import Lock
 from typing import Protocol
 
+from ..observability import tracing_span
+
 
 @dataclass(frozen=True, slots=True)
 class RuntimeStatusRecord:
@@ -280,50 +282,65 @@ class InMemoryStore:
             accepted_groups = 0
             failed_groups = 0
 
-            for group in groups:
-                group_key = f"{group.environment_id}:{group.group_id}"
-                if group_key in already_seen or group_key in self._accepted_group_keys:
-                    continue
-                if any(not isinstance(item, dict) for item in group.records):
-                    failed_groups += 1
-                    continue
-                now = datetime.now(tz=timezone.utc)
-                self._transition_group_state(
-                    environment_id=group.environment_id,
-                    group_id=group.group_id,
-                    new_state="accepted",
-                    now=now,
-                )
-                self._transition_group_state(
-                    environment_id=group.environment_id,
-                    group_id=group.group_id,
-                    new_state="buffered",
-                    now=now,
-                )
-                self._transition_group_state(
-                    environment_id=group.environment_id,
-                    group_id=group.group_id,
-                    new_state="batched",
-                    now=now,
-                )
-                self._transition_group_state(
-                    environment_id=group.environment_id,
-                    group_id=group.group_id,
-                    new_state="delivered",
-                    now=now,
-                )
-                bucket = self._scored_by_environment.setdefault(group.environment_id, [])
-                bucket.extend(group.records)
-                self._accepted_group_keys.add(group_key)
-                already_seen.add(group_key)
-                self._transition_group_state(
-                    environment_id=group.environment_id,
-                    group_id=group.group_id,
-                    new_state="acknowledged",
-                    now=now,
-                )
-                accepted_count += len(group.records)
-                accepted_groups += 1
+            with tracing_span(
+                "runtime.ingest_scored_data.store",
+                attributes={
+                    "atropos.request_id": request_id,
+                    "atropos.group_count": len(groups),
+                },
+            ):
+                for group in groups:
+                    group_key = f"{group.environment_id}:{group.group_id}"
+                    if group_key in already_seen or group_key in self._accepted_group_keys:
+                        continue
+                    if any(not isinstance(item, dict) for item in group.records):
+                        failed_groups += 1
+                        continue
+                    with tracing_span(
+                        "runtime.batch_construction",
+                        attributes={
+                            "atropos.env": group.environment_id,
+                            "atropos.group_id": group.group_id,
+                            "atropos.record_count": len(group.records),
+                        },
+                    ):
+                        now = datetime.now(tz=timezone.utc)
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="accepted",
+                            now=now,
+                        )
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="buffered",
+                            now=now,
+                        )
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="batched",
+                            now=now,
+                        )
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="delivered",
+                            now=now,
+                        )
+                        bucket = self._scored_by_environment.setdefault(group.environment_id, [])
+                        bucket.extend(group.records)
+                        self._accepted_group_keys.add(group_key)
+                        already_seen.add(group_key)
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="acknowledged",
+                            now=now,
+                        )
+                        accepted_count += len(group.records)
+                        accepted_groups += 1
 
             status = "completed" if failed_groups == 0 else "partial_failed"
             self._request_status_by_id[request_id] = status
@@ -575,62 +592,77 @@ class RedisStore:
         accepted_groups = 0
         failed_groups = 0
         request_groups_key = self._scored_request_groups_key(request_id)
-        for group in groups:
-            if any(not isinstance(item, dict) for item in group.records):
-                failed_groups += 1
-                continue
-            now = datetime.now(tz=timezone.utc)
-            group_key = self._scored_group_key(group.environment_id, group.group_id)
-            claimed = bool(
-                self._redis.set(
-                    group_key,
-                    request_id,
-                    nx=True,
-                    ex=self._idempotency_ttl_seconds,
+        with tracing_span(
+            "runtime.ingest_scored_data.store",
+            attributes={
+                "atropos.request_id": request_id,
+                "atropos.group_count": len(groups),
+            },
+        ):
+            for group in groups:
+                if any(not isinstance(item, dict) for item in group.records):
+                    failed_groups += 1
+                    continue
+                now = datetime.now(tz=timezone.utc)
+                group_key = self._scored_group_key(group.environment_id, group.group_id)
+                claimed = bool(
+                    self._redis.set(
+                        group_key,
+                        request_id,
+                        nx=True,
+                        ex=self._idempotency_ttl_seconds,
+                    )
                 )
-            )
-            if not claimed:
-                continue
-            self._transition_group_state(
-                environment_id=group.environment_id,
-                group_id=group.group_id,
-                new_state="accepted",
-                now=now,
-            )
-            self._transition_group_state(
-                environment_id=group.environment_id,
-                group_id=group.group_id,
-                new_state="buffered",
-                now=now,
-            )
-            self._transition_group_state(
-                environment_id=group.environment_id,
-                group_id=group.group_id,
-                new_state="batched",
-                now=now,
-            )
-            self._transition_group_state(
-                environment_id=group.environment_id,
-                group_id=group.group_id,
-                new_state="delivered",
-                now=now,
-            )
-            self._redis.set(
-                f"{request_groups_key}:{group.group_id}",
-                "1",
-                ex=self._idempotency_ttl_seconds,
-            )
-            list_key = self._scored_list_key(group.environment_id)
-            for record in group.records:
-                self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
-            self._transition_group_state(
-                environment_id=group.environment_id,
-                group_id=group.group_id,
-                new_state="acknowledged",
-                now=now,
-            )
-            accepted_count += len(group.records)
-            accepted_groups += 1
+                if not claimed:
+                    continue
+                with tracing_span(
+                    "runtime.batch_construction",
+                    attributes={
+                        "atropos.env": group.environment_id,
+                        "atropos.group_id": group.group_id,
+                        "atropos.record_count": len(group.records),
+                    },
+                ):
+                    self._transition_group_state(
+                        environment_id=group.environment_id,
+                        group_id=group.group_id,
+                        new_state="accepted",
+                        now=now,
+                    )
+                    self._transition_group_state(
+                        environment_id=group.environment_id,
+                        group_id=group.group_id,
+                        new_state="buffered",
+                        now=now,
+                    )
+                    self._transition_group_state(
+                        environment_id=group.environment_id,
+                        group_id=group.group_id,
+                        new_state="batched",
+                        now=now,
+                    )
+                    self._transition_group_state(
+                        environment_id=group.environment_id,
+                        group_id=group.group_id,
+                        new_state="delivered",
+                        now=now,
+                    )
+                    self._redis.set(
+                        f"{request_groups_key}:{group.group_id}",
+                        "1",
+                        ex=self._idempotency_ttl_seconds,
+                    )
+                    list_key = self._scored_list_key(group.environment_id)
+                    for record in group.records:
+                        self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
+                    self._transition_group_state(
+                        environment_id=group.environment_id,
+                        group_id=group.group_id,
+                        new_state="acknowledged",
+                        now=now,
+                    )
+                    accepted_count += len(group.records)
+                    accepted_groups += 1
 
         final_status = "completed" if failed_groups == 0 else "partial_failed"
         self._redis.set(status_key, final_status, ex=self._idempotency_ttl_seconds)

@@ -54,11 +54,23 @@ class RuntimeController(EvalRunner):
         )
         with tracing_span(
             "baseenv.step",
-            attributes={"atropos.env": env_name, "atropos.worker.requested": worker_count},
+            attributes={
+                "atropos.env": env_name,
+                "atropos.worker.requested": worker_count,
+                "atropos.request_id": str(request_id) if request_id else "",
+                "atropos.batch_id": str(batch_id) if batch_id else "",
+            },
         ):
             with timed_rollout(env_name):
                 started = perf_counter()
-                prepared = self.item_source.prepare_item(payload)
+                with tracing_span(
+                    "baseenv.environment_item_fetch",
+                    attributes={
+                        "atropos.env": env_name,
+                        "atropos.payload.keys": len(payload),
+                    },
+                ):
+                    prepared = self.item_source.prepare_item(payload)
                 trainer_feedback = payload.get("trainer_feedback")
                 runtime_result = self.backlog_manager.orchestrate(
                     prepared,
@@ -76,11 +88,35 @@ class RuntimeController(EvalRunner):
                     )
                     runtime_result["inference_seed"] = inference_seed
                 try:
-                    transport_result = self.send_to_api.send(runtime_result)
+                    with tracing_span(
+                        "baseenv.send_to_api",
+                        attributes={
+                            "atropos.env": env_name,
+                            "atropos.worker.selected": int(
+                                runtime_result.get("worker_count", worker_count)
+                            ),
+                            "atropos.backlog_size": int(runtime_result.get("backlog_size", 0)),
+                        },
+                    ):
+                        transport_result = self.send_to_api.send(runtime_result)
                 except Exception:
                     OBSERVABILITY.observe_failed_send(env=env_name)
                     raise
-                finalized = self.rollout_collector.collect(transport_result)
+                with tracing_span(
+                    "baseenv.postprocess",
+                    attributes={
+                        "atropos.env": env_name,
+                        "atropos.transport.ok": bool(transport_result.get("ok", False)),
+                    },
+                ):
+                    with tracing_span(
+                        "baseenv.trajectory_collection",
+                        attributes={
+                            "atropos.env": env_name,
+                            "atropos.transport.keys": len(transport_result),
+                        },
+                    ):
+                        finalized = self.rollout_collector.collect(transport_result)
                 self.checkpoint_manager.save(finalized)
                 selected_workers = int(runtime_result.get("worker_count", worker_count))
                 OBSERVABILITY.set_worker_count(env=env_name, worker_count=selected_workers)

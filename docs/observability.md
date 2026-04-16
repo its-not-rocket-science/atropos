@@ -4,7 +4,7 @@ Atropos runtime now exposes production-ready observability primitives:
 
 - **Structured logging** via `atroposlib.observability.setup_json_logging()`.
 - **Prometheus-compatible metrics** exposed by FastAPI at `GET /metrics`.
-- **OpenTelemetry tracing hooks** around `BaseEnv.step()` spans.
+- **OpenTelemetry tracing hooks** around end-to-end runtime and ingestion spans.
 
 ## Tracked signals
 
@@ -44,10 +44,63 @@ For ingestion throughput in Grafana/Prometheus:
 sum(rate(atropos_ingestion_records_total[5m])) by (env)
 ```
 
-## BaseEnv tracing hooks
+## OpenTelemetry tracing
 
-`BaseEnv.step()` now emits tracing spans (`baseenv.step`) and exports rollout + worker
-utilization metrics with environment labels derived from `payload["env"]`.
+Tracing is configurable via environment variables and is disabled by default.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ATROPOS_TRACING_ENABLED` | `false` | Master toggle for tracing setup. |
+| `ATROPOS_TRACING_SERVICE_NAME` | `atropos-runtime` | OpenTelemetry `service.name` resource attribute. |
+| `ATROPOS_TRACING_EXPORTER` | `otlp` | Exporter: `otlp`, `jaeger`, or `console`. |
+| `ATROPOS_TRACING_ENDPOINT` | unset | Export endpoint URL (exporter-specific). |
+| `ATROPOS_TRACING_SAMPLE_RATIO` | `1.0` | Fraction of traces to sample (`0.0`–`1.0`). |
+
+When enabled, tracing is initialized during runtime app startup (`build_runtime_app`) and spans
+are emitted for these critical flows:
+
+- `baseenv.environment_item_fetch`
+- `baseenv.trajectory_collection`
+- `baseenv.postprocess`
+- `baseenv.send_to_api`
+- `runtime.ingest_scored_data` and `runtime.ingest_scored_data.store`
+- `runtime.batch_construction`
+- `runtime.trainer_batch_fetch`
+
+Each span includes attributes such as environment ID, request ID, worker count, group ID, and
+record counts for debugging latency and failure propagation across distributed runs.
+
+### Export traces to Jaeger
+
+Jaeger (collector endpoint):
+
+```bash
+export ATROPOS_TRACING_ENABLED=true
+export ATROPOS_TRACING_EXPORTER=jaeger
+export ATROPOS_TRACING_ENDPOINT=http://localhost:14268/api/traces
+```
+
+You need the Jaeger exporter package installed:
+
+```bash
+pip install opentelemetry-sdk opentelemetry-exporter-jaeger-thrift
+```
+
+### Export traces to Tempo (via OTLP)
+
+Tempo typically ingests OTLP traces (HTTP/protobuf):
+
+```bash
+export ATROPOS_TRACING_ENABLED=true
+export ATROPOS_TRACING_EXPORTER=otlp
+export ATROPOS_TRACING_ENDPOINT=http://localhost:4318/v1/traces
+```
+
+Install OTLP exporter dependencies:
+
+```bash
+pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+```
 
 ## Grafana examples
 
