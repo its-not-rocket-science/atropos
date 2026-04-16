@@ -52,6 +52,32 @@ class ScoredDataGroup:
     group_id: str
 
 
+@dataclass(frozen=True, slots=True)
+class QueuedGroupStatusRecord:
+    """Durable lifecycle state for a scored-data group."""
+
+    environment_id: str
+    group_id: str
+    state: str
+    accepted_at: datetime
+    buffered_at: datetime | None
+    batched_at: datetime | None
+    delivered_at: datetime | None
+    acknowledged_at: datetime | None
+    updated_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class QueueMetrics:
+    """Queue depth and oldest-item age in seconds."""
+
+    depth: int
+    oldest_age_seconds: float
+
+
+GROUP_LIFECYCLE = ("accepted", "buffered", "batched", "delivered", "acknowledged")
+
+
 class AtroposStore(Protocol):
     """Storage contract for runtime queue and status operations."""
 
@@ -82,6 +108,17 @@ class AtroposStore(Protocol):
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         """List scored records for an environment."""
+
+    def get_scored_group_status(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+    ) -> QueuedGroupStatusRecord | None:
+        """Fetch durable lifecycle status for a scored-data group."""
+
+    def get_scored_queue_metrics(self, *, now: datetime) -> QueueMetrics:
+        """Return current queue depth and oldest queued age."""
 
 
 class RedisClient(Protocol):
@@ -130,7 +167,53 @@ class InMemoryStore:
         self._accepted_group_keys: set[str] = set()
         self._request_status_by_id: dict[str, str] = {}
         self._request_accepted_groups: dict[str, set[str]] = {}
+        self._group_status_by_key: dict[str, QueuedGroupStatusRecord] = {}
         self._lock = Lock()
+
+    @staticmethod
+    def _group_key(environment_id: str, group_id: str) -> str:
+        return f"{environment_id}:{group_id}"
+
+    def _transition_group_state(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+        new_state: str,
+        now: datetime,
+    ) -> QueuedGroupStatusRecord:
+        if new_state not in GROUP_LIFECYCLE:
+            raise ValueError(f"Unknown queued-group state: {new_state}")
+        key = self._group_key(environment_id, group_id)
+        if new_state == "accepted":
+            record = QueuedGroupStatusRecord(
+                environment_id=environment_id,
+                group_id=group_id,
+                state="accepted",
+                accepted_at=now,
+                buffered_at=None,
+                batched_at=None,
+                delivered_at=None,
+                acknowledged_at=None,
+                updated_at=now,
+            )
+            self._group_status_by_key[key] = record
+            return record
+
+        current = self._group_status_by_key[key]
+        record = QueuedGroupStatusRecord(
+            environment_id=current.environment_id,
+            group_id=current.group_id,
+            state=new_state,
+            accepted_at=current.accepted_at,
+            buffered_at=now if new_state == "buffered" else current.buffered_at,
+            batched_at=now if new_state == "batched" else current.batched_at,
+            delivered_at=now if new_state == "delivered" else current.delivered_at,
+            acknowledged_at=now if new_state == "acknowledged" else current.acknowledged_at,
+            updated_at=now,
+        )
+        self._group_status_by_key[key] = record
+        return record
 
     def enqueue_job(
         self,
@@ -172,6 +255,7 @@ class InMemoryStore:
             self._accepted_group_keys.clear()
             self._request_status_by_id.clear()
             self._request_accepted_groups.clear()
+            self._group_status_by_key.clear()
 
     def ingest_scored_data(
         self,
@@ -203,10 +287,41 @@ class InMemoryStore:
                 if any(not isinstance(item, dict) for item in group.records):
                     failed_groups += 1
                     continue
+                now = datetime.now(tz=timezone.utc)
+                self._transition_group_state(
+                    environment_id=group.environment_id,
+                    group_id=group.group_id,
+                    new_state="accepted",
+                    now=now,
+                )
+                self._transition_group_state(
+                    environment_id=group.environment_id,
+                    group_id=group.group_id,
+                    new_state="buffered",
+                    now=now,
+                )
+                self._transition_group_state(
+                    environment_id=group.environment_id,
+                    group_id=group.group_id,
+                    new_state="batched",
+                    now=now,
+                )
+                self._transition_group_state(
+                    environment_id=group.environment_id,
+                    group_id=group.group_id,
+                    new_state="delivered",
+                    now=now,
+                )
                 bucket = self._scored_by_environment.setdefault(group.environment_id, [])
                 bucket.extend(group.records)
                 self._accepted_group_keys.add(group_key)
                 already_seen.add(group_key)
+                self._transition_group_state(
+                    environment_id=group.environment_id,
+                    group_id=group.group_id,
+                    new_state="acknowledged",
+                    now=now,
+                )
                 accepted_count += len(group.records)
                 accepted_groups += 1
 
@@ -225,6 +340,32 @@ class InMemoryStore:
         with self._lock:
             records = self._scored_by_environment.get(environment_id, [])
             return [dict(item) for item in records[:limit]]
+
+    def get_scored_group_status(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+    ) -> QueuedGroupStatusRecord | None:
+        with self._lock:
+            return self._group_status_by_key.get(self._group_key(environment_id, group_id))
+
+    def get_scored_queue_metrics(self, *, now: datetime) -> QueueMetrics:
+        with self._lock:
+            queued = [
+                item
+                for item in self._group_status_by_key.values()
+                if item.state != "acknowledged"
+            ]
+            if not queued:
+                return QueueMetrics(depth=0, oldest_age_seconds=0.0)
+            oldest = min(item.accepted_at for item in queued)
+            return QueueMetrics(
+                depth=len(queued),
+                oldest_age_seconds=max(
+                    0.0, (now.astimezone(timezone.utc) - oldest).total_seconds()
+                ),
+            )
 
 
 class RedisStore:
@@ -288,6 +429,48 @@ class RedisStore:
 
     def _scored_list_key(self, environment_id: str) -> str:
         return f"{self._key_prefix}:scored:environment:{environment_id}"
+
+    def _scored_group_status_key(self, environment_id: str, group_id: str) -> str:
+        return f"{self._key_prefix}:scored:group_status:{environment_id}:{group_id}"
+
+    def _transition_group_state(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+        new_state: str,
+        now: datetime,
+    ) -> None:
+        if new_state not in GROUP_LIFECYCLE:
+            raise ValueError(f"Unknown queued-group state: {new_state}")
+        timestamp = now.astimezone(timezone.utc).isoformat()
+        key = self._scored_group_status_key(environment_id, group_id)
+        if new_state == "accepted":
+            self._redis.hset(
+                key,
+                mapping={
+                    "environment_id": environment_id,
+                    "group_id": group_id,
+                    "state": "accepted",
+                    "accepted_at": timestamp,
+                    "updated_at": timestamp,
+                },
+            )
+            return
+        field_by_state = {
+            "buffered": "buffered_at",
+            "batched": "batched_at",
+            "delivered": "delivered_at",
+            "acknowledged": "acknowledged_at",
+        }
+        self._redis.hset(
+            key,
+            mapping={
+                "state": new_state,
+                field_by_state[new_state]: timestamp,
+                "updated_at": timestamp,
+            },
+        )
 
     def enqueue_job(
         self,
@@ -398,6 +581,7 @@ class RedisStore:
             if any(not isinstance(item, dict) for item in group.records):
                 failed_groups += 1
                 continue
+            now = datetime.now(tz=timezone.utc)
             group_key = self._scored_group_key(group.environment_id, group.group_id)
             claimed = bool(
                 self._redis.set(
@@ -409,6 +593,30 @@ class RedisStore:
             )
             if not claimed:
                 continue
+            self._transition_group_state(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+                new_state="accepted",
+                now=now,
+            )
+            self._transition_group_state(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+                new_state="buffered",
+                now=now,
+            )
+            self._transition_group_state(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+                new_state="batched",
+                now=now,
+            )
+            self._transition_group_state(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+                new_state="delivered",
+                now=now,
+            )
             self._redis.set(
                 f"{request_groups_key}:{group.group_id}",
                 "1",
@@ -417,6 +625,12 @@ class RedisStore:
             list_key = self._scored_list_key(group.environment_id)
             for record in group.records:
                 self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
+            self._transition_group_state(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+                new_state="acknowledged",
+                now=now,
+            )
             accepted_count += len(group.records)
             accepted_groups += 1
 
@@ -436,6 +650,85 @@ class RedisStore:
             return []
         encoded = self._redis.lrange(self._scored_list_key(environment_id), 0, limit - 1)
         return [json.loads(item) for item in encoded]
+
+    def get_scored_group_status(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+    ) -> QueuedGroupStatusRecord | None:
+        payload: MutableMapping[str, str] = self._redis.hgetall(
+            self._scored_group_status_key(environment_id, group_id)
+        )
+        if not payload:
+            return None
+        return QueuedGroupStatusRecord(
+            environment_id=payload["environment_id"],
+            group_id=payload["group_id"],
+            state=payload["state"],
+            accepted_at=datetime.fromisoformat(payload["accepted_at"]),
+            buffered_at=(
+                datetime.fromisoformat(payload["buffered_at"])
+                if payload.get("buffered_at")
+                else None
+            ),
+            batched_at=(
+                datetime.fromisoformat(payload["batched_at"])
+                if payload.get("batched_at")
+                else None
+            ),
+            delivered_at=(
+                datetime.fromisoformat(payload["delivered_at"])
+                if payload.get("delivered_at")
+                else None
+            ),
+            acknowledged_at=(
+                datetime.fromisoformat(payload["acknowledged_at"])
+                if payload.get("acknowledged_at")
+                else None
+            ),
+            updated_at=datetime.fromisoformat(payload["updated_at"]),
+        )
+
+    def get_scored_queue_metrics(self, *, now: datetime) -> QueueMetrics:
+        cursor = 0
+        keys: list[str] = []
+        pattern = f"{self._key_prefix}:scored:group_status:*"
+        while True:
+            cursor, batch = self._redis.scan(cursor=cursor, match=pattern, count=100)
+            keys.extend(batch)
+            if cursor == 0:
+                break
+        queued: list[QueuedGroupStatusRecord] = []
+        for key in keys:
+            payload: MutableMapping[str, str] = self._redis.hgetall(key)
+            if not payload:
+                continue
+            if payload.get("state") == "acknowledged":
+                continue
+            accepted_raw = payload.get("accepted_at")
+            if accepted_raw is None:
+                continue
+            queued.append(
+                QueuedGroupStatusRecord(
+                    environment_id=payload.get("environment_id", ""),
+                    group_id=payload.get("group_id", ""),
+                    state=payload.get("state", "accepted"),
+                    accepted_at=datetime.fromisoformat(accepted_raw),
+                    buffered_at=None,
+                    batched_at=None,
+                    delivered_at=None,
+                    acknowledged_at=None,
+                    updated_at=datetime.fromisoformat(payload["updated_at"]),
+                )
+            )
+        if not queued:
+            return QueueMetrics(depth=0, oldest_age_seconds=0.0)
+        oldest = min(item.accepted_at for item in queued)
+        return QueueMetrics(
+            depth=len(queued),
+            oldest_age_seconds=max(0.0, (now.astimezone(timezone.utc) - oldest).total_seconds()),
+        )
 
 
 class PostgresStore:
@@ -470,6 +763,19 @@ class PostgresStore:
         raise NotImplementedError("PostgresStore is not implemented yet")
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def get_scored_group_status(
+        self,
+        *,
+        environment_id: str,
+        group_id: str,
+    ) -> QueuedGroupStatusRecord | None:
+        _ = (environment_id, group_id)
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def get_scored_queue_metrics(self, *, now: datetime) -> QueueMetrics:
+        _ = now
         raise NotImplementedError("PostgresStore is not implemented yet")
 
 

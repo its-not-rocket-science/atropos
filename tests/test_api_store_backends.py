@@ -25,7 +25,8 @@ class FakeRedis:
         return self._kv.get(key)
 
     def hset(self, key: str, mapping: dict[str, str]) -> int:
-        self._hashes[key] = dict(mapping)
+        bucket = self._hashes.setdefault(key, {})
+        bucket.update(mapping)
         return len(mapping)
 
     def hgetall(self, key: str) -> dict[str, str]:
@@ -172,3 +173,61 @@ def test_scored_data_partial_failure_resume_consistency(store: AtroposStore) -> 
     assert retry.status == "completed"
     assert retry.accepted_groups == 1
     assert listed == [{"sample_id": "1", "score": 0.7}, {"sample_id": "2", "score": 0.6}]
+
+
+def test_scored_data_group_lifecycle_transitions_to_acknowledged(store: AtroposStore) -> None:
+    result = store.ingest_scored_data(
+        request_id="req-lifecycle",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-1",
+                records=[{"sample_id": "1", "score": 0.9}],
+            )
+        ],
+    )
+
+    status = store.get_scored_group_status(environment_id="env-a", group_id="g-1")
+    metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
+
+    assert result.status == "completed"
+    assert status is not None
+    assert status.state == "acknowledged"
+    assert status.accepted_at <= status.updated_at
+    assert status.buffered_at is not None
+    assert status.batched_at is not None
+    assert status.delivered_at is not None
+    assert status.acknowledged_at is not None
+    assert metrics.depth == 0
+
+
+def test_redis_store_recovers_group_status_after_restart() -> None:
+    shared = FakeRedis()
+    first_store = RedisStore(redis_client=shared)
+    first_store.ingest_scored_data(
+        request_id="req-restart",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-restart",
+                records=[{"sample_id": "1", "score": 0.5}],
+            )
+        ],
+    )
+
+    restarted_store = RedisStore(redis_client=shared)
+    status = restarted_store.get_scored_group_status(environment_id="env-a", group_id="g-restart")
+    retry = restarted_store.ingest_scored_data(
+        request_id="req-restart",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-a",
+                group_id="g-restart",
+                records=[{"sample_id": "2", "score": 0.2}],
+            )
+        ],
+    )
+
+    assert status is not None
+    assert status.state == "acknowledged"
+    assert retry.deduplicated is True

@@ -216,6 +216,13 @@ def build_runtime_app(
             request_id=request_id,
             groups=[group],
         )
+        env_name = group.environment_id
+        queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
+        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
+        OBSERVABILITY.set_queue_oldest_age(
+            env=env_name,
+            oldest_age_seconds=queue_metrics.oldest_age_seconds,
+        )
         return {
             "request_id": result.request_id,
             "accepted_count": result.accepted_count,
@@ -255,6 +262,13 @@ def build_runtime_app(
         result = store.ingest_scored_data(
             request_id=request_id,
             groups=groups,
+        )
+        env_name = groups[0].environment_id if groups else "default"
+        queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
+        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
+        OBSERVABILITY.set_queue_oldest_age(
+            env=env_name,
+            oldest_age_seconds=queue_metrics.oldest_age_seconds,
         )
         return {
             "request_id": result.request_id,

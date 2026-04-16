@@ -130,6 +130,7 @@ class Observability:
     api_request_latency_seconds: Any
     api_errors_total: Any
     runtime_queue_depth: Any
+    runtime_queue_oldest_age_seconds: Any
     rollout_latency_seconds: Any
     worker_utilization_ratio: Any
     trainer_queue_depth: Any
@@ -156,6 +157,11 @@ class Observability:
             runtime_queue_depth=Gauge(
                 "atropos_runtime_queue_depth",
                 "Queue depth by environment",
+                ["env"],
+            ),
+            runtime_queue_oldest_age_seconds=Gauge(
+                "atropos_runtime_queue_oldest_age_seconds",
+                "Oldest queued group age in seconds by environment",
                 ["env"],
             ),
             rollout_latency_seconds=Histogram(
@@ -197,6 +203,9 @@ class Observability:
 
     def set_queue_depth(self, *, env: str, queue_depth: int) -> None:
         self.runtime_queue_depth.labels(env=env).set(queue_depth)
+
+    def set_queue_oldest_age(self, *, env: str, oldest_age_seconds: float) -> None:
+        self.runtime_queue_oldest_age_seconds.labels(env=env).set(max(0.0, oldest_age_seconds))
 
     def observe_rollout(self, *, env: str, latency_seconds: float) -> None:
         self.rollout_latency_seconds.labels(env=env).observe(latency_seconds)
