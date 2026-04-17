@@ -28,8 +28,6 @@ from .storage import (
     StoreStartupState,
 )
 
-REQUIRED_BODY = Body(...)
-
 
 class HardeningTier(str, Enum):
     """Deployment profiles that progressively tighten runtime controls."""
@@ -284,7 +282,7 @@ def build_runtime_app(
     def enqueue(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        job: dict[str, Any] = REQUIRED_BODY,
+        job: Annotated[dict[str, Any], Body(...)],
         x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
         now = datetime.now(tz=timezone.utc)
@@ -333,7 +331,7 @@ def build_runtime_app(
     def ingest_scored_data(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        payload: dict[str, Any] = REQUIRED_BODY,
+        payload: Annotated[dict[str, Any], Body(...)],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
@@ -388,7 +386,7 @@ def build_runtime_app(
     def ingest_scored_data_list(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        payload: dict[str, Any] = REQUIRED_BODY,
+        payload: Annotated[dict[str, Any], Body(...)],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
