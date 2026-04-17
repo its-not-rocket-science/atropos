@@ -67,7 +67,9 @@ class TransportClient:
     """
 
     max_retries: int = 2
-    retriable_exceptions: tuple[type[Exception], ...] = field(default_factory=tuple)
+    retriable_exceptions: tuple[type[Exception], ...] = field(
+        default_factory=lambda: (RuntimeError,)
+    )
     base_backoff_seconds: float = 0.05
     backoff_multiplier: float = 2.0
     max_backoff_seconds: float = 1.0

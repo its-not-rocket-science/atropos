@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -126,7 +127,6 @@ def build_runtime_app(
     """
 
     policy = _POLICY_BY_TIER[tier]
-    app = FastAPI(title="Atropos Runtime API")
     runtime_store = store if store is not None else _default_store_for_tier(tier)
     api_logger = configure_logging(
         logger_name="atroposlib.api.server",
@@ -159,8 +159,15 @@ def build_runtime_app(
         app.state.ready = False
         runtime_store.shutdown()
 
-    app.add_event_handler("startup", _startup_store_binding)
-    app.add_event_handler("shutdown", _shutdown_store_binding)
+    @asynccontextmanager
+    async def _lifespan(_: FastAPI):
+        await _startup_store_binding()
+        try:
+            yield
+        finally:
+            await _shutdown_store_binding()
+
+    app = FastAPI(title="Atropos Runtime API", lifespan=_lifespan)
 
     async def _get_store() -> AtroposStore:
         return runtime_store
