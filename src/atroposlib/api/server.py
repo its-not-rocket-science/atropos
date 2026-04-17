@@ -13,7 +13,7 @@ from hashlib import sha256
 from typing import Annotated, Any, cast
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..logging_utils import build_log_context, configure_logging
@@ -280,9 +280,9 @@ def build_runtime_app(
         return readiness_payload
 
     def enqueue(
-        job: dict[str, Any],
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
+        job: Annotated[dict[str, Any], Body(...)],
         x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
         now = datetime.now(tz=timezone.utc)
@@ -329,9 +329,9 @@ def build_runtime_app(
         }
 
     def ingest_scored_data(
-        payload: dict[str, Any],
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
+        payload: Annotated[dict[str, Any], Body(...)],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
@@ -384,9 +384,9 @@ def build_runtime_app(
         }
 
     def ingest_scored_data_list(
-        payload: dict[str, Any],
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
+        payload: Annotated[dict[str, Any], Body(...)],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
