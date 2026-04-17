@@ -52,3 +52,67 @@ The runtime server no longer relies on process-local `app.state` dictionaries/de
 - Redis idempotency entries expire after 24 hours by default.
 - Reset endpoint clears all keys under configured prefix.
 - Use dedicated key prefixes per environment (`dev`, `staging`, `prod`) to isolate queues.
+
+## Startup/shutdown lifecycle and probes
+
+- Runtime startup now explicitly initializes the store backend before serving traffic.
+- Graceful shutdown marks the API as not ready and closes backend resources.
+- New probe endpoints:
+  - `GET /health/live` for liveness (`200` unless startup fatally failed)
+  - `GET /health/ready` for readiness (`200` only when initialized, dependencies healthy, and not shutting down)
+  - `GET /health/dependencies` for direct dependency status (`redis`, `in_memory`, etc.)
+- Readiness payload includes:
+  - `store_durable` (whether backend is durable)
+  - `recovered_items` (queue/scored state discovered at startup)
+
+## Kubernetes deployment notes
+
+Example probe wiring:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8011
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8011
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+startupProbe:
+  httpGet:
+    path: /health/ready
+    port: 8011
+  failureThreshold: 30
+  periodSeconds: 2
+```
+
+Recommended runtime settings:
+
+- Set `terminationGracePeriodSeconds` high enough to finish in-flight requests.
+- Use Redis (or another durable backend) in production so restart preserves critical request/idempotency state.
+- Keep `ATROPOS_REDIS_URL` configured via Secret/ConfigMap.
+
+## systemd deployment notes
+
+Recommended service behaviors:
+
+- Use `ExecStart` with your ASGI server command (for example `uvicorn ...`).
+- Set `Restart=on-failure` to recover from crashes.
+- Set `TimeoutStopSec` to allow graceful FastAPI shutdown hooks to run.
+- Add `Environment=ATROPOS_REDIS_URL=...` for durable state.
+
+Example snippet:
+
+```ini
+[Service]
+ExecStart=/usr/bin/env uvicorn mymodule:app --host 0.0.0.0 --port 8011
+Restart=on-failure
+TimeoutStopSec=30
+Environment=ATROPOS_REDIS_URL=redis://redis.internal:6379/0
+```

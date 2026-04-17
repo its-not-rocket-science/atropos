@@ -77,6 +77,25 @@ class QueueMetrics:
     oldest_age_seconds: float
 
 
+@dataclass(frozen=True, slots=True)
+class StoreStartupState:
+    """Store initialization metadata captured during API startup."""
+
+    backend_name: str
+    durable: bool
+    recovered_items: int
+    dependency_healthy: bool
+
+
+@dataclass(frozen=True, slots=True)
+class DependencyHealth:
+    """Dependency health details exposed through runtime health endpoints."""
+
+    name: str
+    healthy: bool
+    detail: str
+
+
 GROUP_LIFECYCLE = ("accepted", "buffered", "batched", "delivered", "acknowledged")
 
 
@@ -84,6 +103,16 @@ class AtroposStore(Protocol):
     """Storage contract for runtime queue and status operations."""
 
     backend_name: str
+    durable: bool
+
+    def startup(self) -> StoreStartupState:
+        """Run backend initialization and report recovered state metadata."""
+
+    def shutdown(self) -> None:
+        """Run graceful backend shutdown hooks."""
+
+    def dependency_health(self) -> DependencyHealth:
+        """Return dependency-level health metadata (Redis, DB, etc.)."""
 
     def enqueue_job(
         self,
@@ -160,6 +189,7 @@ class InMemoryStore:
     """Single-process store that mirrors legacy app.state behavior."""
 
     backend_name = "memory"
+    durable = False
 
     def __init__(self) -> None:
         self._queue: deque[str] = deque()
@@ -243,6 +273,22 @@ class InMemoryStore:
                 updated_at=now,
             )
             return EnqueueResult(job_id=job_id, queue_depth=len(self._queue), deduplicated=False)
+
+    def startup(self) -> StoreStartupState:
+        with self._lock:
+            recovered_items = len(self._queue) + len(self._group_status_by_key)
+        return StoreStartupState(
+            backend_name=self.backend_name,
+            durable=self.durable,
+            recovered_items=recovered_items,
+            dependency_healthy=True,
+        )
+
+    def shutdown(self) -> None:
+        return None
+
+    def dependency_health(self) -> DependencyHealth:
+        return DependencyHealth(name="in_memory", healthy=True, detail="process-local store")
 
     def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
         with self._lock:
@@ -387,6 +433,7 @@ class RedisStore:
     """Redis-backed store for fault-tolerant, multi-instance runtime state."""
 
     backend_name = "redis"
+    durable = True
 
     def __init__(
         self,
@@ -546,6 +593,36 @@ class RedisStore:
             job_id=job_id,
             queue_depth=int(self._redis.llen(self._queue_key())),
             deduplicated=False,
+        )
+
+    def startup(self) -> StoreStartupState:
+        dependency = self.dependency_health()
+        recovered_items = int(self._redis.llen(self._queue_key()))
+        recovered_items += self.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc)).depth
+        return StoreStartupState(
+            backend_name=self.backend_name,
+            durable=self.durable,
+            recovered_items=recovered_items,
+            dependency_healthy=dependency.healthy,
+        )
+
+    def shutdown(self) -> None:
+        close_fn = getattr(self._redis, "close", None)
+        if callable(close_fn):
+            close_fn()
+
+    def dependency_health(self) -> DependencyHealth:
+        ping_fn = getattr(self._redis, "ping", None)
+        if not callable(ping_fn):
+            return DependencyHealth(name="redis", healthy=True, detail="ping unsupported")
+        try:
+            healthy = bool(ping_fn())
+        except Exception as exc:  # pragma: no cover - network/runtime dependent
+            return DependencyHealth(name="redis", healthy=False, detail=str(exc))
+        return DependencyHealth(
+            name="redis",
+            healthy=healthy,
+            detail="ok" if healthy else "unhealthy",
         )
 
     def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
@@ -763,6 +840,7 @@ class PostgresStore:
     """Placeholder for a future Postgres-backed implementation."""
 
     backend_name = "postgres"
+    durable = True
 
     def __init__(self, dsn: str) -> None:
         self.dsn = dsn
@@ -774,6 +852,15 @@ class PostgresStore:
         now: datetime,
         idempotency_key: str | None,
     ) -> EnqueueResult:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def startup(self) -> StoreStartupState:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def shutdown(self) -> None:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def dependency_health(self) -> DependencyHealth:
         raise NotImplementedError("PostgresStore is not implemented yet")
 
     def get_job_status(self, job_id: str) -> RuntimeStatusRecord | None:
