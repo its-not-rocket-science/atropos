@@ -330,10 +330,11 @@ def build_runtime_app(
 
     def ingest_scored_data(
         payload: dict[str, Any],
+        request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
-        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
+        x_request_id = request.headers.get("X-Request-ID")
+        x_idempotency_key = request.headers.get("X-Idempotency-Key")
         request_id = x_request_id or x_idempotency_key
         if not request_id:
             raise HTTPException(
@@ -384,10 +385,11 @@ def build_runtime_app(
 
     def ingest_scored_data_list(
         payload: dict[str, Any],
+        request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        x_request_id: Annotated[str | None, Header(alias="X-Request-ID")] = None,
-        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
     ) -> dict[str, Any]:
+        x_request_id = request.headers.get("X-Request-ID")
+        x_idempotency_key = request.headers.get("X-Idempotency-Key")
         request_id = x_request_id or x_idempotency_key
         if not request_id:
             raise HTTPException(
