@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -160,7 +160,7 @@ def build_runtime_app(
         runtime_store.shutdown()
 
     @asynccontextmanager
-    async def _lifespan(_: FastAPI):
+    async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
         await _startup_store_binding()
         try:
             yield
