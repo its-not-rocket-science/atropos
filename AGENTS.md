@@ -6,8 +6,10 @@ Before marking any task as complete (including before `git commit` and before op
 
 ```bash
 ruff check .
+ruff format --check .
+pytest -m "not integration and not stress" --cov-report=xml:coverage.xml
 ```
 
-If `ruff check .` fails, fix the reported issues and rerun the command until it passes.
+If any required check fails, fix the reported issues and rerun the full required check list until everything passes.
 
 Codex must not report completion, create a commit, or open a PR while any required check is failing.

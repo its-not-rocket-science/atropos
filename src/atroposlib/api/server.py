@@ -222,36 +222,31 @@ def build_runtime_app(
         backend_name = store.backend_name
         return {"status": "ok", "tier": tier.value, "store": backend_name}
 
-    def liveness() -> tuple[dict[str, Any], int]:
+    def liveness(response: Response) -> dict[str, Any]:
         startup_error = getattr(app.state, "startup_error", None)
         if startup_error:
-            return (
-                {"status": "error", "reason": startup_error},
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        return ({"status": "alive"}, status.HTTP_200_OK)
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return {"status": "error", "reason": startup_error}
+        response.status_code = status.HTTP_200_OK
+        return {"status": "alive"}
 
-    def dependency_health() -> tuple[dict[str, Any], int]:
+    def dependency_health(response: Response) -> dict[str, Any]:
         dependency = runtime_store.dependency_health()
         if dependency.healthy:
-            return (
-                {
-                    "status": "ok",
-                    "dependency": dependency.name,
-                    "detail": dependency.detail,
-                },
-                status.HTTP_200_OK,
-            )
-        return (
-            {
-                "status": "error",
+            response.status_code = status.HTTP_200_OK
+            return {
+                "status": "ok",
                 "dependency": dependency.name,
                 "detail": dependency.detail,
-            },
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
+            }
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "error",
+            "dependency": dependency.name,
+            "detail": dependency.detail,
+        }
 
-    def readiness() -> tuple[dict[str, Any], int]:
+    def readiness(http_response: Response) -> dict[str, Any]:
         startup_state: StoreStartupState = getattr(
             app.state,
             "store_startup_state",
@@ -265,11 +260,9 @@ def build_runtime_app(
         dependency: DependencyHealth = runtime_store.dependency_health()
         is_shutting_down = bool(getattr(app.state, "is_shutting_down", False))
         ready = (
-            bool(getattr(app.state, "ready", False))
-            and dependency.healthy
-            and not is_shutting_down
+            bool(getattr(app.state, "ready", False)) and dependency.healthy and not is_shutting_down
         )
-        response = {
+        readiness_payload = {
             "status": "ready" if ready else "not_ready",
             "store": startup_state.backend_name,
             "store_durable": startup_state.durable,
@@ -281,10 +274,10 @@ def build_runtime_app(
             },
             "is_shutting_down": is_shutting_down,
         }
-        return (
-            response,
-            status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        http_response.status_code = (
+            status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE
         )
+        return readiness_payload
 
     def enqueue(
         job: dict[str, Any],

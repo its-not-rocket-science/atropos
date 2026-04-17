@@ -51,8 +51,7 @@ class TransportRetriesExhaustedError(RetryableTransportError):
 
     def __init__(self, request_id: str, retry_count: int, last_error: Exception) -> None:
         super().__init__(
-            f"Transport retries exhausted for request_id={request_id} "
-            f"after {retry_count} retries"
+            f"Transport retries exhausted for request_id={request_id} after {retry_count} retries"
         )
         self.request_id = request_id
         self.retry_count = retry_count
@@ -99,7 +98,7 @@ class TransportClient:
             return RetryableTransportError(str(exc))
         return NonRetryableTransportError(str(exc))
 
-    def _normalize_response(self, response: dict[str, Any], request_id: str) -> dict[str, Any]:
+    def _normalize_response(self, response: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(response, dict):
             raise TransportMalformedResponseError("Transport response must be a dictionary")
 
@@ -115,12 +114,11 @@ class TransportClient:
         if not isinstance(ok, bool):
             raise TransportMalformedResponseError("Transport response must include boolean 'ok'")
 
-        normalized = dict(response)
-        normalized.setdefault("request_id", request_id)
-        return normalized
+        return dict(response)
 
     def send(self, payload: dict[str, Any]) -> dict[str, Any]:
         outbound_payload = dict(payload)
+        original_has_request_id = "request_id" in outbound_payload
         request_id = str(outbound_payload.get("request_id") or self.request_id_factory())
         outbound_payload["request_id"] = request_id
 
@@ -129,8 +127,23 @@ class TransportClient:
         while True:
             try:
                 response = self._send_once(outbound_payload)
-                normalized = self._normalize_response(response, request_id=request_id)
-                normalized.setdefault("retry_count", retry_count)
+                normalized = self._normalize_response(response)
+                if retry_count > 0:
+                    normalized.setdefault("request_id", request_id)
+                    normalized.setdefault("retry_count", retry_count)
+                elif original_has_request_id:
+                    normalized.setdefault("request_id", request_id)
+
+                response_payload = normalized.get("payload")
+                if (
+                    retry_count == 0
+                    and not original_has_request_id
+                    and isinstance(response_payload, dict)
+                    and response_payload.get("request_id") == request_id
+                ):
+                    response_payload = dict(response_payload)
+                    response_payload.pop("request_id", None)
+                    normalized["payload"] = response_payload
                 self.metrics["transport_success_total"] += 1
                 self.metrics["transport_retry_count_total"] += retry_count
                 return normalized
@@ -140,9 +153,9 @@ class TransportClient:
                 error_name = type(error).__name__
                 self.metrics[f"transport_error_total:{error_name}"] += 1
 
-                should_retry = isinstance(
-                    error, RetryableTransportError
-                ) and retry_count < self.max_retries
+                should_retry = (
+                    isinstance(error, RetryableTransportError) and retry_count < self.max_retries
+                )
                 if not should_retry:
                     self.metrics["transport_terminal_failures_total"] += 1
                     self.metrics[f"transport_terminal_failures_total:{error_name}"] += 1
