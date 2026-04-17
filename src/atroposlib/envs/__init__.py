@@ -31,7 +31,17 @@ from .runtime_interfaces import (
     SendToApiPath,
 )
 from .server_handling import ServerLaunchConfig, ServerManager, ServerManagerError
-from .transport_client import TransportClient
+from .transport_client import (
+    NonRetryableTransportError,
+    RetryableTransportError,
+    TransportClient,
+    TransportClientError,
+    TransportError,
+    TransportMalformedResponseError,
+    TransportRetriesExhaustedError,
+    TransportServerError,
+    TransportTimeoutError,
+)
 from .worker_manager import WorkerManager
 from .worker_runtime import WorkerRuntime
 
@@ -40,6 +50,14 @@ __all__ = [
     "WorkerRuntime",
     "WorkerManager",
     "TransportClient",
+    "TransportError",
+    "RetryableTransportError",
+    "NonRetryableTransportError",
+    "TransportTimeoutError",
+    "TransportServerError",
+    "TransportClientError",
+    "TransportMalformedResponseError",
+    "TransportRetriesExhaustedError",
     "MetricsLogger",
     "LoggingManager",
     "CheckpointManager",
