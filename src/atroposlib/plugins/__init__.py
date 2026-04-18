@@ -1,4 +1,7 @@
-"""Plugin extension APIs for Atropos environments and servers."""
+"""Plugin extension APIs for Atropos environments and servers.
+
+Stability tier: Tier 3 (experimental/community extensions).
+"""
 
 from .registry import (
     ENVIRONMENT_ENTRYPOINT_GROUP,
