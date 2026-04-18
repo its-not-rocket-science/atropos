@@ -113,6 +113,110 @@ def test_production_tier_uses_injected_redis_store() -> None:
     assert health.json()["store"] == "redis"
 
 
+def test_production_tier_rejects_inmemory_store() -> None:
+    from atroposlib.api.server import HardeningTier, build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    with pytest.raises(ValueError, match="durable store backend"):
+        build_runtime_app(
+            tier=HardeningTier.PRODUCTION_SAFE,
+            api_token="secret",
+            allowed_origins=["https://internal.example"],
+            store=InMemoryStore(),
+        )
+
+
+def test_production_restart_recovers_job_and_dedup_state() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import HardeningTier, build_runtime_app
+    from atroposlib.api.storage import RedisStore
+
+    redis = FakeRedis()
+
+    app_first = build_runtime_app(
+        tier=HardeningTier.PRODUCTION_SAFE,
+        api_token="secret",
+        allowed_origins=["https://internal.example"],
+        store=RedisStore(redis_client=redis),
+    )
+    with TestClient(app_first) as client:
+        first = client.post(
+            "/jobs",
+            json={"task": "persist-me"},
+            headers={"X-API-Token": "secret", "X-Idempotency-Key": "idem-restart-1"},
+        )
+
+    app_second = build_runtime_app(
+        tier=HardeningTier.PRODUCTION_SAFE,
+        api_token="secret",
+        allowed_origins=["https://internal.example"],
+        store=RedisStore(redis_client=redis),
+    )
+    with TestClient(app_second) as client:
+        second = client.post(
+            "/jobs",
+            json={"task": "persist-me"},
+            headers={"X-API-Token": "secret", "X-Idempotency-Key": "idem-restart-1"},
+        )
+        status = client.get(f"/jobs/{first.json()['job_id']}")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["job_id"] == second.json()["job_id"]
+    assert second.json()["deduplicated"] is True
+    assert second.json()["queue_depth"] == 1
+    assert status.status_code == 200
+    assert status.json()["state"] == "queued"
+
+
+def test_production_restart_recovers_scored_request_dedupe_state() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import HardeningTier, build_runtime_app
+    from atroposlib.api.storage import RedisStore
+
+    redis = FakeRedis()
+
+    app_first = build_runtime_app(
+        tier=HardeningTier.PRODUCTION_SAFE,
+        api_token="secret",
+        allowed_origins=["https://internal.example"],
+        store=RedisStore(redis_client=redis),
+    )
+    with TestClient(app_first) as client:
+        first = client.post(
+            "/scored_data",
+            json={"environment_id": "env-restart", "records": [{"sample_id": "a", "score": 0.6}]},
+            headers={"X-API-Token": "secret", "X-Request-ID": "req-restart-1"},
+        )
+
+    app_second = build_runtime_app(
+        tier=HardeningTier.PRODUCTION_SAFE,
+        api_token="secret",
+        allowed_origins=["https://internal.example"],
+        store=RedisStore(redis_client=redis),
+    )
+    with TestClient(app_second) as client:
+        second = client.post(
+            "/scored_data",
+            json={"environment_id": "env-restart", "records": [{"sample_id": "a", "score": 0.6}]},
+            headers={"X-API-Token": "secret", "X-Request-ID": "req-restart-1"},
+        )
+        listed = client.get(
+            "/scored_data_list",
+            params={"environment_id": "env-restart", "limit": 100},
+            headers={"X-API-Token": "secret"},
+        )
+
+    assert first.status_code == 200
+    assert first.json()["deduplicated"] is False
+    assert second.status_code == 200
+    assert second.json()["deduplicated"] is True
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1
+
+
 def test_redis_store_returns_status_record() -> None:
     from atroposlib.api.storage import RedisStore
 

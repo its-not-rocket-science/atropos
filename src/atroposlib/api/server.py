@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
@@ -37,6 +37,23 @@ class HardeningTier(str, Enum):
 
 
 RuntimeStatus = RuntimeStatusRecord
+
+
+@dataclass(slots=True)
+class RuntimeProcessState:
+    """Process-local lifecycle metadata (non-control-plane state)."""
+
+    is_shutting_down: bool = False
+    ready: bool = False
+    startup_error: str | None = None
+    store_startup_state: StoreStartupState = field(
+        default_factory=lambda: StoreStartupState(
+            backend_name="unknown",
+            durable=False,
+            recovered_items=0,
+            dependency_healthy=False,
+        )
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +136,16 @@ def _default_store_for_tier(
     return InMemoryStore()
 
 
+def _assert_store_supported_for_tier(tier: HardeningTier, store: AtroposStore) -> None:
+    if tier is not HardeningTier.PRODUCTION_SAFE:
+        return
+    if not bool(getattr(store, "durable", False)):
+        raise ValueError(
+            "Production-safe tier requires a durable store backend; "
+            f"got backend={store.backend_name!r}"
+        )
+
+
 def build_runtime_app(
     tier: HardeningTier = HardeningTier.RESEARCH_SAFE,
     *,
@@ -138,6 +165,15 @@ def build_runtime_app(
     runtime_store = (
         store if store is not None else _default_store_for_tier(tier, redis_url=redis_url)
     )
+    _assert_store_supported_for_tier(tier, runtime_store)
+    process_state = RuntimeProcessState(
+        store_startup_state=StoreStartupState(
+            backend_name=runtime_store.backend_name,
+            durable=getattr(runtime_store, "durable", False),
+            recovered_items=0,
+            dependency_healthy=False,
+        )
+    )
     api_logger = configure_logging(
         logger_name="atroposlib.api.server",
         level=logging.INFO,
@@ -146,16 +182,16 @@ def build_runtime_app(
 
     async def _startup_store_binding() -> None:
         app.state.runtime_store = runtime_store
-        app.state.is_shutting_down = False
-        app.state.ready = False
-        app.state.startup_error = None
+        process_state.is_shutting_down = False
+        process_state.ready = False
+        process_state.startup_error = None
         try:
             startup_state = runtime_store.startup()
-            app.state.store_startup_state = startup_state
-            app.state.ready = startup_state.dependency_healthy
+            process_state.store_startup_state = startup_state
+            process_state.ready = startup_state.dependency_healthy
         except Exception as exc:
-            app.state.startup_error = str(exc)
-            app.state.store_startup_state = StoreStartupState(
+            process_state.startup_error = str(exc)
+            process_state.store_startup_state = StoreStartupState(
                 backend_name=runtime_store.backend_name,
                 durable=getattr(runtime_store, "durable", False),
                 recovered_items=0,
@@ -165,8 +201,8 @@ def build_runtime_app(
         configure_tracing()
 
     async def _shutdown_store_binding() -> None:
-        app.state.is_shutting_down = True
-        app.state.ready = False
+        process_state.is_shutting_down = True
+        process_state.ready = False
         runtime_store.shutdown()
 
     @asynccontextmanager
@@ -233,7 +269,7 @@ def build_runtime_app(
         return {"status": "ok", "tier": tier.value, "store": backend_name}
 
     def liveness(response: Response) -> dict[str, Any]:
-        startup_error = getattr(app.state, "startup_error", None)
+        startup_error = process_state.startup_error
         if startup_error:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
             return {"status": "error", "reason": startup_error}
@@ -257,21 +293,10 @@ def build_runtime_app(
         }
 
     def readiness(http_response: Response) -> dict[str, Any]:
-        startup_state: StoreStartupState = getattr(
-            app.state,
-            "store_startup_state",
-            StoreStartupState(
-                backend_name=runtime_store.backend_name,
-                durable=getattr(runtime_store, "durable", False),
-                recovered_items=0,
-                dependency_healthy=False,
-            ),
-        )
+        startup_state = process_state.store_startup_state
         dependency: DependencyHealth = runtime_store.dependency_health()
-        is_shutting_down = bool(getattr(app.state, "is_shutting_down", False))
-        ready = (
-            bool(getattr(app.state, "ready", False)) and dependency.healthy and not is_shutting_down
-        )
+        is_shutting_down = process_state.is_shutting_down
+        ready = process_state.ready and dependency.healthy and not is_shutting_down
         readiness_payload = {
             "status": "ready" if ready else "not_ready",
             "store": startup_state.backend_name,
