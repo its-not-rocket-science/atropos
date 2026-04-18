@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -105,9 +104,17 @@ def _build_auth_dependency(
     return _verify_token
 
 
-def _default_store_for_tier(tier: HardeningTier) -> AtroposStore:
+def _default_store_for_tier(
+    tier: HardeningTier,
+    *,
+    redis_url: str | None = None,
+) -> AtroposStore:
     if tier is HardeningTier.PRODUCTION_SAFE:
-        redis_url = os.getenv("ATROPOS_REDIS_URL", "redis://localhost:6379/0")
+        if not redis_url:
+            raise ValueError(
+                "Production-safe tier requires an explicit Redis URL; "
+                "set ATROPOS_REDIS_URL or pass redis_url"
+            )
         return RedisStore.from_url(redis_url)
     return InMemoryStore()
 
@@ -119,6 +126,7 @@ def build_runtime_app(
     api_token: str | None = None,
     store: AtroposStore | None = None,
     log_format: str | None = None,
+    redis_url: str | None = None,
 ) -> FastAPI:
     """Build the FastAPI runtime app.
 
@@ -127,7 +135,9 @@ def build_runtime_app(
     """
 
     policy = _POLICY_BY_TIER[tier]
-    runtime_store = store if store is not None else _default_store_for_tier(tier)
+    runtime_store = (
+        store if store is not None else _default_store_for_tier(tier, redis_url=redis_url)
+    )
     api_logger = configure_logging(
         logger_name="atroposlib.api.server",
         level=logging.INFO,
