@@ -1,4 +1,7 @@
-"""Runtime worker process with readiness/liveness endpoints."""
+"""Runtime worker process with readiness/liveness endpoints.
+
+Stability tier: Tier 1 (platform core runtime worker).
+"""
 
 from __future__ import annotations
 

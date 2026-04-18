@@ -24,6 +24,7 @@ Secondary modules support production workflows around the ROI core:
 - [CLI Usage](cli.md)
 - [Python API](api.md)
 - [Examples](examples.md)
+- [Stability Tiers](stability-tiers.md)
 - [Environment API Stability](environment_api_stability.md)
 - [Environment Transport Failure Behavior](environment_transport_failure_behavior.md)
 - [Deployment Guide](deployment.md)

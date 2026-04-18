@@ -5,6 +5,17 @@ Atropos is an **ROI estimation + optimization toolkit** for coding-LLM deploymen
 
 > Use `atropos` for Python imports and `atropos-llm` for the CLI.
 
+
+## Stability tiers and product maturity
+
+Atropos is production-oriented for **platform core runtime surfaces**, while other parts of the repository are intentionally at different maturity levels.
+
+- **Tier 1 (platform core):** API server, store layer, runtime loop, and transport components in `atroposlib` are the most stable surfaces for production dependency.
+- **Tier 2 (supported research features):** validation, A/B testing, pipeline, and related research modules are maintained and supported but may evolve faster than Tier 1.
+- **Tier 3 (experimental/community environments):** environment/plugin integrations and community extensions are intentionally experimental.
+
+Compatibility expectations and module mapping are defined in `docs/stability-tiers.md`.
+
 ## Quickstart (under 10 minutes)
 
 Use the minimal first-run path:

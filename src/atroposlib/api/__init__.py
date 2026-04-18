@@ -1,4 +1,7 @@
-"""FastAPI helpers for atroposlib runtime services."""
+"""FastAPI helpers for atroposlib runtime services.
+
+Stability tier: Tier 1 (platform core).
+"""
 
 from __future__ import annotations
 

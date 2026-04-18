@@ -1,4 +1,7 @@
-"""Environment runtime and compatibility facade primitives."""
+"""Environment runtime and compatibility facade primitives.
+
+Stability tier: Tier 1 (platform core runtime loop + transport facade).
+"""
 
 from .base import BaseEnv
 from .checkpoint_manager import CheckpointManager

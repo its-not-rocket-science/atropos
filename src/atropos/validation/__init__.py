@@ -1,4 +1,7 @@
-"""Validation framework for testing Atropos against real neural networks."""
+"""Validation framework for testing Atropos against real neural networks.
+
+Stability tier: Tier 2 (supported research feature).
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,7 @@
-"""Pluggable runtime storage backends for the FastAPI server."""
+"""Pluggable runtime storage backends for the FastAPI server.
+
+Stability tier: Tier 1 (platform core store layer).
+"""
 
 from __future__ import annotations
 
