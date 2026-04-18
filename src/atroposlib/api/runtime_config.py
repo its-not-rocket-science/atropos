@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 
+from ..logging_utils import resolve_log_format
+
 
 class RuntimeProfile(str, Enum):
     """Named deployment profiles with explicit defaults."""
@@ -23,11 +25,19 @@ class RuntimeHardeningTier(str, Enum):
     PRODUCTION_SAFE = "production-safe"
 
 
+class RuntimeMode(str, Enum):
+    """High-level runtime behavior mode."""
+
+    DEV = "dev"
+    PRODUCTION = "production"
+
+
 @dataclass(frozen=True, slots=True)
 class RuntimeDeploymentConfig:
     """Configuration resolved from profile defaults plus environment overrides."""
 
     profile: RuntimeProfile
+    mode: RuntimeMode
     tier: RuntimeHardeningTier
     store_backend: str
     redis_url: str | None
@@ -37,11 +47,13 @@ class RuntimeDeploymentConfig:
     tracing_enabled: bool
     tracing_exporter: str | None
     tracing_endpoint: str | None
+    require_health_endpoints: bool
+    allow_unsafe_localhost_defaults: bool
 
     def validate_for_runtime(self) -> None:
         """Validate profile-specific requirements before app startup."""
 
-        if self.profile is RuntimeProfile.PRODUCTION:
+        if self.mode is RuntimeMode.PRODUCTION:
             if self.store_backend != "redis":
                 raise ValueError(
                     "Production profile requires ATROPOS_STORE_BACKEND=redis for durable storage"
@@ -51,16 +63,37 @@ class RuntimeDeploymentConfig:
                     "Production profile requires ATROPOS_REDIS_URL "
                     "and does not permit localhost defaults"
                 )
+            if not self.allow_unsafe_localhost_defaults and _looks_like_localhost_url(
+                self.redis_url
+            ):
+                raise ValueError(
+                    "Production profile disallows localhost Redis defaults; "
+                    "set ATROPOS_REDIS_URL to a non-localhost address or "
+                    "ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true to override"
+                )
             if not self.api_token:
                 raise ValueError("Production profile requires ATROPOS_API_TOKEN")
             if not self.allowed_origins:
                 raise ValueError(
                     "Production profile requires ATROPOS_ALLOWED_ORIGINS with at least one origin"
                 )
+            if not self.allow_unsafe_localhost_defaults and any(
+                _looks_like_localhost_origin(origin) for origin in self.allowed_origins
+            ):
+                raise ValueError(
+                    "Production profile disallows localhost CORS origins unless "
+                    "ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true"
+                )
+            if resolve_log_format(self.log_format) != "json":
+                raise ValueError(
+                    "Production profile requires structured logs; set ATROPOS_LOG_FORMAT=json"
+                )
             if self.tracing_enabled and not self.tracing_endpoint:
                 raise ValueError(
                     "Production profile requires ATROPOS_TRACING_ENDPOINT when tracing is enabled"
                 )
+            if not self.require_health_endpoints:
+                raise ValueError("Production profile requires health endpoints to remain enabled")
 
 
 def _split_csv(value: str | None) -> list[str]:
@@ -100,6 +133,20 @@ def _bool_env(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _looks_like_localhost_url(url: str) -> bool:
+    normalized = url.strip().lower()
+    return any(
+        token in normalized for token in ("localhost", "127.0.0.1", "://0.0.0.0", "::1", "[::1]")
+    )
+
+
+def _looks_like_localhost_origin(origin: str) -> bool:
+    normalized = origin.strip().lower()
+    return any(
+        token in normalized for token in ("localhost", "127.0.0.1", "://0.0.0.0", "::1", "[::1]")
+    )
+
+
 def load_runtime_deployment_config_from_env() -> RuntimeDeploymentConfig:
     """Load runtime deployment config with profile defaults and env overrides."""
 
@@ -120,6 +167,15 @@ def load_runtime_deployment_config_from_env() -> RuntimeDeploymentConfig:
         },
     }
     defaults = profile_defaults[profile]
+    mode = RuntimeMode.PRODUCTION if profile is RuntimeProfile.PRODUCTION else RuntimeMode.DEV
+    allow_unsafe_localhost_defaults = _bool_env(
+        "ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS",
+        default=False,
+    )
+    require_health_endpoints = _bool_env(
+        "ATROPOS_REQUIRE_HEALTH_ENDPOINTS",
+        default=mode is RuntimeMode.PRODUCTION,
+    )
 
     tier = _coerce_tier(
         os.getenv("ATROPOS_HARDENING_TIER"),
@@ -133,6 +189,7 @@ def load_runtime_deployment_config_from_env() -> RuntimeDeploymentConfig:
 
     config = RuntimeDeploymentConfig(
         profile=profile,
+        mode=mode,
         tier=tier,
         store_backend=store_backend,
         redis_url=redis_url,
@@ -145,6 +202,8 @@ def load_runtime_deployment_config_from_env() -> RuntimeDeploymentConfig:
         ),
         tracing_exporter=os.getenv("ATROPOS_TRACING_EXPORTER", "otlp"),
         tracing_endpoint=os.getenv("ATROPOS_TRACING_ENDPOINT"),
+        require_health_endpoints=require_health_endpoints,
+        allow_unsafe_localhost_defaults=allow_unsafe_localhost_defaults,
     )
     config.validate_for_runtime()
     return config
