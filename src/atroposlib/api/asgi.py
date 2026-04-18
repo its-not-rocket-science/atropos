@@ -1,39 +1,22 @@
-"""ASGI entrypoint for production runtime API deployments."""
+"""ASGI entrypoint for runtime API deployments."""
 
 from __future__ import annotations
 
-import os
-
+from .runtime_config import load_runtime_deployment_config_from_env
 from .server import HardeningTier, build_runtime_app
-
-
-def _coerce_tier(value: str | None) -> HardeningTier:
-    if value is None:
-        return HardeningTier.PRODUCTION_SAFE
-    normalized = value.strip().lower()
-    for tier in HardeningTier:
-        if tier.value == normalized:
-            return tier
-    raise ValueError(
-        "ATROPOS_HARDENING_TIER must be one of: " + ", ".join(tier.value for tier in HardeningTier)
-    )
-
-
-def _split_csv(value: str | None) -> list[str]:
-    if value is None:
-        return []
-    return [item.strip() for item in value.split(",") if item.strip()]
+from .storage import InMemoryStore
 
 
 def _build_app_from_env() -> object:
-    tier = _coerce_tier(os.getenv("ATROPOS_HARDENING_TIER"))
-    api_token = os.getenv("ATROPOS_API_TOKEN")
-    allowed_origins = _split_csv(os.getenv("ATROPOS_ALLOWED_ORIGINS"))
+    config = load_runtime_deployment_config_from_env()
+    store = InMemoryStore() if config.store_backend == "memory" else None
     return build_runtime_app(
-        tier=tier,
-        allowed_origins=allowed_origins,
-        api_token=api_token,
-        log_format=os.getenv("ATROPOS_LOG_FORMAT"),
+        tier=HardeningTier(config.tier.value),
+        allowed_origins=config.allowed_origins,
+        api_token=config.api_token,
+        store=store,
+        log_format=config.log_format,
+        redis_url=config.redis_url,
     )
 
 

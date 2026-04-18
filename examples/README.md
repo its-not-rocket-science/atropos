@@ -58,3 +58,12 @@ Key settings:
 - `pruning.framework`: Choose from llm-pruner, wanda, sparsegpt, or custom
 - `recovery.enabled`: Enable/disable fine-tuning
 - `deployment.auto_deploy`: Enable automatic deployment after validation
+
+
+## Runtime deployment profiles
+
+Sample `.env` files for runtime API configuration layers:
+
+- `examples/runtime-profiles/local-dev.env`
+- `examples/runtime-profiles/ci.env`
+- `examples/runtime-profiles/production.env.example`
