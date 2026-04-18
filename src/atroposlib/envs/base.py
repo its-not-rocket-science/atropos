@@ -1,12 +1,8 @@
 """Thin BaseEnv orchestration facade.
 
-BaseEnv composes specialized collaborators:
-- WorkerRuntime
-- TransportClient
-- CheckpointManager
-- MetricsLogger
-- CliAdapter
-- EnvLogic
+BaseEnv exposes a stable environment contract while delegating runtime details
+(worker orchestration, transport, metrics, checkpointing, and CLI shims) to
+specialized collaborators.
 """
 
 from __future__ import annotations
@@ -15,11 +11,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from atropos.reproducibility import SeedManager, apply_global_seed
 from atroposlib.cli.adapters import CliAdapter
 
 from .checkpoint_manager import CheckpointManager
-from .env_logic import EnvLogic, EnvLogicItemSource, EnvLogicRolloutCollector, PassthroughEnvLogic
+from .compatibility_adapter import BaseEnvCompatibilityAdapter
+from .dependency_factory import BaseEnvDependencyFactory
+from .env_logic import EnvLogic, PassthroughEnvLogic
 from .metrics_logger import MetricsLogger
 from .runtime_controller import RuntimeController
 from .transport_client import TransportClient
@@ -51,29 +48,36 @@ class BaseEnv:
         cli_adapter: CliAdapter | None = None,
         env_logic: EnvLogic | None = None,
         seed: int | None = None,
+        dependency_factory: BaseEnvDependencyFactory | None = None,
     ) -> None:
-        runtime = worker_runtime or worker_manager
-        logger = metrics_logger or logging_manager
-        self.worker_runtime = runtime or WorkerRuntime()
-        self.transport_client = transport or transport_client or TransportClient()
-        self.metrics_logger = logger or MetricsLogger()
-        self.checkpoint_manager = checkpoint_manager or CheckpointManager()
-        self.cli_adapter = cli_adapter or CliAdapter()
-        self.env_logic = env_logic or PassthroughEnvLogic()
-        self.seed_manager: SeedManager | None = None
-        self.seed_metadata: dict[str, Any] = {}
-        if seed is not None:
-            self.seed_manager = SeedManager(seed)
-            self.seed_metadata = apply_global_seed(seed, component="base_env")
-            self.worker_runtime.seed_manager = self.seed_manager
-        self.runtime_controller = RuntimeController(
-            item_source=EnvLogicItemSource(self.env_logic),
-            backlog_manager=self.worker_runtime,
-            send_to_api=self.transport_client,
-            rollout_collector=EnvLogicRolloutCollector(self.env_logic),
+        factory = dependency_factory or BaseEnvDependencyFactory()
+        wiring = factory.build(
+            worker_runtime=worker_runtime,
+            worker_manager=worker_manager,
+            transport_client=transport_client,
+            transport=transport,
+            metrics_logger=metrics_logger,
+            logging_manager=logging_manager,
+            checkpoint_manager=checkpoint_manager,
+            cli_adapter=cli_adapter,
+            env_logic=env_logic,
+            seed=seed,
+        )
+        self.worker_runtime = wiring.collaborators.worker_runtime
+        self.transport_client = wiring.collaborators.transport_client
+        self.metrics_logger = wiring.collaborators.metrics_logger
+        self.checkpoint_manager = wiring.collaborators.checkpoint_manager
+        self.cli_adapter = wiring.collaborators.cli_adapter
+        self.env_logic = wiring.collaborators.env_logic
+        self.seed_manager = wiring.seed_manager
+        self.seed_metadata: dict[str, Any] = wiring.seed_metadata
+        self.runtime_controller = wiring.runtime_controller
+        self._compatibility = BaseEnvCompatibilityAdapter(
+            worker_runtime=self.worker_runtime,
+            transport_client=self.transport_client,
             metrics_logger=self.metrics_logger,
             checkpoint_manager=self.checkpoint_manager,
-            seed_manager=self.seed_manager,
+            cli_adapter=self.cli_adapter,
         )
 
     def step(self, payload: dict[str, Any], worker_count: int = 1) -> dict[str, Any]:
@@ -96,26 +100,23 @@ class BaseEnv:
     ) -> dict[str, Any] | list[dict[str, Any]]:
         """Compatibility endpoint for serving single requests or streams."""
 
-        if isinstance(payload_or_stream, dict):
-            return self.step(payload_or_stream, worker_count=worker_count)
-        return [self.step(payload, worker_count=worker_count) for payload in payload_or_stream]
+        return self._compatibility.serve(self.step, payload_or_stream, worker_count)
 
     def reset(self) -> None:
-        self.metrics_logger.reset()
-        self.checkpoint_manager.reset()
+        self._compatibility.reset_runtime_state()
 
     # -------------------------------
     # CLI + config compatibility API
     # -------------------------------
     def build_cli_args(self, config: dict[str, Any]) -> list[str]:
-        return self.cli_adapter.build_cli_args(config)
+        return self._compatibility.build_cli_args(config)
 
     def merge_yaml_and_cli(
         self,
         yaml_config: dict[str, Any],
         cli_config: dict[str, Any],
     ) -> dict[str, Any]:
-        return self.cli_adapter.merge_yaml_and_cli(yaml_config, cli_config)
+        return self._compatibility.merge_yaml_and_cli(yaml_config, cli_config)
 
     # -------------------------------------
     # Legacy method aliases for compatibility
@@ -125,16 +126,16 @@ class BaseEnv:
         work_item: dict[str, Any],
         worker_count: int = 1,
     ) -> dict[str, Any]:
-        return self.worker_runtime.orchestrate(work_item, requested_workers=worker_count)
+        return self._compatibility.orchestrate_workers(work_item, worker_count)
 
     def call_api(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self.transport_client.send(payload)
+        return self._compatibility.call_api(payload)
 
     def log_event(self, event: str, **metadata: Any) -> None:
-        self.metrics_logger.log_event(event, **metadata)
+        self._compatibility.log_event(event, **metadata)
 
     def checkpoint(self, state: dict[str, Any]) -> None:
-        self.checkpoint_manager.save(state)
+        self._compatibility.checkpoint(state)
 
     # Compatibility properties for code that referenced old collaborator names.
     @property
