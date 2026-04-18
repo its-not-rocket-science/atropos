@@ -1,0 +1,49 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    environment:
+      ATROPOS_HARDENING_TIER: production-safe
+      ATROPOS_REDIS_URL: redis://redis:6379/0
+      ATROPOS_API_TOKEN: local-dev-token
+      ATROPOS_ALLOWED_ORIGINS: http://localhost:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      ATROPOS_API_BASE_URL: http://api:8000
+      WORKER_POLL_INTERVAL_SECONDS: 5
+      WORKER_REQUEST_TIMEOUT_SECONDS: 2
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/readyz', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
