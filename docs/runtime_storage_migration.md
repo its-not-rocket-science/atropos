@@ -14,9 +14,10 @@ The runtime server no longer relies on process-local `app.state` dictionaries/de
 ## Breaking/API changes
 
 - `build_runtime_app(...)` now accepts `store: RuntimeStore | None`.
-- In production tier (`HardeningTier.PRODUCTION_SAFE`), default store is Redis using:
+- In production tier (`HardeningTier.PRODUCTION_SAFE`), default store is Redis and requires an explicit URL:
   - `ATROPOS_REDIS_URL` env var, or
-  - `redis://localhost:6379/0` fallback.
+  - `redis_url=...` passed to `build_runtime_app(...)`.
+- Production tier now asserts `store.durable is True`; injecting `InMemoryStore` raises `ValueError`.
 - `POST /jobs` supports optional `X-Idempotency-Key` and returns:
   - `job_id`
   - `queue_depth`
@@ -116,3 +117,22 @@ Restart=on-failure
 TimeoutStopSec=30
 Environment=ATROPOS_REDIS_URL=redis://redis.internal:6379/0
 ```
+
+
+## Restart recovery verification
+
+For production-grade restart behavior, run with a shared durable store backend (Redis).
+
+Expected outcomes across API process restarts:
+
+- Job idempotency keys still deduplicate (`POST /jobs` returns same `job_id`).
+- Existing `job_id` status remains queryable (`GET /jobs/{job_id}`).
+- Scored ingestion request IDs still deduplicate retries (`POST /scored_data` / `/scored_data_list`).
+
+Reference tests:
+
+- `test_production_restart_recovers_job_and_dedup_state`
+- `test_production_restart_recovers_scored_request_dedupe_state`
+- `test_production_tier_rejects_inmemory_store`
+
+See also: `docs/runtime_app_state_inventory_2026_04.md` for full `app.state` audit and classification.
