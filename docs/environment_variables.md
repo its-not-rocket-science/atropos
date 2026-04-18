@@ -14,6 +14,21 @@ The runtime now supports explicit configuration profiles selected by `ATROPOS_RU
 
 Profile defaults can be overridden, but `production` enforces durable + explicit config validation before startup.
 
+### Dev vs production mode behavior
+
+`ATROPOS_RUNTIME_PROFILE` now also drives a higher-level runtime mode:
+
+- `local-dev` and `ci` run in `dev` mode (lightweight defaults for iteration and automation).
+- `production` runs in explicit `production` mode (platform-safe defaults with fail-fast validation).
+
+| Capability | Dev mode (`local-dev`, `ci`) | Production mode (`production`) |
+|---|---|---|
+| Store backend | Defaults to `memory`; durable backend optional | Must be durable (`ATROPOS_STORE_BACKEND=redis`) |
+| Health endpoints | Available by default; requirement toggle defaults off | Must remain enabled (`ATROPOS_REQUIRE_HEALTH_ENDPOINTS=true`) |
+| Log format | `json` by default, `pretty` allowed for local readability | Must resolve to structured JSON logs |
+| Missing config handling | Optional env values allowed | Missing required settings fail startup immediately |
+| Localhost defaults | Allowed for convenience | Rejected unless `ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true` |
+
 Examples are available in:
 
 - `examples/runtime-profiles/local-dev.env`
@@ -31,6 +46,8 @@ Examples are available in:
 | `ATROPOS_API_TOKEN` | Required for auth-required tiers; always required in production profile | _(none)_ | API token validated from request header `X-API-Token`. |
 | `ATROPOS_ALLOWED_ORIGINS` | Required in production profile | _(empty)_ | Comma-separated CORS origins for non-open tiers. Production startup fails if empty. |
 | `ATROPOS_LOG_FORMAT` | No | library default | Optional runtime logger format override. |
+| `ATROPOS_REQUIRE_HEALTH_ENDPOINTS` | Yes in production mode (default `true`) | `false` in dev mode | Enforces required health routes (`/health`, `/health/live`, `/health/ready`, `/health/dependencies`) at startup. |
+| `ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS` | No | `false` | Allows localhost Redis URLs and localhost CORS origins in production mode when set to `true`. |
 
 ## Observability (runtime API)
 
@@ -51,7 +68,10 @@ When `ATROPOS_RUNTIME_PROFILE=production`, startup validation requires all of th
 2. `ATROPOS_REDIS_URL` set
 3. `ATROPOS_API_TOKEN` set
 4. `ATROPOS_ALLOWED_ORIGINS` contains at least one origin
-5. If `ATROPOS_TRACING_ENABLED=true`, `ATROPOS_TRACING_ENDPOINT` must be set
+5. `ATROPOS_LOG_FORMAT` resolves to `json` (structured logging)
+6. `ATROPOS_REQUIRE_HEALTH_ENDPOINTS` remains enabled
+7. Localhost Redis/CORS defaults are rejected unless `ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true`
+8. If `ATROPOS_TRACING_ENABLED=true`, `ATROPOS_TRACING_ENDPOINT` must be set
 
 This prevents implicit localhost assumptions in production mode and makes durability/observability requirements explicit.
 
