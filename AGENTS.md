@@ -28,3 +28,5 @@ and ensure all selected tests pass before completion.
 When editing FastAPI endpoints, **do not reuse** `Body(...)`, `Header(...)`, `Query(...)`, `Path(...)`, or other `Param` instances across multiple route function parameters (for example via module-level constants).
 
 Always declare these inline per-parameter so each route gets its own independent field metadata and validation behavior.
+
+Also avoid `Header(...)`/`Body(...)` metadata in shared dependency callables that are reused across routes; read headers/body from `Request` inside dependencies when possible to prevent cross-route validation coupling.
