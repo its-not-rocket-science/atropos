@@ -21,6 +21,9 @@ from urllib.request import Request, urlopen
 import uvicorn
 from fastapi import FastAPI, Response, status
 
+from ..logging_utils import build_log_context, configure_logging
+from ..observability import OBSERVABILITY, render_metrics, tracing_span
+
 LOGGER = logging.getLogger("atroposlib.workers.runtime")
 
 
@@ -61,12 +64,19 @@ class RuntimeWorker:
         self.health_state = WorkerHealthState()
 
     def _check_api_ready(self) -> None:
-        readiness = _get_json(
-            f"{self.api_base_url}/health/ready",
-            timeout=self.request_timeout_seconds,
-        )
-        if readiness.get("status") != "ready":
-            raise RuntimeError(f"Runtime API not ready: {readiness}")
+        with tracing_span(
+            "runtime_worker.dependency_check",
+            attributes={
+                "atropos.dependency": "runtime_api",
+                "atropos.api_base_url": self.api_base_url,
+            },
+        ):
+            readiness = _get_json(
+                f"{self.api_base_url}/health/ready",
+                timeout=self.request_timeout_seconds,
+            )
+            if readiness.get("status") != "ready":
+                raise RuntimeError(f"Runtime API not ready: {readiness}")
 
     async def run(self) -> None:
         self.health_state.started = True
@@ -76,11 +86,28 @@ class RuntimeWorker:
             except (RuntimeError, ValueError, URLError, TimeoutError) as exc:
                 self.health_state.ready = False
                 self.health_state.last_error = str(exc)
-                LOGGER.warning("runtime_worker_dependency_unready", extra={"error": str(exc)})
+                OBSERVABILITY.observe_worker_dependency_check(dependency="runtime_api", ready=False)
+                LOGGER.warning(
+                    "runtime_worker_dependency_unready",
+                    extra=build_log_context(
+                        endpoint="/health/ready",
+                        env_id="control-plane",
+                        error=str(exc),
+                        dependency="runtime_api",
+                    ),
+                )
             else:
                 self.health_state.ready = True
                 self.health_state.last_error = None
-                LOGGER.info("runtime_worker_dependency_ready")
+                OBSERVABILITY.observe_worker_dependency_check(dependency="runtime_api", ready=True)
+                LOGGER.info(
+                    "runtime_worker_dependency_ready",
+                    extra=build_log_context(
+                        endpoint="/health/ready",
+                        env_id="control-plane",
+                        dependency="runtime_api",
+                    ),
+                )
             finally:
                 self.health_state.last_check_at = datetime.now(timezone.utc).isoformat()
             await asyncio.sleep(self.poll_interval_seconds)
@@ -123,8 +150,13 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
             "reason": state.last_error,
         }
 
+    def metrics() -> Response:
+        payload, content_type = render_metrics()
+        return Response(content=payload, media_type=content_type)
+
     app.add_api_route("/livez", livez, methods=["GET"])
     app.add_api_route("/readyz", readyz, methods=["GET"])
+    app.add_api_route("/metrics", metrics, methods=["GET"])
     return app
 
 
@@ -162,7 +194,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    logging.basicConfig(level=os.getenv("ATROPOS_LOG_LEVEL", "INFO"))
+    configure_logging(
+        logger_name="atroposlib.workers.runtime",
+        level=getattr(logging, os.getenv("ATROPOS_LOG_LEVEL", "INFO").upper(), logging.INFO),
+        log_format=os.getenv("ATROPOS_LOG_FORMAT"),
+    )
     args = _build_parser().parse_args()
     worker = RuntimeWorker(
         api_base_url=args.api_base_url,

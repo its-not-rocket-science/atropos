@@ -34,6 +34,36 @@
           "legendFormat": "{{path}}"
         }
       ]
+    },
+    {
+      "title": "Duplicate Ingestion Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_duplicate_ingestion_rejections_total[5m])) by (env)",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Noisiest Environments",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_api_requests_by_env_total[5m])) by (env)",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Worker Dependency Failures",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_worker_dependency_failures_total[5m])) by (dependency)",
+          "legendFormat": "{{dependency}}"
+        }
+      ]
     }
   ]
 }

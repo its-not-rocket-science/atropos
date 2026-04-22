@@ -259,8 +259,10 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert metrics.status_code == 200
     assert "atropos_api_requests_total" in metrics.text
     assert "atropos_api_request_latency_seconds" in metrics.text
+    assert "atropos_api_requests_by_env_total" in metrics.text
     assert "atropos_runtime_queue_oldest_age_seconds" in metrics.text
     assert "atropos_buffered_groups" in metrics.text
+    assert "atropos_runtime_groups_by_state" in metrics.text
     assert "atropos_ingestion_records_total" in metrics.text
     assert "atropos_duplicate_ingestion_rejections_total" in metrics.text
     assert "atropos_duplicate_ingestion_groups_total" in metrics.text
