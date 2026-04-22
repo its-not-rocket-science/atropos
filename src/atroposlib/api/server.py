@@ -12,7 +12,7 @@ from hashlib import sha256
 from typing import Annotated, Any, cast
 from uuid import uuid4
 
-from fastapi import Body, Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..logging_utils import build_log_context, configure_logging
@@ -104,14 +104,13 @@ def _build_auth_dependency(
 
         return _allow_anonymous
 
-    def _verify_token(
-        x_api_token: Annotated[str | None, Header(alias="X-API-Token")] = None,
-    ) -> None:
+    def _verify_token(request: Request) -> None:
         if not api_token:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Authentication is required but no API token is configured",
             )
+        x_api_token = request.headers.get("X-API-Token")
         if x_api_token != api_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -317,9 +316,9 @@ def build_runtime_app(
     def enqueue(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        job: Annotated[dict[str, Any], Body(...)],
-        x_idempotency_key: Annotated[str | None, Header(alias="X-Idempotency-Key")] = None,
+        job: dict[str, Any],
     ) -> dict[str, Any]:
+        x_idempotency_key = request.headers.get("X-Idempotency-Key")
         now = datetime.now(tz=timezone.utc)
         enqueue_result = store.enqueue_job(
             job_id=str(uuid4()),
@@ -366,7 +365,7 @@ def build_runtime_app(
     def ingest_scored_data(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        payload: Annotated[dict[str, Any], Body(...)],
+        payload: dict[str, Any],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
@@ -427,7 +426,7 @@ def build_runtime_app(
     def ingest_scored_data_list(
         request: Request,
         store: Annotated[AtroposStore, Depends(_get_store)],
-        payload: Annotated[dict[str, Any], Body(...)],
+        payload: dict[str, Any],
     ) -> dict[str, Any]:
         x_request_id = request.headers.get("X-Request-ID")
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
@@ -526,7 +525,7 @@ def build_runtime_app(
         }
 
     def register_environment(
-        payload: Annotated[dict[str, Any], Body(...)],
+        payload: dict[str, Any],
         store: Annotated[AtroposStore, Depends(_get_store)],
     ) -> dict[str, Any]:
         environment_id = str(payload.get("environment_id", "")).strip()
