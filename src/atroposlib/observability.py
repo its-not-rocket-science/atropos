@@ -186,6 +186,7 @@ class Observability:
     api_requests_total: Any
     api_request_latency_seconds: Any
     api_errors_total: Any
+    api_requests_by_env_total: Any
     runtime_queue_depth: Any
     runtime_queue_oldest_age_seconds: Any
     buffered_groups: Any
@@ -200,6 +201,10 @@ class Observability:
     env_rate_limit_ratio: Any
     failed_sends_total: Any
     eval_duration_seconds: Any
+    worker_dependency_checks_total: Any
+    worker_dependency_failures_total: Any
+    worker_dependency_ready: Any
+    runtime_groups_by_state: Any
 
     @classmethod
     def create(cls) -> Observability:
@@ -218,6 +223,11 @@ class Observability:
                 "atropos_api_errors_total",
                 "Total API error responses",
                 ["method", "path", "status"],
+            ),
+            api_requests_by_env_total=Counter(
+                "atropos_api_requests_by_env_total",
+                "Total API requests partitioned by environment",
+                ["env", "method", "path", "status"],
             ),
             runtime_queue_depth=Gauge(
                 "atropos_runtime_queue_depth",
@@ -289,6 +299,26 @@ class Observability:
                 "End-to-end evaluation duration in seconds",
                 ["env"],
             ),
+            worker_dependency_checks_total=Counter(
+                "atropos_worker_dependency_checks_total",
+                "Total worker dependency readiness checks",
+                ["dependency"],
+            ),
+            worker_dependency_failures_total=Counter(
+                "atropos_worker_dependency_failures_total",
+                "Total failed worker dependency checks",
+                ["dependency"],
+            ),
+            worker_dependency_ready=Gauge(
+                "atropos_worker_dependency_ready",
+                "Latest worker dependency readiness state (1=ready, 0=not ready)",
+                ["dependency"],
+            ),
+            runtime_groups_by_state=Gauge(
+                "atropos_runtime_groups_by_state",
+                "Count of scored-data groups by lifecycle state and environment",
+                ["env", "state"],
+            ),
         )
 
     def observe_api_request(
@@ -298,11 +328,15 @@ class Observability:
         path: str,
         status: int,
         duration_seconds: float,
+        env: str | None = None,
     ) -> None:
         labels = {"method": method, "path": path}
         status_labels = {**labels, "status": str(status)}
         self.api_requests_total.labels(**status_labels).inc()
         self.api_request_latency_seconds.labels(**labels).observe(duration_seconds)
+        if env:
+            env_labels = {"env": env, **status_labels}
+            self.api_requests_by_env_total.labels(**env_labels).inc()
         if status >= 400:
             self.api_errors_total.labels(**status_labels).inc()
 
@@ -353,6 +387,15 @@ class Observability:
 
     def observe_eval_duration(self, *, env: str, duration_seconds: float) -> None:
         self.eval_duration_seconds.labels(env=env).observe(max(0.0, duration_seconds))
+
+    def observe_worker_dependency_check(self, *, dependency: str, ready: bool) -> None:
+        self.worker_dependency_checks_total.labels(dependency=dependency).inc()
+        if not ready:
+            self.worker_dependency_failures_total.labels(dependency=dependency).inc()
+        self.worker_dependency_ready.labels(dependency=dependency).set(1.0 if ready else 0.0)
+
+    def set_runtime_groups_by_state(self, *, env: str, state: str, count: int) -> None:
+        self.runtime_groups_by_state.labels(env=env, state=state).set(max(0, count))
 
 
 OBSERVABILITY = Observability.create()

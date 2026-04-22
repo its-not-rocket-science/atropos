@@ -239,21 +239,53 @@ def build_runtime_app(
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         started_at = datetime.now(tz=timezone.utc)
-        response = await call_next(request)
-        duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
+        env_name = request.headers.get("X-Env", "default")
         request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Idempotency-Key")
+        with tracing_span(
+            "runtime.api.request",
+            attributes={
+                "http.method": request.method,
+                "http.route": request.url.path,
+                "atropos.env": env_name,
+            },
+        ):
+            try:
+                response = await call_next(request)
+            except Exception:
+                duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
+                OBSERVABILITY.observe_api_request(
+                    method=request.method,
+                    path=request.url.path,
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    duration_seconds=duration,
+                    env=env_name,
+                )
+                api_logger.exception(
+                    "request_failed",
+                    extra=build_log_context(
+                        request_id=request_id,
+                        endpoint=request.url.path,
+                        env_id=env_name,
+                        duration_seconds=duration,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        method=request.method,
+                    ),
+                )
+                raise
+        duration = (datetime.now(tz=timezone.utc) - started_at).total_seconds()
         OBSERVABILITY.observe_api_request(
             method=request.method,
             path=request.url.path,
             status=response.status_code,
             duration_seconds=duration,
+            env=env_name,
         )
         api_logger.info(
             "request_completed",
             extra=build_log_context(
                 request_id=request_id,
                 endpoint=request.url.path,
-                env_id=request.headers.get("X-Env", "default"),
+                env_id=env_name,
                 duration_seconds=duration,
                 status_code=response.status_code,
                 method=request.method,
@@ -652,6 +684,18 @@ def _record_ingestion_metrics(
     result: Any,
     groups: list[ScoredDataGroup],
 ) -> None:
+    state_counts: dict[str, int] = {}
+    for group in groups:
+        group_status = store.get_scored_group_status(
+            environment_id=group.environment_id,
+            group_id=group.group_id,
+        )
+        if group_status is None:
+            continue
+        state_counts[group_status.state] = state_counts.get(group_status.state, 0) + 1
+    for state_name, count in state_counts.items():
+        OBSERVABILITY.set_runtime_groups_by_state(env=env_name, state=state_name, count=count)
+
     queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
     OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
     OBSERVABILITY.set_queue_oldest_age(
