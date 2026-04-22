@@ -46,6 +46,7 @@ class IngestScoredDataResult:
     deduplicated: bool
     status: str
     failed_groups: int
+    duplicate_groups: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -331,6 +332,7 @@ class InMemoryStore:
                     deduplicated=True,
                     status="completed",
                     failed_groups=0,
+                    duplicate_groups=0,
                 )
 
             self._request_status_by_id[request_id] = "processing"
@@ -338,6 +340,7 @@ class InMemoryStore:
             accepted_count = 0
             accepted_groups = 0
             failed_groups = 0
+            duplicate_groups = 0
 
             with tracing_span(
                 "runtime.ingest_scored_data.store",
@@ -350,6 +353,7 @@ class InMemoryStore:
                     self._environments.add(group.environment_id)
                     group_key = f"{group.environment_id}:{group.group_id}"
                     if group_key in already_seen or group_key in self._accepted_group_keys:
+                        duplicate_groups += 1
                         continue
                     if any(not isinstance(item, dict) for item in group.records):
                         failed_groups += 1
@@ -409,6 +413,7 @@ class InMemoryStore:
                 deduplicated=accepted_groups == 0 and failed_groups == 0 and bool(groups),
                 status=status,
                 failed_groups=failed_groups,
+                duplicate_groups=duplicate_groups,
             )
 
     def register_environment(self, *, environment_id: str, now: datetime) -> bool:
@@ -688,12 +693,14 @@ class RedisStore:
                 deduplicated=True,
                 status="completed",
                 failed_groups=0,
+                duplicate_groups=0,
             )
 
         self._redis.set(status_key, "processing", ex=self._idempotency_ttl_seconds)
         accepted_count = 0
         accepted_groups = 0
         failed_groups = 0
+        duplicate_groups = 0
         request_groups_key = self._scored_request_groups_key(request_id)
         with tracing_span(
             "runtime.ingest_scored_data.store",
@@ -721,6 +728,7 @@ class RedisStore:
                     )
                 )
                 if not claimed:
+                    duplicate_groups += 1
                     continue
                 with tracing_span(
                     "runtime.batch_construction",
@@ -780,6 +788,7 @@ class RedisStore:
             deduplicated=accepted_groups == 0 and failed_groups == 0 and bool(groups),
             status=final_status,
             failed_groups=failed_groups,
+            duplicate_groups=duplicate_groups,
         )
 
     def register_environment(self, *, environment_id: str, now: datetime) -> bool:

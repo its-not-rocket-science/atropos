@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from .runtime_config import load_runtime_deployment_config_from_env
 from .server import HardeningTier, build_runtime_app
-from .storage import InMemoryStore, RedisStore
+from .storage import AtroposStore, InMemoryStore, RedisStore
 
 
 def _assert_required_health_routes(app: FastAPI) -> None:
@@ -19,6 +19,7 @@ def _assert_required_health_routes(app: FastAPI) -> None:
 
 def _build_app_from_env() -> object:
     config = load_runtime_deployment_config_from_env()
+    store: AtroposStore
     if config.store_backend == "memory":
         store = InMemoryStore()
     elif config.store_backend == "redis":

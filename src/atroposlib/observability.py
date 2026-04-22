@@ -191,6 +191,7 @@ class Observability:
     buffered_groups: Any
     ingestion_records_total: Any
     duplicate_ingestion_rejections_total: Any
+    duplicate_ingestion_groups_total: Any
     batch_formation_latency_seconds: Any
     rollout_latency_seconds: Any
     worker_count: Any
@@ -241,6 +242,11 @@ class Observability:
             duplicate_ingestion_rejections_total=Counter(
                 "atropos_duplicate_ingestion_rejections_total",
                 "Total duplicate ingestion requests rejected",
+                ["env", "endpoint"],
+            ),
+            duplicate_ingestion_groups_total=Counter(
+                "atropos_duplicate_ingestion_groups_total",
+                "Total duplicate scored-data groups rejected",
                 ["env", "endpoint"],
             ),
             batch_formation_latency_seconds=Histogram(
@@ -315,6 +321,12 @@ class Observability:
 
     def observe_duplicate_rejection(self, *, env: str, endpoint: str) -> None:
         self.duplicate_ingestion_rejections_total.labels(env=env, endpoint=endpoint).inc()
+
+    def observe_duplicate_groups(self, *, env: str, endpoint: str, duplicate_groups: int) -> None:
+        if duplicate_groups > 0:
+            self.duplicate_ingestion_groups_total.labels(env=env, endpoint=endpoint).inc(
+                duplicate_groups
+            )
 
     def observe_batch_formation_latency(self, *, env: str, latency_seconds: float) -> None:
         self.batch_formation_latency_seconds.labels(env=env).observe(max(0.0, latency_seconds))
