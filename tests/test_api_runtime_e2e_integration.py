@@ -248,6 +248,133 @@ def test_e2e_mismatched_group_sizes_batch_creation_and_status_reporting(
     assert ready.json()["status"] == "ready"
 
 
+def test_e2e_scored_data_idempotency_retry_scenarios(runtime_client: Any) -> None:
+    environment_id = "env-idem-e2e"
+
+    exact_retry_after_timeout = {
+        "environment_id": environment_id,
+        "group_id": "g-timeout",
+        "records": [{"sample_id": "timeout-1", "score": 0.75}],
+    }
+    first = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-timeout-retry"},
+        json=exact_retry_after_timeout,
+    )
+    retry = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-timeout-retry"},
+        json=exact_retry_after_timeout,
+    )
+
+    duplicated_scored_data_list = runtime_client.post(
+        "/scored_data_list",
+        headers={"X-Request-ID": "req-dup-list"},
+        json={
+            "groups": [
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-dup-list",
+                    "records": [{"sample_id": "dup-1", "score": 0.88}],
+                },
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-dup-list",
+                    "records": [{"sample_id": "dup-1", "score": 0.88}],
+                },
+            ]
+        },
+    )
+
+    partial_first = runtime_client.post(
+        "/scored_data_list",
+        headers={"X-Request-ID": "req-partial-net"},
+        json={
+            "groups": [
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-partial-ok",
+                    "records": [{"sample_id": "partial-1", "score": 0.66}],
+                },
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-partial-retry",
+                    "records": ["bad-record"],
+                },
+            ]
+        },
+    )
+    partial_retry = runtime_client.post(
+        "/scored_data_list",
+        headers={"X-Request-ID": "req-partial-net"},
+        json={
+            "groups": [
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-partial-ok",
+                    "records": [{"sample_id": "partial-1", "score": 0.66}],
+                },
+                {
+                    "environment_id": environment_id,
+                    "group_id": "g-partial-retry",
+                    "records": [{"sample_id": "partial-2", "score": 0.67}],
+                },
+            ]
+        },
+    )
+
+    successful_duplicate = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-success-dup"},
+        json={
+            "environment_id": environment_id,
+            "group_id": "g-success-dup",
+            "records": [{"sample_id": "post-success", "score": 0.91}],
+        },
+    )
+    successful_duplicate_retry = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-success-dup"},
+        json={
+            "environment_id": environment_id,
+            "group_id": "g-success-dup",
+            "records": [{"sample_id": "post-success", "score": 0.91}],
+        },
+    )
+
+    listed = runtime_client.get(
+        "/scored_data_list",
+        params={"environment_id": environment_id, "limit": 100},
+    )
+
+    assert first.status_code == 200
+    assert first.json()["accepted_count"] == 1
+    assert first.json()["deduplicated"] is False
+    assert retry.status_code == 200
+    assert retry.json()["accepted_count"] == 0
+    assert retry.json()["deduplicated"] is True
+
+    assert duplicated_scored_data_list.status_code == 200
+    assert duplicated_scored_data_list.json()["accepted_groups"] == 1
+    assert duplicated_scored_data_list.json()["duplicate_groups"] == 1
+
+    assert partial_first.status_code == 200
+    assert partial_first.json()["status"] == "partial_failed"
+    assert partial_retry.status_code == 200
+    assert partial_retry.json()["status"] == "completed"
+    assert partial_retry.json()["accepted_groups"] == 1
+    assert partial_retry.json()["duplicate_groups"] == 1
+
+    assert successful_duplicate.status_code == 200
+    assert successful_duplicate.json()["accepted_count"] == 1
+    assert successful_duplicate_retry.status_code == 200
+    assert successful_duplicate_retry.json()["accepted_count"] == 0
+    assert successful_duplicate_retry.json()["deduplicated"] is True
+
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 5
+
+
 def test_e2e_restart_recovery_for_durable_backend() -> None:
     from fastapi.testclient import TestClient
 

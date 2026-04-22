@@ -411,6 +411,7 @@ def build_runtime_app(
                 endpoint="/scored_data",
                 accepted_count=result.accepted_count,
                 deduplicated=result.deduplicated,
+                duplicate_groups=result.duplicate_groups,
             ),
         )
         return {
@@ -418,6 +419,7 @@ def build_runtime_app(
             "accepted_count": result.accepted_count,
             "accepted_groups": result.accepted_groups,
             "failed_groups": result.failed_groups,
+            "duplicate_groups": result.duplicate_groups,
             "status": result.status,
             "deduplicated": result.deduplicated,
         }
@@ -486,6 +488,7 @@ def build_runtime_app(
                 accepted_count=result.accepted_count,
                 deduplicated=result.deduplicated,
                 group_count=len(groups),
+                duplicate_groups=result.duplicate_groups,
             ),
         )
         return {
@@ -493,6 +496,7 @@ def build_runtime_app(
             "accepted_count": result.accepted_count,
             "accepted_groups": result.accepted_groups,
             "failed_groups": result.failed_groups,
+            "duplicate_groups": result.duplicate_groups,
             "status": result.status,
             "deduplicated": result.deduplicated,
         }
@@ -657,6 +661,11 @@ def _record_ingestion_metrics(
     )
     OBSERVABILITY.set_buffered_groups(env=env_name, group_count=result.accepted_groups)
     OBSERVABILITY.observe_ingestion(env=env_name, accepted_count=result.accepted_count)
+    OBSERVABILITY.observe_duplicate_groups(
+        env=env_name,
+        endpoint=endpoint,
+        duplicate_groups=result.duplicate_groups,
+    )
     if result.deduplicated:
         OBSERVABILITY.observe_duplicate_rejection(env=env_name, endpoint=endpoint)
     for group in groups:

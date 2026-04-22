@@ -263,6 +263,7 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert "atropos_buffered_groups" in metrics.text
     assert "atropos_ingestion_records_total" in metrics.text
     assert "atropos_duplicate_ingestion_rejections_total" in metrics.text
+    assert "atropos_duplicate_ingestion_groups_total" in metrics.text
     assert "atropos_batch_formation_latency_seconds" in metrics.text
     assert "atropos_failed_sends_total" in metrics.text
     assert "atropos_eval_duration_seconds" in metrics.text
@@ -450,7 +451,45 @@ def test_scored_data_list_post_deduplicates_groups() -> None:
     assert first.json()["accepted_count"] == 2
     assert second.status_code == 200
     assert second.json()["deduplicated"] is True
+    assert second.json()["duplicate_groups"] == 0
     assert listed.json()["count"] == 2
+
+
+def test_scored_data_list_deduplicates_duplicate_groups_within_single_request() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    response = client.post(
+        "/scored_data_list",
+        json={
+            "groups": [
+                {
+                    "group_id": "g-repeat",
+                    "environment_id": "env-a",
+                    "records": [{"sample_id": "1", "score": 0.9}],
+                },
+                {
+                    "group_id": "g-repeat",
+                    "environment_id": "env-a",
+                    "records": [{"sample_id": "1", "score": 0.9}],
+                },
+            ]
+        },
+        headers={"X-Request-ID": "req-dup-inside"},
+    )
+    listed = client.get("/scored_data_list", params={"environment_id": "env-a", "limit": 100})
+
+    assert response.status_code == 200
+    assert response.json()["accepted_groups"] == 1
+    assert response.json()["accepted_count"] == 1
+    assert response.json()["duplicate_groups"] == 1
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1
 
 
 def test_scored_data_list_partial_failure_retry_only_accepts_new_groups() -> None:
@@ -507,4 +546,5 @@ def test_scored_data_list_partial_failure_retry_only_accepts_new_groups() -> Non
     assert retry.status_code == 200
     assert retry.json()["status"] == "completed"
     assert retry.json()["accepted_groups"] == 1
+    assert retry.json()["duplicate_groups"] == 1
     assert listed.json()["count"] == 2
