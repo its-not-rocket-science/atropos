@@ -28,6 +28,8 @@ The suite verifies the core store-layer contract for:
 4. **batch selection**
    - `list_scored_data(..., limit=N)` returns a bounded batch slice
 5. **env registration**
+   - explicit environment registration is idempotent
+   - registered environment inventory can be listed
    - unknown environments return empty results
    - ingested records are isolated per `environment_id`
 6. **step/status updates**
