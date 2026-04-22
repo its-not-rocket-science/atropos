@@ -268,6 +268,27 @@ def test_metrics_endpoint_is_exposed_and_tracks_requests() -> None:
     assert "atropos_eval_duration_seconds" in metrics.text
 
 
+def test_environment_registration_endpoints_are_idempotent() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    app = build_runtime_app(store=InMemoryStore())
+    client = TestClient(app)
+
+    first = client.post("/environments", json={"environment_id": "env-contract"})
+    second = client.post("/environments", json={"environment_id": "env-contract"})
+    listing = client.get("/environments")
+
+    assert first.status_code == 200
+    assert first.json() == {"environment_id": "env-contract", "created": True}
+    assert second.status_code == 200
+    assert second.json() == {"environment_id": "env-contract", "created": False}
+    assert listing.status_code == 200
+    assert listing.json() == {"count": 1, "environments": ["env-contract"]}
+
+
 def test_runtime_startup_with_empty_store_reports_ready() -> None:
     from fastapi.testclient import TestClient
 

@@ -6,7 +6,7 @@ The runtime server no longer relies on process-local `app.state` dictionaries/de
 
 ## New architecture
 
-- `RuntimeStore` protocol defines storage operations for enqueue, status fetch, and reset.
+- `AtroposStore` protocol (aliased as `RuntimeStore` for compatibility) defines storage operations for environment registration, enqueue, dedupe, buffering, status fetch, and reset.
 - `InMemoryStore` preserves existing behavior for local development and tests.
 - `RedisStore` provides multi-instance coordination and fault-tolerant persistence.
 - `PostgresStore` is included as a stub for future implementation.
@@ -22,6 +22,10 @@ The runtime server no longer relies on process-local `app.state` dictionaries/de
   - `job_id`
   - `queue_depth`
   - `deduplicated`
+- `POST /environments` registers an environment explicitly and returns:
+  - `environment_id`
+  - `created` (idempotent registration flag)
+- `GET /environments` lists currently registered environments.
 - `GET /health` now includes `store` backend name.
 
 ## Migration steps

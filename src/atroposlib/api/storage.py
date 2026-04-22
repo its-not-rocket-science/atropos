@@ -140,6 +140,12 @@ class AtroposStore(Protocol):
     ) -> IngestScoredDataResult:
         """Ingest scored data groups with request-level deduplication."""
 
+    def register_environment(self, *, environment_id: str, now: datetime) -> bool:
+        """Register an environment in the runtime control plane."""
+
+    def list_registered_environments(self) -> list[str]:
+        """Return registered environments."""
+
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         """List scored records for an environment."""
 
@@ -196,6 +202,7 @@ class InMemoryStore:
 
     def __init__(self) -> None:
         self._queue: deque[str] = deque()
+        self._environments: set[str] = set()
         self._status_by_job: dict[str, RuntimeStatusRecord] = {}
         self._job_by_idempotency_key: dict[str, str] = {}
         self._scored_by_environment: dict[str, list[dict[str, object]]] = {}
@@ -300,6 +307,7 @@ class InMemoryStore:
     def reset(self) -> None:
         with self._lock:
             self._queue.clear()
+            self._environments.clear()
             self._status_by_job.clear()
             self._job_by_idempotency_key.clear()
             self._scored_by_environment.clear()
@@ -339,6 +347,7 @@ class InMemoryStore:
                 },
             ):
                 for group in groups:
+                    self._environments.add(group.environment_id)
                     group_key = f"{group.environment_id}:{group.group_id}"
                     if group_key in already_seen or group_key in self._accepted_group_keys:
                         continue
@@ -401,6 +410,17 @@ class InMemoryStore:
                 status=status,
                 failed_groups=failed_groups,
             )
+
+    def register_environment(self, *, environment_id: str, now: datetime) -> bool:
+        _ = now
+        with self._lock:
+            before = len(self._environments)
+            self._environments.add(environment_id)
+            return len(self._environments) > before
+
+    def list_registered_environments(self) -> list[str]:
+        with self._lock:
+            return sorted(self._environments)
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         with self._lock:
@@ -494,6 +514,9 @@ class RedisStore:
 
     def _scored_list_key(self, environment_id: str) -> str:
         return f"{self._key_prefix}:scored:environment:{environment_id}"
+
+    def _environment_key(self, environment_id: str) -> str:
+        return f"{self._key_prefix}:environment:{environment_id}"
 
     def _scored_group_status_key(self, environment_id: str, group_id: str) -> str:
         return f"{self._key_prefix}:scored:group_status:{environment_id}:{group_id}"
@@ -680,6 +703,10 @@ class RedisStore:
             },
         ):
             for group in groups:
+                self.register_environment(
+                    environment_id=group.environment_id,
+                    now=datetime.now(tz=timezone.utc),
+                )
                 if any(not isinstance(item, dict) for item in group.records):
                     failed_groups += 1
                     continue
@@ -754,6 +781,27 @@ class RedisStore:
             status=final_status,
             failed_groups=failed_groups,
         )
+
+    def register_environment(self, *, environment_id: str, now: datetime) -> bool:
+        return bool(
+            self._redis.set(
+                self._environment_key(environment_id),
+                now.astimezone(timezone.utc).isoformat(),
+                nx=True,
+            )
+        )
+
+    def list_registered_environments(self) -> list[str]:
+        cursor = 0
+        keys: list[str] = []
+        pattern = f"{self._key_prefix}:environment:*"
+        while True:
+            cursor, batch = self._redis.scan(cursor=cursor, match=pattern, count=100)
+            keys.extend(batch)
+            if cursor == 0:
+                break
+        marker = f"{self._key_prefix}:environment:"
+        return sorted(key[len(marker) :] for key in keys if key.startswith(marker))
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
         if limit <= 0:
@@ -881,6 +929,13 @@ class PostgresStore:
         raise NotImplementedError("PostgresStore is not implemented yet")
 
     def list_scored_data(self, *, environment_id: str, limit: int) -> list[dict[str, object]]:
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def register_environment(self, *, environment_id: str, now: datetime) -> bool:
+        _ = (environment_id, now)
+        raise NotImplementedError("PostgresStore is not implemented yet")
+
+    def list_registered_environments(self) -> list[str]:
         raise NotImplementedError("PostgresStore is not implemented yet")
 
     def get_scored_group_status(

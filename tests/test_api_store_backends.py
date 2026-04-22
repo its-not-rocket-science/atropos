@@ -137,6 +137,19 @@ def test_scored_data_batch_selection_and_env_registration_contract(backend: Back
     assert env_b_all == [{"sample_id": "b-1", "score": 0.9}]
 
 
+def test_environment_registration_contract(backend: BackendSession) -> None:
+    now = datetime.now(tz=timezone.utc)
+
+    first = backend.store.register_environment(environment_id="env-z", now=now)
+    second = backend.store.register_environment(environment_id="env-z", now=now)
+    third = backend.store.register_environment(environment_id="env-a", now=now)
+
+    assert first is True
+    assert second is False
+    assert third is True
+    assert backend.store.list_registered_environments() == ["env-a", "env-z"]
+
+
 def test_backend_startup_and_restart_contract(backend: BackendSession) -> None:
     startup = backend.store.startup()
 

@@ -377,6 +377,10 @@ def build_runtime_app(
                 detail="X-Request-ID or X-Idempotency-Key header is required",
             )
         group = _coerce_scored_data_group(payload)
+        store.register_environment(
+            environment_id=group.environment_id,
+            now=datetime.now(tz=timezone.utc),
+        )
         with tracing_span(
             "runtime.ingest_scored_data",
             attributes={
@@ -445,6 +449,11 @@ def build_runtime_app(
                     detail="each group must be an object",
                 )
             groups.append(_coerce_scored_data_group(group_payload))
+        for group in groups:
+            store.register_environment(
+                environment_id=group.environment_id,
+                now=datetime.now(tz=timezone.utc),
+            )
 
         with tracing_span(
             "runtime.ingest_scored_data",
@@ -493,6 +502,10 @@ def build_runtime_app(
         store: Annotated[AtroposStore, Depends(_get_store)],
         limit: int = 100,
     ) -> dict[str, Any]:
+        store.register_environment(
+            environment_id=environment_id,
+            now=datetime.now(tz=timezone.utc),
+        )
         bounded_limit = max(0, min(limit, 1000))
         with tracing_span(
             "runtime.trainer_batch_fetch",
@@ -507,6 +520,28 @@ def build_runtime_app(
             "count": len(records),
             "records": records,
         }
+
+    def register_environment(
+        payload: Annotated[dict[str, Any], Body(...)],
+        store: Annotated[AtroposStore, Depends(_get_store)],
+    ) -> dict[str, Any]:
+        environment_id = str(payload.get("environment_id", "")).strip()
+        if not environment_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="environment_id is required",
+            )
+        created = store.register_environment(
+            environment_id=environment_id,
+            now=datetime.now(tz=timezone.utc),
+        )
+        return {"environment_id": environment_id, "created": created}
+
+    def list_environments(
+        store: Annotated[AtroposStore, Depends(_get_store)],
+    ) -> dict[str, Any]:
+        environments = store.list_registered_environments()
+        return {"count": len(environments), "environments": environments}
 
     def metrics() -> Response:
         payload, content_type = render_metrics()
@@ -542,6 +577,18 @@ def build_runtime_app(
         "/scored_data",
         ingest_scored_data,
         methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
+    app.add_api_route(
+        "/environments",
+        register_environment,
+        methods=["POST"],
+        dependencies=[Depends(write_access)],
+    )
+    app.add_api_route(
+        "/environments",
+        list_environments,
+        methods=["GET"],
         dependencies=[Depends(write_access)],
     )
     app.add_api_route(
