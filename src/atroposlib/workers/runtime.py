@@ -14,7 +14,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -39,7 +39,10 @@ def _get_json(url: str, timeout: float) -> dict[str, Any]:
     request = Request(url, method="GET")
     with urlopen(request, timeout=timeout) as response:  # nosec: B310
         body = response.read().decode("utf-8")
-    return json.loads(body)
+    payload = json.loads(body)
+    if not isinstance(payload, dict):
+        raise ValueError("Expected JSON object response from runtime API")
+    return cast(dict[str, Any], payload)
 
 
 class RuntimeWorker:
@@ -97,7 +100,6 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
 
     app = FastAPI(title="Atropos Runtime Worker", lifespan=_lifespan)
 
-    @app.get("/livez")
     def livez(response: Response) -> dict[str, Any]:
         state = worker.health_state
         if state.shutdown:
@@ -109,7 +111,6 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
         response.status_code = status.HTTP_200_OK
         return {"status": "alive", "last_check_at": state.last_check_at}
 
-    @app.get("/readyz")
     def readyz(response: Response) -> dict[str, Any]:
         state = worker.health_state
         if state.ready and not state.shutdown:
@@ -122,6 +123,8 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
             "reason": state.last_error,
         }
 
+    app.add_api_route("/livez", livez, methods=["GET"])
+    app.add_api_route("/readyz", readyz, methods=["GET"])
     return app
 
 

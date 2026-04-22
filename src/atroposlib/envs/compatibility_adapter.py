@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -26,7 +26,7 @@ class BaseEnvCompatibilityAdapter:
 
     def serve(
         self,
-        step_fn: Any,
+        step_fn: Callable[..., dict[str, Any]],
         payload_or_stream: dict[str, Any] | Iterable[dict[str, Any]],
         worker_count: int,
     ) -> dict[str, Any] | list[dict[str, Any]]:
