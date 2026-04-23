@@ -15,9 +15,11 @@ See [Deployment Guide](deployment.md) for production-mode artifacts and [Stabili
 
 ## Maturity map
 
-- **Platform-grade now:** `src/atroposlib/api/*`, storage contract/backends, runtime controller/transport, observability hooks.
-- **Supported but evolving:** pipeline, A/B testing, telemetry calibration, quality tooling in `src/atropos/*`.
-- **Experimental:** validation experiments, plugin/environment integrations, many examples/scripts.
+- **Tier 1: platform core** — `src/atroposlib/api/*`, storage contract/backends, runtime controller/transport, observability hooks.
+- **Tier 2: supported research infrastructure** — pipeline, A/B testing, telemetry calibration, trajectory, quality, and validation infrastructure in `src/atropos/*`.
+- **Tier 3: experimental/community code** — plugin/environment integrations plus many examples/scripts.
+
+Compatibility and CI expectations by tier are defined in [Stability Tiers](stability-tiers.md).
 
 ## Quick Links
 

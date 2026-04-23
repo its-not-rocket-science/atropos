@@ -1,4 +1,7 @@
-"""Compatibility package for modular environment refactors."""
+"""Compatibility package for modular environment refactors.
+
+Stability tier: Tier 1 (platform core).
+"""
 
 from .plugins import (
     ENVIRONMENT_ENTRYPOINT_GROUP,
