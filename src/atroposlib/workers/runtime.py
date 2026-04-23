@@ -18,7 +18,6 @@ from typing import Any, cast
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-import uvicorn
 from fastapi import FastAPI, Response, status
 
 from ..logging_utils import build_log_context, configure_logging
@@ -250,6 +249,9 @@ def main() -> None:
         request_timeout_seconds=args.request_timeout_seconds,
     )
     app = build_worker_app(worker)
+    from importlib import import_module
+
+    uvicorn = import_module("uvicorn")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
