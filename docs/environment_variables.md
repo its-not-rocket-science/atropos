@@ -88,7 +88,7 @@ This prevents implicit localhost assumptions in production mode and makes durabi
 
 ## Probe endpoints
 
-| Service | Liveness | Readiness |
-|---|---|---|
-| API | `/health/live` | `/health/ready` |
-| Worker | `/livez` | `/readyz` |
+| Service | Liveness | Readiness | Dependencies |
+|---|---|---|---|
+| API | `/health/live` | `/health/ready` | `/health/dependencies` |
+| Worker | `/livez` (or `/health/live`) | `/readyz` (or `/health/ready`) | `/depz` (or `/health/dependencies`) |
