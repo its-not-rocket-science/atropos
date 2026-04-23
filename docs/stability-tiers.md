@@ -67,3 +67,18 @@ When a module is promoted or demoted, update all three in the same change.
 - Building production services: prefer Tier 1 interfaces.
 - Building internal research pipelines: Tier 2 is appropriate with version pinning.
 - Prototyping integrations or custom environments: Tier 3 is expected, but treat it as unstable.
+
+
+## Operating mode guidance
+
+Map tier usage to operating mode to avoid over-committing on unstable surfaces.
+
+- **Research mode:** Tier 2 + Tier 3 are acceptable; optimize for iteration speed.
+- **Local dev mode:** validate integrations against Tier 1 contracts, while using Tier 2 for workflow development.
+- **Production mode:** depend on Tier 1 for core runtime responsibilities; adopt Tier 2 selectively with version pinning and rollout safeguards; avoid Tier 3 in critical paths.
+
+## Platform-grade vs experimental summary
+
+- Treat `src/atroposlib/*` runtime API/store/runtime/observability surfaces as the primary production boundary.
+- Treat many `src/atropos/*` workflow modules as supported but evolving.
+- Treat `examples/*`, `scripts/*`, and plugin/community integrations as experimental unless explicitly promoted.
