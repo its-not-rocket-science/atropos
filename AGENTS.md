@@ -14,6 +14,7 @@ mypy src
 If any required check fails, fix the reported issues and rerun the full required check list until everything passes.
 
 Codex must not report completion, create a commit, or open a PR while any required check is failing.
+Codex must also not post a final task-complete message until these checks have passed in the current run.
 
 When changing FastAPI request/response handling or endpoint signatures, Codex must also run:
 
