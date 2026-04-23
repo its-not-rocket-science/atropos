@@ -39,26 +39,31 @@ Deployment details for production mode are in [`docs/deployment.md`](docs/deploy
 
 Atropos is intentionally mixed-maturity. Not every module should be treated as production-grade.
 
-### Platform-grade today (recommended production dependency)
+### Tier 1: platform core
 
 - Runtime API surface and health endpoints (`src/atroposlib/api/*`)
 - Store abstraction + Redis-backed durability path (`src/atroposlib/api/storage.py`)
 - Runtime controller and transport interfaces (`src/atroposlib/envs/runtime_controller.py`, `src/atroposlib/envs/transport_client.py`)
 - Runtime observability primitives (`src/atroposlib/observability.py`)
 
-### Supported but faster-evolving
+**Expectation:** strongest compatibility target across minor releases for public contracts.
+
+### Tier 2: supported research infrastructure
 
 - Pipeline orchestration (`src/atropos/pipeline/*`)
 - A/B testing and quality workflows (`src/atropos/abtesting/*`, `src/atropos/quality/*`)
-- Telemetry ingestion/calibration flows (`src/atropos/telemetry*`)
+- Telemetry ingestion/calibration and trajectory/validation infrastructure (`src/atropos/telemetry*`, `src/atropos/trajectory/*`, `src/atropos/validation/*`)
 
-### Experimental / research-first
+**Expectation:** maintained and supported, but interfaces may evolve faster than Tier 1; pin minor versions for deep integrations.
 
-- Validation experiments and exploratory utilities (`src/atropos/validation/*`)
+### Tier 3: experimental/community code
+
 - Community/plugin and custom environment integrations (`src/environments/*`, `src/atroposlib/plugins/*`)
 - Examples/scripts intended for iteration and learning (`examples/*`, `scripts/*`)
 
-Canonical policy and compatibility expectations: [`docs/stability-tiers.md`](docs/stability-tiers.md).
+**Expectation:** unstable by design; surfaces may change across any release boundary.
+
+Canonical policy, compatibility guarantees, and CI/test expectations: [`docs/stability-tiers.md`](docs/stability-tiers.md).
 
 ## When to use Atropos / when not to
 
