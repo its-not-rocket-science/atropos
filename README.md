@@ -1,20 +1,78 @@
 # Atropos
 > Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
 
-Atropos is an **ROI estimation + optimization toolkit** for coding-LLM deployments. It helps teams forecast cost/energy/performance impact and decide which optimization work is worth shipping. Beyond ROI estimation, Atropos also includes practical modules for **pipeline orchestration, validation, telemetry ingestion, and A/B testing**.
+Atropos is an **ROI estimation + optimization toolkit** for coding-LLM deployments, with a hardened runtime/API core for teams that need to run controlled experiments and ingestion workflows in production.
 
 > Use `atropos` for Python imports and `atropos-llm` for the CLI.
 
+## Operating modes (what Atropos is today)
 
-## Stability tiers and product maturity
+Atropos supports three practical modes. Picking the right mode is the fastest way to set correct expectations.
 
-Atropos is production-oriented for **platform core runtime surfaces**, while other parts of the repository are intentionally at different maturity levels.
+### 1) Research mode
 
-- **Tier 1 (platform core):** API server, store layer, runtime loop, and transport components in `atroposlib` are the most stable surfaces for production dependency.
-- **Tier 2 (supported research features):** validation, A/B testing, pipeline, and related research modules are maintained and supported but may evolve faster than Tier 1.
-- **Tier 3 (experimental/community environments):** environment/plugin integrations and community extensions are intentionally experimental.
+Use this mode when the goal is model/strategy exploration speed.
 
-Compatibility expectations and module mapping are defined in `docs/stability-tiers.md`.
+- Typical stack: notebooks, scripts, examples, validation modules, ad hoc pipeline runs.
+- Storage/runtime posture: in-memory state and best-effort reliability are acceptable.
+- Change tolerance: high; interfaces may evolve quickly.
+
+### 2) Local dev mode
+
+Use this mode when building features or integrations before production rollout.
+
+- Typical stack: local API + worker, Docker Compose, contract/integration tests.
+- Storage/runtime posture: reproducible local runs; Redis-backed runs recommended for parity checks.
+- Change tolerance: moderate; stable platform contracts + evolving surrounding features.
+
+### 3) Production mode
+
+Use this mode for persistent runtime/API workloads with operational requirements.
+
+- Typical stack: Runtime API + worker + Redis, health/readiness probes, structured logs, metrics dashboards.
+- Storage/runtime posture: durable store, authenticated writes, readiness/dependency gating.
+- Change tolerance: low on platform contracts; upgrades should follow documented compatibility guidance.
+
+Deployment details for production mode are in [`docs/deployment.md`](docs/deployment.md).
+
+## Maturity and stability
+
+Atropos is intentionally mixed-maturity. Not every module should be treated as production-grade.
+
+### Platform-grade today (recommended production dependency)
+
+- Runtime API surface and health endpoints (`src/atroposlib/api/*`)
+- Store abstraction + Redis-backed durability path (`src/atroposlib/api/storage.py`)
+- Runtime controller and transport interfaces (`src/atroposlib/envs/runtime_controller.py`, `src/atroposlib/envs/transport_client.py`)
+- Runtime observability primitives (`src/atroposlib/observability.py`)
+
+### Supported but faster-evolving
+
+- Pipeline orchestration (`src/atropos/pipeline/*`)
+- A/B testing and quality workflows (`src/atropos/abtesting/*`, `src/atropos/quality/*`)
+- Telemetry ingestion/calibration flows (`src/atropos/telemetry*`)
+
+### Experimental / research-first
+
+- Validation experiments and exploratory utilities (`src/atropos/validation/*`)
+- Community/plugin and custom environment integrations (`src/environments/*`, `src/atroposlib/plugins/*`)
+- Examples/scripts intended for iteration and learning (`examples/*`, `scripts/*`)
+
+Canonical policy and compatibility expectations: [`docs/stability-tiers.md`](docs/stability-tiers.md).
+
+## When to use Atropos / when not to
+
+### Use Atropos when
+
+- You need **ROI-first optimization planning** (cost, throughput, energy, break-even) with reproducible assumptions.
+- You want to combine ROI estimation with **runtime ingestion + experiment operations** in one codebase.
+- You need a pragmatic local-to-production path for API/worker runtime services.
+
+### Do not choose Atropos when
+
+- You need a fully managed, turnkey hosted platform with no self-operation footprint.
+- Your requirement is strict long-term API stability across the entire repository (only platform-core surfaces are held to that bar).
+- You only need a lightweight one-off benchmark script and do not need runtime services, storage contracts, or operational controls.
 
 ## Quickstart (under 10 minutes)
 
@@ -75,9 +133,9 @@ atropos-llm demo --config configs/demo.yaml
 
 ## 1) What problem this solves
 
-Atropos' **primary identity** is ROI estimation and optimization planning for coding-LLM deployments. It gives you a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment. This makes go/no-go decisions explicit instead of relying on disconnected benchmark snapshots.
+Atropos' primary identity is ROI estimation and optimization planning for coding-LLM deployments. It gives teams a reproducible way to estimate optimization ROI before committing engineering time. You can model how pruning and related changes alter memory, throughput, power, and annual cost, then compare savings to one-time project investment.
 
-When you need end-to-end operational support around that ROI workflow, Atropos also provides **secondary modules**:
+When you need operational support around that workflow, Atropos also provides:
 
 - **Pipeline execution** for repeatable optimization/validation flows.
 - **Validation tooling** for scenario and model checks.
@@ -90,27 +148,29 @@ Canonical definitions for **environment**, **trajectory**, **group**, **rollout*
 
 Use those definitions as the single mental model across this repository.
 
-## 3) System architecture
+## 3) Architecture overview (current state)
 
-Atropos is organized as an ROI-first toolkit with modular execution components.
+Atropos currently has a layered architecture with different maturity levels:
 
-1. A run starts from a deployment scenario and optimization strategy (or preset pair).
-2. The calculator produces baseline vs optimized metrics and ROI outputs.
-3. Pipeline and validation modules can execute reproducible checks around those scenarios.
-4. Telemetry modules can ingest runtime signals and map them into scenario inputs.
-5. A/B testing modules can aggregate control/treatment outcomes for rollout decisions.
+1. **ROI and analysis layer (`src/atropos/*`)**
+   - Scenario/strategy modeling and ROI calculation.
+   - Validation, A/B testing, and pipeline orchestration modules (maturity varies by submodule).
+2. **Platform runtime layer (`src/atroposlib/*`)**
+   - API server, store contract, runtime controller, worker runtime, transport behavior.
+   - Health/readiness/dependency endpoints and observability hooks.
+3. **Integration and experimentation layer (`examples/*`, `scripts/*`, plugins/envs)**
+   - Prototypes, experiments, adapters, and exploratory workflows.
 
-A compact interaction view:
+Compact interaction view:
 
 ```text
 Scenario + Strategy
-  -> ROI calculation (cost/perf/energy + break-even)
-  -> Validation / pipeline execution
-  -> Telemetry calibration (optional)
-  -> A/B comparison + rollout gate (optional)
+  -> ROI calculation and decision support
+  -> Optional runtime execution (API + worker + store)
+  -> Validation / A-B comparison / telemetry calibration
 ```
 
-This separation keeps core ROI calculation deterministic while supporting production-oriented modules around it.
+This architecture supports both research iteration and platform operation, but only the platform runtime layer should be treated as production-grade by default.
 
 ## 4) Minimal working example (end-to-end)
 

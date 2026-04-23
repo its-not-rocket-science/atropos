@@ -1,43 +1,49 @@
 # Atropos Documentation
 > Terminology follows the canonical glossary: `/docs/canonical-glossary.md`.
 
-**Atropos** is an **ROI estimation + optimization toolkit** for coding-LLM deployments.
-
-Secondary modules support production workflows around the ROI core:
-- pipeline orchestration
-- validation
-- telemetry ingestion
-- A/B testing
+**Atropos** combines an ROI estimation toolkit with a production-capable runtime/API core.
 
 > Use `atropos` for Python imports and `atropos-llm` for the CLI.
+
+## Operating modes at a glance
+
+- **Research mode:** fast iteration using examples/scripts/validation with minimal operational guarantees.
+- **Local dev mode:** reproducible developer workflow with local API/worker and parity-oriented testing.
+- **Production mode:** hardened runtime operation (API + worker + Redis) with auth, readiness/dependency checks, and observability.
+
+See [Deployment Guide](deployment.md) for production-mode artifacts and [Stability Tiers](stability-tiers.md) for compatibility expectations.
+
+## Maturity map
+
+- **Platform-grade now:** `src/atroposlib/api/*`, storage contract/backends, runtime controller/transport, observability hooks.
+- **Supported but evolving:** pipeline, A/B testing, telemetry calibration, quality tooling in `src/atropos/*`.
+- **Experimental:** validation experiments, plugin/environment integrations, many examples/scripts.
 
 ## Quick Links
 
 - [Canonical Glossary](canonical-glossary.md)
-- [Documentation Rewrite Plan](doc-rewrite-plan.md)
-- [Product Strategy](product-strategy.md)
-- [Positioning RFC](positioning_rfc.md)
+- [Stability Tiers](stability-tiers.md)
+- [Deployment Guide](deployment.md)
+- [Environment Variables](environment_variables.md)
 - [Platform Architecture RFC](platform_architecture_rfc.md)
-- [Async RL Reproducibility Architecture](async_rl_reproducibility_architecture.md)
+- [Adoption Assessment (2026-04)](adoption_assessment_2026_04.md)
+- [Production Readiness Audit (2026-04)](production_readiness_audit_2026_04.md)
 
 - [Installation](installation.md)
 - [CLI Usage](cli.md)
 - [Python API](api.md)
 - [Examples](examples.md)
-- [Stability Tiers](stability-tiers.md)
 - [Environment API Stability](environment_api_stability.md)
 - [Environment Transport Failure Behavior](environment_transport_failure_behavior.md)
-- [Deployment Guide](deployment.md)
-- [Environment Variables](environment_variables.md)
 
 ## Canonical terminology
 
 For core concepts, use the canonical glossary definitions and avoid redefining terms in-place:
 `/docs/canonical-glossary.md`.
 
-## What Atropos Does
+## What Atropos does
 
-Named after the Fate who cuts the thread, Atropos is built for practical deployment decisions with an ROI-estimation-first identity:
+Atropos is built for practical deployment decisions with an ROI-estimation-first identity:
 
 - Estimate memory, throughput, energy, and cost outcomes from optimization choices.
 - Evaluate break-even timelines for pruning and related strategy mixes.
@@ -48,16 +54,4 @@ Named after the Fate who cuts the thread, Atropos is built for practical deploym
 
 ```bash
 atropos-llm preset medium-coder --strategy structured_pruning --report text
-```
-
-Output:
-```
-Scenario: medium-coder
-Strategy: structured_pruning
-
-Model memory:      14.00 GB -> 10.92 GB
-Throughput:        40.00 tok/s -> 48.00 tok/s
-Annual savings:    $12,500.50
-Break-even:        21.60 months
-Quality risk:      medium
 ```

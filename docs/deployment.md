@@ -2,6 +2,8 @@
 
 This guide documents deployable runtime services that exist in the current repository and maps them to concrete deployment artifacts.
 
+Production hardening for the runtime service path is implemented in-repo (auth, readiness/dependency gates, durable Redis backing for production profile, and structured observability).
+
 ## What is deployable today
 
 The current runtime architecture is a 3-service deployment:
