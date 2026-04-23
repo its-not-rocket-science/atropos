@@ -214,6 +214,20 @@ def build_runtime_app(
 
     app = FastAPI(title="Atropos Runtime API", lifespan=_lifespan)
 
+    def _raise_store_unavailable(operation: str, exc: Exception) -> None:
+        api_logger.exception(
+            "store_operation_failed",
+            extra=build_log_context(
+                endpoint=operation,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                error=str(exc),
+            ),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Runtime store unavailable during {operation}",
+        ) from exc
+
     async def _get_store() -> AtroposStore:
         return runtime_store
 
@@ -296,7 +310,10 @@ def build_runtime_app(
     app.middleware("http")(_metrics_middleware)
 
     def health(store: Annotated[AtroposStore, Depends(_get_store)]) -> dict[str, str]:
-        backend_name = store.backend_name
+        try:
+            backend_name = store.backend_name
+        except Exception as exc:
+            _raise_store_unavailable("/health", exc)
         return {"status": "ok", "tier": tier.value, "store": backend_name}
 
     def liveness(response: Response) -> dict[str, Any]:
@@ -308,7 +325,10 @@ def build_runtime_app(
         return {"status": "alive", "health_state": "healthy"}
 
     def dependency_health(response: Response) -> dict[str, Any]:
-        dependency = runtime_store.dependency_health()
+        try:
+            dependency = runtime_store.dependency_health()
+        except Exception as exc:
+            _raise_store_unavailable("/health/dependencies", exc)
         if dependency.healthy:
             response.status_code = status.HTTP_200_OK
             return {
@@ -327,7 +347,10 @@ def build_runtime_app(
 
     def readiness(http_response: Response) -> dict[str, Any]:
         startup_state = process_state.store_startup_state
-        dependency: DependencyHealth = runtime_store.dependency_health()
+        try:
+            dependency: DependencyHealth = runtime_store.dependency_health()
+        except Exception as exc:
+            _raise_store_unavailable("/health/ready", exc)
         is_shutting_down = process_state.is_shutting_down
         control_plane_ready = process_state.ready and process_state.startup_error is None
         backing_store_healthy = dependency.healthy
@@ -365,11 +388,14 @@ def build_runtime_app(
     ) -> dict[str, Any]:
         x_idempotency_key = request.headers.get("X-Idempotency-Key")
         now = datetime.now(tz=timezone.utc)
-        enqueue_result = store.enqueue_job(
-            job_id=str(uuid4()),
-            now=now,
-            idempotency_key=x_idempotency_key,
-        )
+        try:
+            enqueue_result = store.enqueue_job(
+                job_id=str(uuid4()),
+                now=now,
+                idempotency_key=x_idempotency_key,
+            )
+        except Exception as exc:
+            _raise_store_unavailable("/jobs", exc)
         env_name = request.headers.get("X-Env", "default")
         request_id = request.headers.get("X-Request-ID") or x_idempotency_key
         OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=enqueue_result.queue_depth)
@@ -397,7 +423,10 @@ def build_runtime_app(
         job_id: str,
         store: Annotated[AtroposStore, Depends(_get_store)],
     ) -> dict[str, Any]:
-        status_record = store.get_job_status(job_id)
+        try:
+            status_record = store.get_job_status(job_id)
+        except Exception as exc:
+            _raise_store_unavailable("/jobs/{job_id}", exc)
         if status_record is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown job_id")
         return {
@@ -421,10 +450,13 @@ def build_runtime_app(
                 detail="X-Request-ID or X-Idempotency-Key header is required",
             )
         group = _coerce_scored_data_group(payload)
-        store.register_environment(
-            environment_id=group.environment_id,
-            now=datetime.now(tz=timezone.utc),
-        )
+        try:
+            store.register_environment(
+                environment_id=group.environment_id,
+                now=datetime.now(tz=timezone.utc),
+            )
+        except Exception as exc:
+            _raise_store_unavailable("/scored_data", exc)
         with tracing_span(
             "runtime.ingest_scored_data",
             attributes={
@@ -434,10 +466,13 @@ def build_runtime_app(
                 "atropos.record_count": len(group.records),
             },
         ):
-            result = store.ingest_scored_data(
-                request_id=request_id,
-                groups=[group],
-            )
+            try:
+                result = store.ingest_scored_data(
+                    request_id=request_id,
+                    groups=[group],
+                )
+            except Exception as exc:
+                _raise_store_unavailable("/scored_data", exc)
         env_name = group.environment_id
         _record_ingestion_metrics(
             store=store,
@@ -496,10 +531,13 @@ def build_runtime_app(
                 )
             groups.append(_coerce_scored_data_group(group_payload))
         for group in groups:
-            store.register_environment(
-                environment_id=group.environment_id,
-                now=datetime.now(tz=timezone.utc),
-            )
+            try:
+                store.register_environment(
+                    environment_id=group.environment_id,
+                    now=datetime.now(tz=timezone.utc),
+                )
+            except Exception as exc:
+                _raise_store_unavailable("/scored_data_list", exc)
 
         with tracing_span(
             "runtime.ingest_scored_data",
@@ -510,10 +548,13 @@ def build_runtime_app(
                 "atropos.record_count": sum(len(group.records) for group in groups),
             },
         ):
-            result = store.ingest_scored_data(
-                request_id=request_id,
-                groups=groups,
-            )
+            try:
+                result = store.ingest_scored_data(
+                    request_id=request_id,
+                    groups=groups,
+                )
+            except Exception as exc:
+                _raise_store_unavailable("/scored_data_list", exc)
         env_name = groups[0].environment_id if groups else "default"
         _record_ingestion_metrics(
             store=store,
@@ -550,10 +591,13 @@ def build_runtime_app(
         store: Annotated[AtroposStore, Depends(_get_store)],
         limit: int = 100,
     ) -> dict[str, Any]:
-        store.register_environment(
-            environment_id=environment_id,
-            now=datetime.now(tz=timezone.utc),
-        )
+        try:
+            store.register_environment(
+                environment_id=environment_id,
+                now=datetime.now(tz=timezone.utc),
+            )
+        except Exception as exc:
+            _raise_store_unavailable("/scored_data_list", exc)
         bounded_limit = max(0, min(limit, 1000))
         with tracing_span(
             "runtime.trainer_batch_fetch",
@@ -562,7 +606,10 @@ def build_runtime_app(
                 "atropos.limit": bounded_limit,
             },
         ):
-            records = store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
+            try:
+                records = store.list_scored_data(environment_id=environment_id, limit=bounded_limit)
+            except Exception as exc:
+                _raise_store_unavailable("/scored_data_list", exc)
         return {
             "environment_id": environment_id,
             "count": len(records),
@@ -579,16 +626,22 @@ def build_runtime_app(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="environment_id is required",
             )
-        created = store.register_environment(
-            environment_id=environment_id,
-            now=datetime.now(tz=timezone.utc),
-        )
+        try:
+            created = store.register_environment(
+                environment_id=environment_id,
+                now=datetime.now(tz=timezone.utc),
+            )
+        except Exception as exc:
+            _raise_store_unavailable("/environments", exc)
         return {"environment_id": environment_id, "created": created}
 
     def list_environments(
         store: Annotated[AtroposStore, Depends(_get_store)],
     ) -> dict[str, Any]:
-        environments = store.list_registered_environments()
+        try:
+            environments = store.list_registered_environments()
+        except Exception as exc:
+            _raise_store_unavailable("/environments", exc)
         return {"count": len(environments), "environments": environments}
 
     def metrics() -> Response:
@@ -598,7 +651,10 @@ def build_runtime_app(
     def reset_runtime(store: Annotated[AtroposStore, Depends(_get_store)]) -> dict[str, str]:
         if not policy.allow_reset_endpoint:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-        store.reset()
+        try:
+            store.reset()
+        except Exception as exc:
+            _raise_store_unavailable("/admin/reset", exc)
         api_logger.warning(
             "runtime_reset",
             extra=build_log_context(endpoint="/admin/reset"),
