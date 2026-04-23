@@ -432,3 +432,36 @@ def test_e2e_restart_recovery_for_durable_backend() -> None:
     assert status is not None
     assert status.state == "acknowledged"
     assert metrics.depth == 0
+
+
+def test_e2e_worker_restart_retry_reuses_request_id_without_duplicate_ingestion(
+    runtime_client: Any,
+) -> None:
+    environment_id = "env-worker-restart"
+    payload = {
+        "environment_id": environment_id,
+        "group_id": "group-worker-restart",
+        "records": [{"sample_id": "w1", "score": 0.5}],
+    }
+
+    first = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-worker-restart-1"},
+        json=payload,
+    )
+    worker_restart_retry = runtime_client.post(
+        "/scored_data",
+        headers={"X-Request-ID": "req-worker-restart-1"},
+        json=payload,
+    )
+    listed = runtime_client.get(
+        "/scored_data_list",
+        params={"environment_id": environment_id, "limit": 10},
+    )
+
+    assert first.status_code == 200
+    assert first.json()["deduplicated"] is False
+    assert worker_restart_retry.status_code == 200
+    assert worker_restart_retry.json()["deduplicated"] is True
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1

@@ -68,6 +68,18 @@ class FakeRedis:
         return None
 
 
+class IntermittentRedis(FakeRedis):
+    def __init__(self) -> None:
+        super().__init__()
+        self.fail_next_rpush = False
+
+    def rpush(self, key: str, value: str) -> int:
+        if self.fail_next_rpush:
+            self.fail_next_rpush = False
+            raise RuntimeError("simulated batch delivery interruption")
+        return super().rpush(key, value)
+
+
 def test_inmemory_store_idempotency_header_deduplicates_jobs() -> None:
     from fastapi.testclient import TestClient
 
@@ -381,6 +393,32 @@ def test_runtime_readiness_reports_degraded_when_dependency_fails() -> None:
     assert dependencies.json()["health_state"] == "degraded"
 
 
+def test_store_outage_returns_explicit_503_on_write_paths() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import InMemoryStore
+
+    class BrokenStore(InMemoryStore):
+        def enqueue_job(
+            self,
+            *,
+            job_id: str,
+            now: datetime,
+            idempotency_key: str | None,
+        ) -> object:
+            _ = (job_id, now, idempotency_key)
+            raise RuntimeError("store offline")
+
+    app = build_runtime_app(store=BrokenStore())
+    client = TestClient(app)
+
+    response = client.post("/jobs", json={"task": "a"})
+
+    assert response.status_code == 503
+    assert "Runtime store unavailable during /jobs" in response.text
+
+
 def test_scored_data_requires_request_id_header() -> None:
     from fastapi.testclient import TestClient
 
@@ -584,3 +622,76 @@ def test_scored_data_list_partial_failure_retry_only_accepts_new_groups() -> Non
     assert retry.json()["accepted_groups"] == 1
     assert retry.json()["duplicate_groups"] == 1
     assert listed.json()["count"] == 2
+
+
+def test_batch_delivery_interruption_transitions_to_interrupted_and_recovers_on_retry() -> None:
+    from atroposlib.api.storage import RedisStore, ScoredDataGroup
+
+    redis = IntermittentRedis()
+    store = RedisStore(redis_client=redis)
+    redis.fail_next_rpush = True
+
+    first = store.ingest_scored_data(
+        request_id="req-interrupt-1",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-interrupt",
+                group_id="group-interrupt",
+                records=[{"sample_id": "a", "score": 0.1}],
+            )
+        ],
+    )
+    first_status = store.get_scored_group_status(
+        environment_id="env-interrupt",
+        group_id="group-interrupt",
+    )
+    retry = store.ingest_scored_data(
+        request_id="req-interrupt-1",
+        groups=[
+            ScoredDataGroup(
+                environment_id="env-interrupt",
+                group_id="group-interrupt",
+                records=[{"sample_id": "a", "score": 0.1}],
+            )
+        ],
+    )
+    retry_status = store.get_scored_group_status(
+        environment_id="env-interrupt",
+        group_id="group-interrupt",
+    )
+
+    assert first.status == "partial_failed"
+    assert first.failed_groups == 1
+    assert first.accepted_groups == 0
+    assert first_status is not None
+    assert first_status.state == "interrupted"
+    assert first_status.interrupted_at is not None
+    assert retry.status == "completed"
+    assert retry.accepted_groups == 1
+    assert retry.failed_groups == 0
+    assert retry_status is not None
+    assert retry_status.state == "acknowledged"
+
+
+def test_duplicate_environment_registration_remains_idempotent_after_restart() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import RedisStore
+
+    redis = FakeRedis()
+    first_app = build_runtime_app(store=RedisStore(redis_client=redis))
+    with TestClient(first_app) as client:
+        first = client.post("/environments", json={"environment_id": "env-restart-idempotent"})
+
+    second_app = build_runtime_app(store=RedisStore(redis_client=redis))
+    with TestClient(second_app) as client:
+        second = client.post("/environments", json={"environment_id": "env-restart-idempotent"})
+        listed = client.get("/environments")
+
+    assert first.status_code == 200
+    assert first.json()["created"] is True
+    assert second.status_code == 200
+    assert second.json()["created"] is False
+    assert listed.status_code == 200
+    assert listed.json() == {"count": 1, "environments": ["env-restart-idempotent"]}

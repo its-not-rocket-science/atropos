@@ -69,6 +69,7 @@ class QueuedGroupStatusRecord:
     buffered_at: datetime | None
     batched_at: datetime | None
     delivered_at: datetime | None
+    interrupted_at: datetime | None
     acknowledged_at: datetime | None
     updated_at: datetime
 
@@ -100,7 +101,7 @@ class DependencyHealth:
     detail: str
 
 
-GROUP_LIFECYCLE = ("accepted", "buffered", "batched", "delivered", "acknowledged")
+GROUP_LIFECYCLE = ("accepted", "buffered", "batched", "delivered", "interrupted", "acknowledged")
 
 
 class AtroposStore(Protocol):
@@ -237,6 +238,7 @@ class InMemoryStore:
                 buffered_at=None,
                 batched_at=None,
                 delivered_at=None,
+                interrupted_at=None,
                 acknowledged_at=None,
                 updated_at=now,
             )
@@ -252,11 +254,21 @@ class InMemoryStore:
             buffered_at=now if new_state == "buffered" else current.buffered_at,
             batched_at=now if new_state == "batched" else current.batched_at,
             delivered_at=now if new_state == "delivered" else current.delivered_at,
+            interrupted_at=now if new_state == "interrupted" else current.interrupted_at,
             acknowledged_at=now if new_state == "acknowledged" else current.acknowledged_at,
             updated_at=now,
         )
         self._group_status_by_key[key] = record
         return record
+
+    def _append_scored_records(
+        self,
+        *,
+        environment_id: str,
+        records: list[dict[str, object]],
+    ) -> None:
+        bucket = self._scored_by_environment.setdefault(environment_id, [])
+        bucket.extend(records)
 
     def enqueue_job(
         self,
@@ -385,14 +397,26 @@ class InMemoryStore:
                             new_state="batched",
                             now=now,
                         )
+                        try:
+                            self._append_scored_records(
+                                environment_id=group.environment_id,
+                                records=group.records,
+                            )
+                        except Exception:
+                            self._transition_group_state(
+                                environment_id=group.environment_id,
+                                group_id=group.group_id,
+                                new_state="interrupted",
+                                now=now,
+                            )
+                            failed_groups += 1
+                            continue
                         self._transition_group_state(
                             environment_id=group.environment_id,
                             group_id=group.group_id,
                             new_state="delivered",
                             now=now,
                         )
-                        bucket = self._scored_by_environment.setdefault(group.environment_id, [])
-                        bucket.extend(group.records)
                         self._accepted_group_keys.add(group_key)
                         already_seen.add(group_key)
                         self._transition_group_state(
@@ -554,6 +578,7 @@ class RedisStore:
             "buffered": "buffered_at",
             "batched": "batched_at",
             "delivered": "delivered_at",
+            "interrupted": "interrupted_at",
             "acknowledged": "acknowledged_at",
         }
         self._redis.hset(
@@ -756,6 +781,20 @@ class RedisStore:
                         new_state="batched",
                         now=now,
                     )
+                    try:
+                        list_key = self._scored_list_key(group.environment_id)
+                        for record in group.records:
+                            self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
+                    except Exception:
+                        self._transition_group_state(
+                            environment_id=group.environment_id,
+                            group_id=group.group_id,
+                            new_state="interrupted",
+                            now=now,
+                        )
+                        self._redis.delete(group_key)
+                        failed_groups += 1
+                        continue
                     self._transition_group_state(
                         environment_id=group.environment_id,
                         group_id=group.group_id,
@@ -767,9 +806,6 @@ class RedisStore:
                         "1",
                         ex=self._idempotency_ttl_seconds,
                     )
-                    list_key = self._scored_list_key(group.environment_id)
-                    for record in group.records:
-                        self._redis.rpush(list_key, json.dumps(record, sort_keys=True))
                     self._transition_group_state(
                         environment_id=group.environment_id,
                         group_id=group.group_id,
@@ -847,6 +883,11 @@ class RedisStore:
                 if payload.get("delivered_at")
                 else None
             ),
+            interrupted_at=(
+                datetime.fromisoformat(payload["interrupted_at"])
+                if payload.get("interrupted_at")
+                else None
+            ),
             acknowledged_at=(
                 datetime.fromisoformat(payload["acknowledged_at"])
                 if payload.get("acknowledged_at")
@@ -883,6 +924,7 @@ class RedisStore:
                     buffered_at=None,
                     batched_at=None,
                     delivered_at=None,
+                    interrupted_at=None,
                     acknowledged_at=None,
                     updated_at=datetime.fromisoformat(payload["updated_at"]),
                 )
