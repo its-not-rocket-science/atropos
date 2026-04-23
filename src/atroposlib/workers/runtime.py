@@ -34,6 +34,7 @@ class WorkerHealthState:
     started: bool = False
     ready: bool = False
     shutdown: bool = False
+    dependency_name: str = "runtime_api"
     last_check_at: str | None = None
     last_error: str | None = None
 
@@ -131,23 +132,62 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
         state = worker.health_state
         if state.shutdown:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            return {"status": "terminating", "last_check_at": state.last_check_at}
+            return {
+                "status": "terminating",
+                "health_state": "unavailable",
+                "last_check_at": state.last_check_at,
+            }
         if not state.started:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            return {"status": "starting"}
+            return {"status": "starting", "health_state": "unavailable"}
         response.status_code = status.HTTP_200_OK
-        return {"status": "alive", "last_check_at": state.last_check_at}
+        return {
+            "status": "alive",
+            "health_state": "healthy",
+            "last_check_at": state.last_check_at,
+        }
 
     def readyz(response: Response) -> dict[str, Any]:
         state = worker.health_state
         if state.ready and not state.shutdown:
             response.status_code = status.HTTP_200_OK
-            return {"status": "ready", "last_check_at": state.last_check_at}
+            return {
+                "status": "ready",
+                "health_state": "healthy",
+                "control_plane_ready": True,
+                "dependency_healthy": True,
+                "last_check_at": state.last_check_at,
+            }
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        health_state = "unavailable" if state.shutdown or not state.started else "degraded"
         return {
             "status": "not_ready",
+            "health_state": health_state,
+            "control_plane_ready": state.started and not state.shutdown,
+            "dependency_healthy": state.ready,
             "last_check_at": state.last_check_at,
             "reason": state.last_error,
+        }
+
+    def dependencyz(response: Response) -> dict[str, Any]:
+        state = worker.health_state
+        if state.ready and not state.shutdown:
+            response.status_code = status.HTTP_200_OK
+            return {
+                "status": "ok",
+                "health_state": "healthy",
+                "dependency": state.dependency_name,
+                "detail": "control plane ready",
+                "last_check_at": state.last_check_at,
+            }
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        health_state = "unavailable" if state.shutdown or not state.started else "degraded"
+        return {
+            "status": "degraded",
+            "health_state": health_state,
+            "dependency": state.dependency_name,
+            "detail": state.last_error or "dependency not yet probed",
+            "last_check_at": state.last_check_at,
         }
 
     def metrics() -> Response:
@@ -156,6 +196,10 @@ def build_worker_app(worker: RuntimeWorker) -> FastAPI:
 
     app.add_api_route("/livez", livez, methods=["GET"])
     app.add_api_route("/readyz", readyz, methods=["GET"])
+    app.add_api_route("/depz", dependencyz, methods=["GET"])
+    app.add_api_route("/health/live", livez, methods=["GET"])
+    app.add_api_route("/health/ready", readyz, methods=["GET"])
+    app.add_api_route("/health/dependencies", dependencyz, methods=["GET"])
     app.add_api_route("/metrics", metrics, methods=["GET"])
     return app
 

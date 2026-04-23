@@ -303,9 +303,9 @@ def build_runtime_app(
         startup_error = process_state.startup_error
         if startup_error:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            return {"status": "error", "reason": startup_error}
+            return {"status": "error", "health_state": "unavailable", "reason": startup_error}
         response.status_code = status.HTTP_200_OK
-        return {"status": "alive"}
+        return {"status": "alive", "health_state": "healthy"}
 
     def dependency_health(response: Response) -> dict[str, Any]:
         dependency = runtime_store.dependency_health()
@@ -313,12 +313,14 @@ def build_runtime_app(
             response.status_code = status.HTTP_200_OK
             return {
                 "status": "ok",
+                "health_state": "healthy",
                 "dependency": dependency.name,
                 "detail": dependency.detail,
             }
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {
-            "status": "error",
+            "status": "degraded",
+            "health_state": "degraded",
             "dependency": dependency.name,
             "detail": dependency.detail,
         }
@@ -327,12 +329,23 @@ def build_runtime_app(
         startup_state = process_state.store_startup_state
         dependency: DependencyHealth = runtime_store.dependency_health()
         is_shutting_down = process_state.is_shutting_down
-        ready = process_state.ready and dependency.healthy and not is_shutting_down
+        control_plane_ready = process_state.ready and process_state.startup_error is None
+        backing_store_healthy = dependency.healthy
+        ready = control_plane_ready and backing_store_healthy and not is_shutting_down
+        if ready:
+            health_state = "healthy"
+        elif is_shutting_down or process_state.startup_error is not None:
+            health_state = "unavailable"
+        else:
+            health_state = "degraded"
         readiness_payload = {
             "status": "ready" if ready else "not_ready",
+            "health_state": health_state,
             "store": startup_state.backend_name,
             "store_durable": startup_state.durable,
             "recovered_items": startup_state.recovered_items,
+            "control_plane_ready": control_plane_ready,
+            "backing_store_healthy": backing_store_healthy,
             "dependency": {
                 "name": dependency.name,
                 "healthy": dependency.healthy,

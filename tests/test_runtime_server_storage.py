@@ -306,12 +306,17 @@ def test_runtime_startup_with_empty_store_reports_ready() -> None:
 
     assert live.status_code == 200
     assert live.json()["status"] == "alive"
+    assert live.json()["health_state"] == "healthy"
     assert ready.status_code == 200
     assert ready.json()["status"] == "ready"
+    assert ready.json()["health_state"] == "healthy"
+    assert ready.json()["control_plane_ready"] is True
+    assert ready.json()["backing_store_healthy"] is True
     assert ready.json()["store_durable"] is False
     assert ready.json()["recovered_items"] == 0
     assert dependencies.status_code == 200
     assert dependencies.json()["status"] == "ok"
+    assert dependencies.json()["health_state"] == "healthy"
 
 
 def test_runtime_startup_with_warm_durable_store_recovers_state() -> None:
@@ -340,11 +345,40 @@ def test_runtime_startup_with_warm_durable_store_recovers_state() -> None:
 
     assert ready.status_code == 200
     assert ready.json()["status"] == "ready"
+    assert ready.json()["health_state"] == "healthy"
+    assert ready.json()["control_plane_ready"] is True
+    assert ready.json()["backing_store_healthy"] is True
     assert ready.json()["store"] == "redis"
     assert ready.json()["store_durable"] is True
     assert ready.json()["recovered_items"] >= 1
     assert dependencies.status_code == 200
     assert dependencies.json()["dependency"] == "redis"
+    assert dependencies.json()["health_state"] == "healthy"
+
+
+def test_runtime_readiness_reports_degraded_when_dependency_fails() -> None:
+    from fastapi.testclient import TestClient
+
+    from atroposlib.api.server import build_runtime_app
+    from atroposlib.api.storage import DependencyHealth, InMemoryStore
+
+    class UnhealthyStore(InMemoryStore):
+        def dependency_health(self) -> DependencyHealth:
+            return DependencyHealth(name="in_memory", healthy=False, detail="simulated outage")
+
+    app = build_runtime_app(store=UnhealthyStore())
+    with TestClient(app) as client:
+        ready = client.get("/health/ready")
+        dependencies = client.get("/health/dependencies")
+
+    assert ready.status_code == 503
+    assert ready.json()["status"] == "not_ready"
+    assert ready.json()["health_state"] == "degraded"
+    assert ready.json()["control_plane_ready"] is True
+    assert ready.json()["backing_store_healthy"] is False
+    assert dependencies.status_code == 503
+    assert dependencies.json()["status"] == "degraded"
+    assert dependencies.json()["health_state"] == "degraded"
 
 
 def test_scored_data_requires_request_id_header() -> None:
