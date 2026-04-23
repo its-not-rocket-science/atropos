@@ -753,24 +753,29 @@ def _record_ingestion_metrics(
     result: Any,
     groups: list[ScoredDataGroup],
 ) -> None:
-    state_counts: dict[str, int] = {}
-    for group in groups:
-        group_status = store.get_scored_group_status(
-            environment_id=group.environment_id,
-            group_id=group.group_id,
-        )
-        if group_status is None:
-            continue
-        state_counts[group_status.state] = state_counts.get(group_status.state, 0) + 1
-    for state_name, count in state_counts.items():
-        OBSERVABILITY.set_runtime_groups_by_state(env=env_name, state=state_name, count=count)
+    try:
+        state_counts: dict[str, int] = {}
+        for group in groups:
+            group_status = store.get_scored_group_status(
+                environment_id=group.environment_id,
+                group_id=group.group_id,
+            )
+            if group_status is None:
+                continue
+            state_counts[group_status.state] = state_counts.get(group_status.state, 0) + 1
+        for state_name, count in state_counts.items():
+            OBSERVABILITY.set_runtime_groups_by_state(env=env_name, state=state_name, count=count)
 
-    queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
-    OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
-    OBSERVABILITY.set_queue_oldest_age(
-        env=env_name,
-        oldest_age_seconds=queue_metrics.oldest_age_seconds,
-    )
+        queue_metrics = store.get_scored_queue_metrics(now=datetime.now(tz=timezone.utc))
+        OBSERVABILITY.set_queue_depth(env=env_name, queue_depth=queue_metrics.depth)
+        OBSERVABILITY.set_queue_oldest_age(
+            env=env_name,
+            oldest_age_seconds=queue_metrics.oldest_age_seconds,
+        )
+    except Exception:
+        # Control-plane metrics collection is best-effort and should never fail writes.
+        return
+
     OBSERVABILITY.set_buffered_groups(env=env_name, group_count=result.accepted_groups)
     OBSERVABILITY.observe_ingestion(env=env_name, accepted_count=result.accepted_count)
     OBSERVABILITY.observe_duplicate_groups(
