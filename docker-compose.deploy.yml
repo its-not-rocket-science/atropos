@@ -14,10 +14,16 @@ services:
       context: .
       dockerfile: docker/Dockerfile.api
     environment:
+      ATROPOS_RUNTIME_PROFILE: production
       ATROPOS_HARDENING_TIER: production-safe
+      ATROPOS_STORE_BACKEND: redis
       ATROPOS_REDIS_URL: redis://redis:6379/0
       ATROPOS_API_TOKEN: local-dev-token
       ATROPOS_ALLOWED_ORIGINS: http://localhost:3000
+      ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS: "true"
+      ATROPOS_REQUIRE_HEALTH_ENDPOINTS: "true"
+      ATROPOS_TRACING_ENABLED: "false"
+      ATROPOS_LOG_FORMAT: json
     depends_on:
       redis:
         condition: service_healthy
@@ -35,8 +41,9 @@ services:
       dockerfile: docker/Dockerfile.worker
     environment:
       ATROPOS_API_BASE_URL: http://api:8000
-      WORKER_POLL_INTERVAL_SECONDS: 5
-      WORKER_REQUEST_TIMEOUT_SECONDS: 2
+      WORKER_POLL_INTERVAL_SECONDS: "5"
+      WORKER_REQUEST_TIMEOUT_SECONDS: "2"
+      ATROPOS_LOG_FORMAT: json
     depends_on:
       api:
         condition: service_healthy
