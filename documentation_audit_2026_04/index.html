@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/documentation_audit_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Documentation Audit (2026-04-08) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Documentation Audit (2026-04-08)";
+        var mkdocs_page_input_path = "documentation_audit_2026_04.md";
+        var mkdocs_page_url = "/atropos/documentation_audit_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Documentation Audit (2026-04-08)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="documentation-audit-2026-04-08">Documentation Audit (2026-04-08)</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<p>This audit checks inconsistencies across README, docs, configs, and code.</p>
+<h2 id="inconsistencies">Inconsistencies</h2>
+<h3 id="1-project-positioning-mismatch-readme-vs-packagedocs">1) Project positioning mismatch (README vs package/docs)</h3>
+<ul>
+<li><code>README.md</code> frames Atropos primarily as an environment/server/group/trajectory/rollout experimentation and A/B testing system.</li>
+<li><code>docs/index.md</code> and <code>pyproject.toml</code> frame Atropos primarily as an ROI estimator for pruning/quantization tradeoffs.</li>
+<li>This causes onboarding confusion about whether Atropos is an experimentation platform first, or an ROI/optimization toolkit first.</li>
+</ul>
+<p><strong>Suggested fix</strong>
+- Rewrite <code>README.md</code> overview to match the package and docs positioning: ROI estimation + optional pipeline/A-B/validation modules.
+- Keep one concise “capabilities map” in README with links to module-specific docs.</p>
+<p><strong>Canonical source of truth</strong>
+- <code>pyproject.toml</code> (<code>project.description</code>) + <code>docs/index.md</code> should define product positioning.</p>
+<h3 id="2-broken-ab-cli-examples-in-readme">2) Broken A/B CLI examples in README</h3>
+<ul>
+<li>README uses <code>atropos-llm ab-test create experiment.yaml --start</code>.</li>
+<li>Actual CLI requires <code>atropos-llm ab-test create --config experiment.yaml</code> and has no <code>--start</code> flag.</li>
+<li>README sample YAML uses <code>control_variant</code> / <code>treatment_variant</code> and <code>metrics</code> fields, while code expects <code>variants</code>, <code>primary_metric</code>, and optional <code>secondary_metrics</code>.</li>
+</ul>
+<p><strong>Suggested fix</strong>
+- Replace README command with:
+  - <code>atropos-llm ab-test create --config experiment.yaml</code>
+- Replace README YAML with the actual <code>ABTestConfig</code> shape used by CLI parsing.</p>
+<p><strong>Canonical source of truth</strong>
+- <code>src/atropos/cli.py</code> argument parser and <code>src/atropos/abtesting/models.py</code> data model.</p>
+<h3 id="3-invalid-python-import-paths-in-docs-examples">3) Invalid Python import paths in docs examples</h3>
+<ul>
+<li><code>docs/examples.md</code> and <code>docs/api.md</code> use <code>from atropos-llm import ...</code>, which is invalid Python syntax.</li>
+<li>Import package name in code is <code>atropos</code>; <code>atropos-llm</code> is the CLI entry point/package distribution name.</li>
+</ul>
+<p><strong>Suggested fix</strong>
+- Replace all Python imports with <code>from atropos import ...</code>.
+- Add a short doc note: “Use <code>atropos</code> in Python, <code>atropos-llm</code> in CLI.”</p>
+<p><strong>Canonical source of truth</strong>
+- <code>src/atropos/__init__.py</code> exports for Python imports.
+- <code>pyproject.toml</code> <code>[project.scripts]</code> for CLI command name.</p>
+<h3 id="4-conflicting-top-level-narrative-duplicated-across-docs">4) Conflicting top-level narrative duplicated across docs</h3>
+<ul>
+<li>Core explanation is duplicated in multiple places with different emphasis:</li>
+<li>README (A/B and trajectory narrative)</li>
+<li><code>docs/index.md</code> (ROI estimator narrative)</li>
+<li><code>docs/cli.md</code> (feature-specific usage)</li>
+<li>The same concept (“what Atropos is”) appears in multiple files with divergent framing.</li>
+</ul>
+<p><strong>Suggested fix</strong>
+- Keep one canonical “What is Atropos?” narrative in <code>docs/index.md</code>.
+- Keep README shorter: installation + quickstart + links.
+- Remove long conceptual narrative from README unless it exactly mirrors docs/index.</p>
+<p><strong>Canonical source of truth</strong>
+- <code>docs/index.md</code> for product narrative.
+- README only as entry point and navigation.</p>
+<h2 id="outdated-instructions-version-mismatches">Outdated instructions / version mismatches</h2>
+<ol>
+<li><strong>CLI syntax drift in README A/B flow</strong> (see inconsistency #2).</li>
+<li><strong>Python API examples use invalid module name</strong> (see inconsistency #3).</li>
+<li><strong>README workflow omits many current first-class commands</strong> (pipeline, validation, telemetry, dashboard, cloud pricing), making it look like A/B testing is the only primary path.</li>
+</ol>
+<h2 id="duplicate-concept-detection">Duplicate concept detection</h2>
+<h3 id="duplicated-concept-project-purpose-system-identity">Duplicated concept: “project purpose / system identity”</h3>
+<ul>
+<li>Duplicated in <code>README.md</code> and <code>docs/index.md</code> with different messaging.</li>
+<li>Recommendation: canonical in <code>docs/index.md</code>, summary-only in README.</li>
+</ul>
+<h3 id="duplicated-concept-installation-steps">Duplicated concept: “installation steps”</h3>
+<ul>
+<li>Present in README and <code>docs/installation.md</code>.</li>
+<li>Recommendation: canonical in <code>docs/installation.md</code>; README should link and contain only minimum quickstart.</li>
+</ul>
+<h3 id="duplicated-concept-cli-usage-examples">Duplicated concept: “CLI usage examples”</h3>
+<ul>
+<li>Present in README and <code>docs/cli.md</code>.</li>
+<li>Recommendation: canonical command reference in <code>docs/cli.md</code>; README keeps one vetted quick command.</li>
+</ul>
+<h2 id="proposed-doc-structure-files-responsibilities">Proposed doc structure (files + responsibilities)</h2>
+<h3 id="top-level">Top-level</h3>
+<ul>
+<li><code>README.md</code></li>
+<li>1-paragraph product summary (aligned with docs/index)</li>
+<li>ultra-short quickstart (install + one command)</li>
+<li>links to docs sections</li>
+<li><code>CHANGELOG.md</code></li>
+<li>release history only (no usage guides)</li>
+</ul>
+<h3 id="docs"><code>docs/</code></h3>
+<ul>
+<li><code>index.md</code> (canonical product narrative)</li>
+<li>scope, capabilities map, module map</li>
+<li><code>installation.md</code> (canonical install/setup)</li>
+<li>Python/API install, optional extras, verification</li>
+<li><code>cli.md</code> (canonical CLI reference)</li>
+<li>generated or manually synced from <code>argparse</code> commands</li>
+<li><code>api.md</code> (canonical Python API reference)</li>
+<li>only valid imports from <code>atropos</code></li>
+<li><code>examples.md</code> (task-oriented examples)</li>
+<li>runnable snippets validated in CI</li>
+<li>domain docs (keep focused, cross-link heavily)</li>
+<li><code>cloud-cost-modeling.md</code></li>
+<li><code>pruning-testing-guide.md</code></li>
+<li><code>model-testing-guide.md</code></li>
+<li><code>telemetry-collection-guide.md</code></li>
+<li><code>dashboard-guide.md</code></li>
+</ul>
+<h3 id="configschema-authority">Config/schema authority</h3>
+<ul>
+<li><code>src/atropos/*</code> dataclasses and parser code remain schema authority.</li>
+<li><code>configs/*.yaml</code> are concrete examples only.</li>
+<li>Add “schema source” callouts in docs pages linking to relevant code modules.</li>
+</ul>
+<h2 id="suggested-follow-up-implementation-plan">Suggested follow-up implementation plan</h2>
+<ol>
+<li>Fix invalid imports in <code>docs/api.md</code> and <code>docs/examples.md</code>.</li>
+<li>Replace README A/B example command and config format.</li>
+<li>Add a lightweight doc lint test:</li>
+<li>fail on <code>from atropos-llm import</code></li>
+<li>fail on <code>ab-test create &lt;path&gt;</code> usage without <code>--config</code></li>
+<li>Add “Docs ownership map” section in <code>docs/index.md</code> to prevent future drift.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/platform_architecture_rfc/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>RFC: Reposition Atropos from Research Framework to Platform Architecture - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "RFC: Reposition Atropos from Research Framework to Platform Architecture";
+        var mkdocs_page_input_path = "platform_architecture_rfc.md";
+        var mkdocs_page_url = "/atropos/platform_architecture_rfc/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">RFC: Reposition Atropos from Research Framework to Platform Architecture</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="rfc-reposition-atropos-from-research-framework-to-platform-architecture">RFC: Reposition Atropos from Research Framework to Platform Architecture</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<ul>
+<li><strong>Status:</strong> Proposed</li>
+<li><strong>Authors:</strong> Atropos maintainers</li>
+<li><strong>Last updated:</strong> 2026-04-18</li>
+<li><strong>Target release window:</strong> 2026 Q2–Q4</li>
+<li><strong>Audience:</strong> Maintainers, runtime operators, integration teams</li>
+</ul>
+<h2 id="1-context-and-decision">1. Context and decision</h2>
+<p>Atropos currently presents a mixed identity:</p>
+<ul>
+<li>ROI and modeling toolkit (<code>src/atropos/*</code>),</li>
+<li>runtime API and environment execution stack (<code>src/atroposlib/*</code>),</li>
+<li>and a large set of experimental, validation, and benchmark utilities (<code>tests/*</code>, <code>scripts/*</code>, <code>examples/*</code>).</li>
+</ul>
+<p>This has enabled rapid iteration, but it blurs boundaries between <strong>platform contracts</strong> and <strong>research velocity paths</strong>.</p>
+<p><strong>Decision:</strong> Reposition Atropos to a <strong>platform architecture</strong> with explicit service contracts, reliability objectives, and compatibility guarantees, while preserving a clearly labeled experimental lane.</p>
+<p>This RFC is intentionally grounded in the current repository structure and existing components; it does not assume a greenfield rewrite.</p>
+<h2 id="2-current-baseline-in-repo-starting-point">2. Current baseline in-repo (starting point)</h2>
+<p>The architecture already includes platform-leaning building blocks:</p>
+<ol>
+<li><strong>Runtime service surface:</strong> <code>src/atroposlib/api/server.py</code></li>
+<li>health/readiness/dependency endpoints,</li>
+<li>queue write path (<code>/jobs</code>),</li>
+<li>scored data ingest/list endpoints,</li>
+<li>idempotency behavior via headers,</li>
+<li>
+<p>tiered hardening model (<code>research-safe</code>, <code>internal-team-safe</code>, <code>production-safe</code>).</p>
+</li>
+<li>
+<p><strong>Storage abstraction:</strong> <code>src/atroposlib/api/storage.py</code></p>
+</li>
+<li><code>AtroposStore</code> protocol as backend contract,</li>
+<li><code>InMemoryStore</code> and <code>RedisStore</code> implementations,</li>
+<li>startup/dependency health metadata,</li>
+<li>
+<p>scored-data lifecycle records and queue metrics.</p>
+</li>
+<li>
+<p><strong>Runtime control/execution layers:</strong> <code>src/atroposlib/envs/*</code></p>
+</li>
+<li>runtime controller, worker manager/runtime, server manager,</li>
+<li>
+<p>transport client and distributed execution seams.</p>
+</li>
+<li>
+<p><strong>Observability primitives:</strong> <code>src/atroposlib/observability.py</code>, <code>src/atropos/telemetry.py</code>, <code>src/atropos/telemetry_collector.py</code></p>
+</li>
+<li>
+<p>trace/metric hooks and telemetry ingestion.</p>
+</li>
+<li>
+<p><strong>Research + modeling stack:</strong> <code>src/atropos/calculations.py</code>, <code>src/atropos/pipeline/*</code>, <code>src/atropos/validation/*</code>, <code>scripts/*</code>, <code>examples/*</code>.</p>
+</li>
+</ol>
+<p>The repositioning work is to codify these into platform-grade vs experimental categories and apply operational guarantees accordingly.</p>
+<h2 id="3-stable-core-services-platform-contract">3. Stable core services (platform contract)</h2>
+<p>The following services become the <strong>stable platform core</strong>.</p>
+<h3 id="31-runtime-api-service-stable">3.1 Runtime API service (stable)</h3>
+<p><strong>Source anchor:</strong> <code>src/atroposlib/api/server.py</code></p>
+<p>Responsibilities:</p>
+<ul>
+<li>Accept and validate runtime writes (<code>/jobs</code>, <code>/scored_data</code>, <code>/scored_data_list</code>).</li>
+<li>Provide health semantics (<code>/health</code>, <code>/health/live</code>, <code>/health/ready</code>, <code>/health/dependencies</code>).</li>
+<li>Export metrics (<code>/metrics</code>).</li>
+<li>Enforce hardening tier policy (auth, CORS, reset behavior).</li>
+</ul>
+<p>Platform contract:</p>
+<ul>
+<li>Endpoint paths and top-level response envelope fields are stable.</li>
+<li>Hardening tiers remain stable and additive.</li>
+<li>Write endpoints must continue to support idempotency via <code>X-Idempotency-Key</code> or <code>X-Request-ID</code> semantics.</li>
+</ul>
+<h3 id="32-storage-service-contract-stable">3.2 Storage service contract (stable)</h3>
+<p><strong>Source anchor:</strong> <code>src/atroposlib/api/storage.py</code></p>
+<p>Responsibilities:</p>
+<ul>
+<li>Define backend interface (<code>AtroposStore</code>) for queue/state/scored data.</li>
+<li>Persist lifecycle status for ingestion groups.</li>
+<li>Expose startup and dependency health states for readiness gating.</li>
+</ul>
+<p>Platform contract:</p>
+<ul>
+<li><code>AtroposStore</code> protocol methods and semantic behavior are stable.</li>
+<li><code>RuntimeStatusRecord</code>, <code>IngestScoredDataResult</code>, <code>QueuedGroupStatusRecord</code>, <code>QueueMetrics</code>, and <code>StoreStartupState</code> are stable data contracts.</li>
+<li>Backends can be added, but must conform to protocol semantics.</li>
+</ul>
+<h3 id="33-runtime-orchestration-service-stable">3.3 Runtime orchestration service (stable)</h3>
+<p><strong>Source anchor:</strong> <code>src/atroposlib/envs/runtime_controller.py</code> and adjacent <code>envs/*</code> modules.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>Coordinate environment execution, worker lifecycles, and transport operations.</li>
+<li>Apply retries/timeouts/backpressure around environment/runtime boundaries.</li>
+</ul>
+<p>Platform contract:</p>
+<ul>
+<li>Runtime controller interfaces and adapter boundaries are stable.</li>
+<li>Transport and worker lifecycle state transitions are stable by behavior, even when internals change.</li>
+</ul>
+<h3 id="34-observability-service-stable">3.4 Observability service (stable)</h3>
+<p><strong>Source anchor:</strong> <code>src/atroposlib/observability.py</code> and runtime API middleware.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>Emit request metrics and queue depth signals.</li>
+<li>Provide trace spans for ingest/fetch operations.</li>
+<li>Expose scrapeable metrics endpoint.</li>
+</ul>
+<p>Platform contract:</p>
+<ul>
+<li>Core metric families and labels used for SLOs are stable (additive-only evolution).</li>
+<li>Trace span names for core runtime actions are stable.</li>
+</ul>
+<h2 id="4-storage-model">4. Storage model</h2>
+<p>Atropos adopts a two-class storage model tied to existing implementations.</p>
+<h3 id="41-control-plane-state-authoritative">4.1 Control-plane state (authoritative)</h3>
+<ul>
+<li>Queue state, job status, ingest idempotency maps, and group lifecycle records are authoritative control-plane state.</li>
+<li>Production tier uses durable backend (<code>RedisStore</code>) and startup dependency checks.</li>
+<li>Non-production tiers may use <code>InMemoryStore</code> for local iteration.</li>
+</ul>
+<h3 id="42-data-plane-records-append-oriented">4.2 Data-plane records (append-oriented)</h3>
+<ul>
+<li>Scored records are ingested in groups and stored by environment.</li>
+<li>Group lifecycle transitions (<code>accepted -&gt; buffered -&gt; batched -&gt; delivered -&gt; acknowledged</code>) are modeled explicitly.</li>
+<li>Reads are bounded (<code>limit</code>) and treated as operational feeds, not analytical warehouse interfaces.</li>
+</ul>
+<h3 id="43-storage-invariants">4.3 Storage invariants</h3>
+<ol>
+<li>Idempotent write behavior by request key is mandatory.</li>
+<li>Lifecycle states are monotonic.</li>
+<li>Readiness reflects both process state and dependency health.</li>
+<li>Backend substitution cannot alter API-visible semantics.</li>
+</ol>
+<h2 id="5-runtime-model">5. Runtime model</h2>
+<p>Atropos runtime is standardized as a layered model using existing modules.</p>
+<ol>
+<li><strong>Ingress Layer</strong> (<code>atroposlib.api.server</code>): HTTP validation, auth, idempotency, and request metrics.</li>
+<li><strong>State Layer</strong> (<code>atroposlib.api.storage</code>): durable/non-durable queue and scored-data lifecycle persistence.</li>
+<li><strong>Execution Layer</strong> (<code>atroposlib.envs.runtime_controller</code>, <code>worker_runtime</code>, <code>distributed_execution</code>): workload orchestration.</li>
+<li><strong>Environment Adapter Layer</strong> (<code>atroposlib.envs.base</code>, <code>cli_adapter</code>, <code>runtime_interfaces</code>): scenario-specific execution integration.</li>
+<li><strong>Governance/Analysis Layer</strong> (<code>atropos.pipeline</code>, <code>atropos.validation</code>, <code>atropos.abtesting</code>): policy and decision workflows consuming runtime outputs.</li>
+</ol>
+<p>Runtime design principles:</p>
+<ul>
+<li>Keep ingress/control semantics deterministic.</li>
+<li>Isolate environment-specific behavior behind adapters.</li>
+<li>Preserve replayability through explicit status transitions and structured logs.</li>
+</ul>
+<h2 id="6-reliability-expectations-platform-slosli-posture">6. Reliability expectations (platform SLO/SLI posture)</h2>
+<p>The platform posture is "explicitly reliable by tier," derived from existing hardening tiers.</p>
+<h3 id="61-tier-expectations">6.1 Tier expectations</h3>
+<ul>
+<li><strong>research-safe:</strong> best-effort local reliability, no auth requirement, reset allowed.</li>
+<li><strong>internal-team-safe:</strong> authenticated writes, bounded blast radius, durable-like behavior encouraged.</li>
+<li><strong>production-safe:</strong> durable backend required, strict auth, readiness/dependency gates enforced, no reset endpoint.</li>
+</ul>
+<h3 id="62-baseline-reliability-requirements">6.2 Baseline reliability requirements</h3>
+<ol>
+<li><strong>Availability target (runtime API):</strong> 99.9% monthly for production-safe deployments.</li>
+<li><strong>Durability target (control-plane writes):</strong> no acknowledged-write loss across process restart when using durable store.</li>
+<li><strong>Idempotency target:</strong> duplicate request keys must not create duplicate accepted work.</li>
+<li><strong>Readiness correctness target:</strong> <code>/health/ready</code> must fail when dependency health fails.</li>
+<li><strong>Graceful shutdown target:</strong> runtime declares non-ready before store shutdown.</li>
+</ol>
+<h3 id="63-failure-behavior-requirements">6.3 Failure behavior requirements</h3>
+<ul>
+<li>Backpressure returns explicit 429/503 style responses when queue/state limits are reached.</li>
+<li>Partial failures in multi-group ingest must return accepted/failed counts deterministically.</li>
+<li>Dependency outage must degrade to not-ready, never silently healthy.</li>
+</ul>
+<h2 id="7-observability-requirements">7. Observability requirements</h2>
+<h3 id="71-required-telemetry-signals">7.1 Required telemetry signals</h3>
+<ol>
+<li><strong>Request metrics:</strong> method/path/status/duration for all API routes.</li>
+<li><strong>Queue metrics:</strong> queue depth and oldest age.</li>
+<li><strong>Ingestion metrics:</strong> accepted counts, dedupe rates, failed groups.</li>
+<li><strong>Dependency health metrics:</strong> dependency healthy/unhealthy status.</li>
+<li><strong>Lifecycle traces:</strong> ingest and trainer fetch spans.</li>
+</ol>
+<h3 id="72-required-logs">7.2 Required logs</h3>
+<p>Structured JSON logs with minimum fields:</p>
+<ul>
+<li><code>request_id</code>, <code>endpoint</code>, <code>status_code</code>, <code>duration_seconds</code>, <code>env_id</code>, <code>batch_id</code> (when applicable).</li>
+</ul>
+<h3 id="73-required-operational-artifacts">7.3 Required operational artifacts</h3>
+<ul>
+<li>Production dashboard coverage for API latency/error and queue health.</li>
+<li>Alerting rules for readiness failures, dependency health failures, and sustained ingest failure rates.</li>
+</ul>
+<h2 id="8-compatibility-guarantees">8. Compatibility guarantees</h2>
+<p>Atropos platform compatibility is formalized into three bands.</p>
+<h3 id="81-platform-grade-semver-protected">8.1 Platform-grade (SemVer protected)</h3>
+<ul>
+<li>Runtime API routes and top-level response keys in <code>atroposlib.api.server</code>.</li>
+<li>Storage contract method set and data class field names in <code>atroposlib.api.storage</code>.</li>
+<li>Runtime hardening tier enum names and policy intent.</li>
+<li>Core observability metric names/labels used in shipped dashboards.</li>
+</ul>
+<p>Breaking changes require:</p>
+<ul>
+<li>major release increment,</li>
+<li>migration guide in <code>docs/</code>,</li>
+<li>deprecation window of at least one minor release when technically possible.</li>
+</ul>
+<h3 id="82-beta-evolving-with-migration-notes">8.2 Beta (evolving with migration notes)</h3>
+<ul>
+<li>Extended runtime controllers and distributed execution internals (<code>atroposlib.envs.*</code>).</li>
+<li>Plugin server integrations (<code>atroposlib.plugins.*</code>).</li>
+</ul>
+<p>Guarantee: best-effort backward compatibility; migration notes required for notable behavior changes.</p>
+<h3 id="83-experimental-no-compatibility-guarantee">8.3 Experimental (no compatibility guarantee)</h3>
+<ul>
+<li>Validation experiments (<code>src/atropos/validation/*</code> beyond promoted APIs).</li>
+<li>Benchmark/helper scripts in <code>scripts/*</code>.</li>
+<li>Example-only flows under <code>examples/*</code>.</li>
+<li>Exploratory docs and one-off analyses.</li>
+</ul>
+<p>Guarantee: may change or be removed without deprecation.</p>
+<h2 id="9-platform-grade-vs-experimental-classification-in-this-repo">9. Platform-grade vs experimental classification in this repo</h2>
+<h3 id="91-platform-grade-now-or-with-minimal-hardening">9.1 Platform-grade now (or with minimal hardening)</h3>
+<ul>
+<li><code>src/atroposlib/api/server.py</code></li>
+<li><code>src/atroposlib/api/storage.py</code></li>
+<li><code>src/atroposlib/observability.py</code></li>
+<li><code>src/atroposlib/envs/runtime_controller.py</code></li>
+<li><code>src/atroposlib/envs/runtime_interfaces.py</code></li>
+<li><code>src/atroposlib/envs/transport_client.py</code></li>
+</ul>
+<h3 id="92-candidate-platform-services-needs-hardening">9.2 Candidate platform services (needs hardening)</h3>
+<ul>
+<li><code>src/atropos/pipeline/runner.py</code></li>
+<li><code>src/atropos/deployment/strategies.py</code></li>
+<li><code>src/atropos/deployment/health.py</code></li>
+<li><code>src/atropos/telemetry_collector.py</code></li>
+</ul>
+<h3 id="93-explicitly-experimentalresearch-lane">9.3 Explicitly experimental/research lane</h3>
+<ul>
+<li><code>src/atropos/validation/*</code></li>
+<li><code>scripts/*</code></li>
+<li><code>examples/*</code></li>
+<li>ad hoc notebooks and standalone benchmarking tests.</li>
+</ul>
+<h2 id="10-dependency-diagram">10. Dependency diagram</h2>
+<p>The canonical dependency diagram is maintained in:</p>
+<ul>
+<li><code>docs/diagrams/atropos_platform_dependency.mmd</code></li>
+</ul>
+<p>Rendered Mermaid source:</p>
+<pre class="codehilite"><code class="language-mermaid">flowchart LR
+    Clients[Clients / Trainers / Operators]
+
+    subgraph RuntimePlatform[Platform-grade runtime]
+        API[atroposlib.api.server\nRuntime API]
+        Store[atroposlib.api.storage\nAtroposStore + backends]
+        Obs[atroposlib.observability\nMetrics + tracing]
+        Ctrl[atroposlib.envs.runtime_controller\nExecution control]
+        Workers[atroposlib.envs.worker_runtime\nWorker execution]
+        Transport[atroposlib.envs.transport_client\nRuntime transport]
+    end
+
+    subgraph Governance[Policy &amp; governance layer]
+        Pipeline[atropos.pipeline.runner]
+        Deploy[atropos.deployment.*]
+        AB[atropos.abtesting.*]
+        Telemetry[atropos.telemetry_collector]
+    end
+
+    subgraph Experimental[Experimental lane]
+        Validation[atropos.validation.*]
+        Scripts[scripts/*]
+        Examples[examples/*]
+    end
+
+    Clients --&gt; API
+    API --&gt; Store
+    API --&gt; Obs
+    Ctrl --&gt; Workers
+    Ctrl --&gt; Transport
+    Pipeline --&gt; API
+    Deploy --&gt; API
+    Telemetry --&gt; API
+    AB --&gt; Store
+    Governance --&gt; Experimental
+</code></pre>
+
+<h2 id="11-migration-roadmap-tied-to-current-repo">11. Migration roadmap tied to current repo</h2>
+<h3 id="phase-0-week-0-2-contract-inventory-and-labeling">Phase 0 (Week 0-2): Contract inventory and labeling</h3>
+<ul>
+<li>Add explicit "platform-grade / beta / experimental" labels to docs and module docstrings for:</li>
+<li><code>src/atroposlib/api/*</code></li>
+<li><code>src/atroposlib/envs/*</code></li>
+<li><code>src/atropos/validation/*</code>, <code>scripts/*</code>, <code>examples/*</code>.</li>
+<li>Create compatibility test matrix for runtime API and storage contracts in <code>tests/test_api.py</code>, <code>tests/test_runtime_server_storage.py</code>, and <code>tests/contracts_store_adapters.py</code>.</li>
+</ul>
+<p><strong>Exit criterion:</strong> Every runtime-facing module has a declared stability tier.</p>
+<h3 id="phase-1-week-2-6-lock-stable-contracts">Phase 1 (Week 2-6): Lock stable contracts</h3>
+<ul>
+<li>Freeze Runtime API response envelopes and document them in <code>docs/api.md</code>.</li>
+<li>Freeze storage protocol semantics and lifecycle invariants in <code>docs/runtime_storage_contract_tests.md</code>.</li>
+<li>Add CI assertions that prevent incompatible field removals in platform-grade dataclasses/endpoints.</li>
+</ul>
+<p><strong>Exit criterion:</strong> Any contract-breaking change fails CI without explicit major-version flag.</p>
+<h3 id="phase-2-week-6-10-production-reliability-hardening">Phase 2 (Week 6-10): Production reliability hardening</h3>
+<ul>
+<li>Enforce production-safe deployment checks (durable backend + auth + readiness/dependency gating).</li>
+<li>Add queue pressure policy and explicit overload responses in runtime API.</li>
+<li>Strengthen graceful shutdown and restart recovery paths for durable store.</li>
+</ul>
+<p><strong>Exit criterion:</strong> production-safe profile passes runtime reliability test suite.</p>
+<h3 id="phase-3-week-10-14-observability-completion">Phase 3 (Week 10-14): Observability completion</h3>
+<ul>
+<li>Standardize required runtime logs and correlation fields.</li>
+<li>Normalize metric families and align dashboards in <code>docs/grafana/*</code>.</li>
+<li>Add alerting guidance and runbook references in <code>docs/observability.md</code>.</li>
+</ul>
+<p><strong>Exit criterion:</strong> SLO dashboard + alerts cover API errors, latency, queue, and dependency health.</p>
+<h3 id="phase-4-week-14-20-research-lane-decoupling">Phase 4 (Week 14-20): Research lane decoupling</h3>
+<ul>
+<li>Move experimental helpers behind explicit experimental namespace and docs.</li>
+<li>Ensure <code>scripts/*</code> and <code>examples/*</code> do not silently depend on platform internals without adapters.</li>
+<li>Add contributor policy: new experimental features must not expand platform-grade contracts by default.</li>
+</ul>
+<p><strong>Exit criterion:</strong> Experimental churn no longer causes platform API/storage compatibility drift.</p>
+<h3 id="phase-5-week-20-adoption-and-deprecation-cycle">Phase 5 (Week 20+): Adoption and deprecation cycle</h3>
+<ul>
+<li>Publish migration guides for any renamed/deprecated runtime fields.</li>
+<li>Track adoption on internal examples and deployment manifests.</li>
+<li>Remove deprecated beta paths after deprecation window.</li>
+</ul>
+<p><strong>Exit criterion:</strong> Major adopters use only platform-grade surfaces for production deployments.</p>
+<h2 id="12-risks-and-mitigations">12. Risks and mitigations</h2>
+<ol>
+<li><strong>Risk:</strong> Over-classifying unstable modules as stable too early.</li>
+<li>
+<p><strong>Mitigation:</strong> keep env/distributed internals in beta until two release cycles show no compatibility breaks.</p>
+</li>
+<li>
+<p><strong>Risk:</strong> Slower experimental iteration.</p>
+</li>
+<li>
+<p><strong>Mitigation:</strong> preserve explicit experimental lane and avoid forcing SemVer guarantees there.</p>
+</li>
+<li>
+<p><strong>Risk:</strong> Operational burden increases during hardening.</p>
+</li>
+<li><strong>Mitigation:</strong> stage rollout via hardening tiers and phase-based migration plan.</li>
+</ol>
+<h2 id="13-acceptance-criteria-for-this-rfc">13. Acceptance criteria for this RFC</h2>
+<p>This RFC is accepted when:</p>
+<ol>
+<li>Stability tier labels are visible in docs and code for core runtime modules.</li>
+<li>Runtime API + storage compatibility checks are CI-enforced.</li>
+<li>Production-safe profile documents and enforces minimum reliability and observability requirements.</li>
+<li>Experimental modules are explicitly marked and excluded from platform compatibility guarantees.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

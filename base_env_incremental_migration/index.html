@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/base_env_incremental_migration/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>BaseEnv Component Migration Guide - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "BaseEnv Component Migration Guide";
+        var mkdocs_page_input_path = "base_env_incremental_migration.md";
+        var mkdocs_page_url = "/atropos/base_env_incremental_migration/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">BaseEnv Component Migration Guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="baseenv-component-migration-guide">BaseEnv Component Migration Guide</h1>
+<p><code>BaseEnv</code> has been refactored into composable collaborators to improve testability,
+dependency injection, and control over side effects.</p>
+<h2 id="new-module-structure">New module structure</h2>
+<pre class="codehilite"><code class="language-text">src/atroposlib/envs/
+  base.py                # thin orchestration facade
+  worker_manager.py      # async-worker policy, backlog, scaling decisions
+  transport_client.py    # API communication + retry policy
+  logging_manager.py     # event logging + metric recording hooks (e.g., W&amp;B adapters)
+  checkpoint_manager.py  # checkpoint persistence API
+  env_logic.py           # user-defined environment business logic contract
+  components.py          # backward-compatibility aliases for old imports
+</code></pre>
+
+<h2 id="responsibility-split">Responsibility split</h2>
+<ol>
+<li><code>WorkerManager</code></li>
+<li>owns queue/backlog state</li>
+<li>computes worker scaling decisions</li>
+<li>orchestrates step runtime payloads</li>
+<li><code>TransportClient</code></li>
+<li>owns request boundary</li>
+<li>applies retry behavior</li>
+<li><code>LoggingManager</code></li>
+<li>captures structured events</li>
+<li>records metrics in a dedicated channel</li>
+<li><code>CheckpointManager</code></li>
+<li>saves snapshots</li>
+<li>exposes recovery helpers (<code>latest</code>)</li>
+<li><code>EnvLogic</code></li>
+<li>defines user logic only (<code>prepare_step</code>, <code>finalize_step</code>)</li>
+</ol>
+<h2 id="refactored-baseenv">Refactored <code>BaseEnv</code></h2>
+<p><code>BaseEnv</code> is now a thin orchestrator:</p>
+<ol>
+<li><code>env_logic.prepare_step(payload)</code></li>
+<li><code>worker_manager.orchestrate(...)</code></li>
+<li><code>transport_client.send(...)</code></li>
+<li><code>env_logic.finalize_step(...)</code></li>
+<li><code>checkpoint_manager.save(...)</code></li>
+<li><code>logging_manager.log_event(...)</code></li>
+</ol>
+<p>This ordering is explicit and easy to test in isolation.</p>
+<h2 id="migration-examples">Migration examples</h2>
+<h3 id="before">Before</h3>
+<pre class="codehilite"><code class="language-python">from atroposlib.envs.base import BaseEnv
+
+env = BaseEnv()
+result = env.step({&quot;task&quot;: &quot;x&quot;}, worker_count=2)
+</code></pre>
+
+<h3 id="after-no-changes-required">After (no changes required)</h3>
+<pre class="codehilite"><code class="language-python">from atroposlib.envs.base import BaseEnv
+
+env = BaseEnv()
+result = env.step({&quot;task&quot;: &quot;x&quot;}, worker_count=2)
+</code></pre>
+
+<h3 id="after-recommended-dependency-injection">After (recommended dependency injection)</h3>
+<pre class="codehilite"><code class="language-python">from atroposlib.envs.base import BaseEnv
+from atroposlib.envs.worker_manager import WorkerManager
+from atroposlib.envs.transport_client import TransportClient
+from atroposlib.envs.logging_manager import LoggingManager
+from atroposlib.envs.checkpoint_manager import CheckpointManager
+from atroposlib.envs.env_logic import PassthroughEnvLogic
+
+env = BaseEnv(
+    worker_manager=WorkerManager(max_workers=64),
+    transport_client=TransportClient(max_retries=3),
+    logging_manager=LoggingManager(),
+    checkpoint_manager=CheckpointManager(),
+    env_logic=PassthroughEnvLogic(),
+)
+</code></pre>
+
+<h2 id="backward-compatibility-shim">Backward compatibility shim</h2>
+<p>Legacy import paths continue to work via <code>components.py</code> aliases:</p>
+<ul>
+<li><code>EnvRuntime -&gt; WorkerManager</code></li>
+<li><code>EnvTransportClient -&gt; TransportClient</code></li>
+<li><code>EnvLogger -&gt; LoggingManager</code></li>
+<li><code>EnvCheckpointManager -&gt; CheckpointManager</code></li>
+</ul>
+<p>Legacy <code>BaseEnv</code> aliases (<code>orchestrate_workers</code>, <code>call_api</code>, <code>log_event</code>,
+<code>checkpoint</code>) are still available for incremental adoption.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

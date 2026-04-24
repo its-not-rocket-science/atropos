@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/minimal_experiment_api/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Minimal Experiment API (run_experiment) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Minimal Experiment API (run_experiment)";
+        var mkdocs_page_input_path = "minimal_experiment_api.md";
+        var mkdocs_page_url = "/atropos/minimal_experiment_api/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Minimal Experiment API (run_experiment)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="minimal-experiment-api-run_experiment">Minimal Experiment API (<code>run_experiment</code>)</h1>
+<p>This API layer provides a single high-level entrypoint for running an experiment in ~10 lines while mapping directly onto the existing architecture:</p>
+<ul>
+<li><code>ABTestConfig</code> for experiment semantics</li>
+<li><code>DeploymentPlatform</code> (<code>get_platform</code>) for server setup</li>
+<li><code>ExperimentRunner</code> (<code>run_ab_test</code>) for lifecycle + rollout handling</li>
+</ul>
+<h2 id="api-spec">API spec</h2>
+<h3 id="function">Function</h3>
+<pre class="codehilite"><code class="language-python">run_experiment(config: RunExperimentConfig | Mapping[str, Any]) -&gt; ExperimentResult
+</code></pre>
+
+<h3 id="minimal-config-schema">Minimal config schema</h3>
+<pre class="codehilite"><code class="language-python">RunExperimentConfig(
+    variants: list[SimpleVariantConfig],  # required, at least 2
+    primary_metric: str = &quot;latency_ms_per_request&quot;,
+    deployment_platform: str = &quot;vllm&quot;,
+    experiment_id: str | None = None,
+    name: str | None = None,
+)
+</code></pre>
+
+<h3 id="defaults-sane">Defaults (sane)</h3>
+<ul>
+<li><code>secondary_metrics=["throughput_toks_per_sec", "error_rate"]</code></li>
+<li><code>traffic_allocation=1.0</code></li>
+<li><code>significance_level=0.05</code></li>
+<li><code>statistical_power=0.8</code></li>
+<li><code>test_type="t-test"</code></li>
+<li><code>min_sample_size_per_variant=100</code></li>
+<li><code>max_duration_hours=24.0</code></li>
+<li>rollout polling via <code>monitoring_interval_seconds=30.0</code></li>
+</ul>
+<h3 id="hidden-internals-handled-by-the-api">Hidden internals handled by the API</h3>
+<ol>
+<li><strong>Server setup</strong></li>
+<li><code>get_platform(deployment_platform, config=server_config)</code></li>
+<li><strong>Rollout handling</strong></li>
+<li>maps <code>rollout</code> dict to <code>ABTestConfig.auto_stop_conditions</code></li>
+<li><strong>Tokenizer alignment</strong></li>
+<li>attaches <code>tokenizer_alignment</code> policy to each variant deployment config</li>
+</ol>
+<h3 id="no-feature-loss-guarantee">No feature loss guarantee</h3>
+<p>Advanced behavior is still available via passthrough fields on <code>RunExperimentConfig</code>:</p>
+<ul>
+<li><code>server_config</code></li>
+<li><code>rollout</code></li>
+<li><code>tokenizer_alignment</code></li>
+<li><code>health_checks</code></li>
+<li><code>metadata</code></li>
+</ul>
+<p>These map cleanly to existing lower-level <code>ABTestConfig</code> and platform interfaces.</p>
+<h2 id="one-file-usage-10-lines">One-file usage (10 lines)</h2>
+<pre class="codehilite"><code class="language-python">from atropos.api import run_experiment
+
+result = run_experiment({
+    &quot;variants&quot;: [
+        {&quot;model_path&quot;: &quot;meta-llama/Llama-3.1-8B&quot;, &quot;name&quot;: &quot;control&quot;},
+        {&quot;model_path&quot;: &quot;meta-llama/Llama-3.1-8B-Instruct&quot;, &quot;name&quot;: &quot;treatment&quot;},
+    ],
+    &quot;primary_metric&quot;: &quot;latency_ms_per_request&quot;,
+    &quot;deployment_platform&quot;: &quot;vllm&quot;,
+})
+print(result.status, result.experiment_id)
+</code></pre>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

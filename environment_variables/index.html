@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/environment_variables/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Environment variable reference - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Environment variable reference";
+        var mkdocs_page_input_path = "environment_variables.md";
+        var mkdocs_page_url = "/atropos/environment_variables/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Environment variable reference</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="environment-variable-reference">Environment variable reference</h1>
+<p>This reference covers deployment-facing variables used by the API and worker artifacts.</p>
+<h2 id="runtime-profile-layering">Runtime profile layering</h2>
+<p>The runtime now supports explicit configuration profiles selected by <code>ATROPOS_RUNTIME_PROFILE</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>Purpose</th>
+<th>Default tier</th>
+<th>Default backend</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local-dev</code></td>
+<td>Developer workstation defaults for quick iteration</td>
+<td><code>research-safe</code></td>
+<td><code>memory</code></td>
+</tr>
+<tr>
+<td><code>ci</code></td>
+<td>CI pipelines with stricter policy but ephemeral storage</td>
+<td><code>internal-team-safe</code></td>
+<td><code>memory</code></td>
+</tr>
+<tr>
+<td><code>production</code></td>
+<td>Durable runtime deployment</td>
+<td><code>production-safe</code></td>
+<td><code>redis</code></td>
+</tr>
+</tbody>
+</table>
+<p>Profile defaults can be overridden, but <code>production</code> enforces durable + explicit config validation before startup.</p>
+<h3 id="dev-vs-production-mode-behavior">Dev vs production mode behavior</h3>
+<p><code>ATROPOS_RUNTIME_PROFILE</code> now also drives a higher-level runtime mode:</p>
+<ul>
+<li><code>local-dev</code> and <code>ci</code> run in <code>dev</code> mode (lightweight defaults for iteration and automation).</li>
+<li><code>production</code> runs in explicit <code>production</code> mode (platform-safe defaults with fail-fast validation).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Dev mode (<code>local-dev</code>, <code>ci</code>)</th>
+<th>Production mode (<code>production</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Store backend</td>
+<td>Defaults to <code>memory</code>; durable backend optional</td>
+<td>Must be durable (<code>ATROPOS_STORE_BACKEND=redis</code>)</td>
+</tr>
+<tr>
+<td>Health endpoints</td>
+<td>Available by default; requirement toggle defaults off</td>
+<td>Must remain enabled (<code>ATROPOS_REQUIRE_HEALTH_ENDPOINTS=true</code>)</td>
+</tr>
+<tr>
+<td>Log format</td>
+<td><code>json</code> by default, <code>pretty</code> allowed for local readability</td>
+<td>Must resolve to structured JSON logs</td>
+</tr>
+<tr>
+<td>Missing config handling</td>
+<td>Optional env values allowed</td>
+<td>Missing required settings fail startup immediately</td>
+</tr>
+<tr>
+<td>Localhost defaults</td>
+<td>Allowed for convenience</td>
+<td>Rejected unless <code>ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true</code></td>
+</tr>
+</tbody>
+</table>
+<p>Examples are available in:</p>
+<ul>
+<li><code>examples/runtime-profiles/local-dev.env</code></li>
+<li><code>examples/runtime-profiles/ci.env</code></li>
+<li><code>examples/runtime-profiles/production.env.example</code></li>
+</ul>
+<h2 id="api-server">API server</h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ATROPOS_RUNTIME_PROFILE</code></td>
+<td>No</td>
+<td><code>local-dev</code></td>
+<td>Runtime config layer. Values: <code>local-dev</code>, <code>ci</code>, <code>production</code>.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_HARDENING_TIER</code></td>
+<td>No</td>
+<td>Profile-specific</td>
+<td>Runtime policy tier. Values: <code>research-safe</code>, <code>internal-team-safe</code>, <code>production-safe</code>.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_STORE_BACKEND</code></td>
+<td>No</td>
+<td>Profile-specific</td>
+<td>Store backend selector (<code>memory</code> or <code>redis</code>).</td>
+</tr>
+<tr>
+<td><code>ATROPOS_REDIS_URL</code></td>
+<td>Yes for production</td>
+<td><em>(none)</em></td>
+<td>Redis DSN for durable runtime backend. Production startup fails if unset.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_API_TOKEN</code></td>
+<td>Required for auth-required tiers; always required in production profile</td>
+<td><em>(none)</em></td>
+<td>API token validated from request header <code>X-API-Token</code>.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_ALLOWED_ORIGINS</code></td>
+<td>Required in production profile</td>
+<td><em>(empty)</em></td>
+<td>Comma-separated CORS origins for non-open tiers. Production startup fails if empty.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_LOG_FORMAT</code></td>
+<td>No</td>
+<td>library default</td>
+<td>Optional runtime logger format override.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_REQUIRE_HEALTH_ENDPOINTS</code></td>
+<td>Yes in production mode (default <code>true</code>)</td>
+<td><code>false</code> in dev mode</td>
+<td>Enforces required health routes (<code>/health</code>, <code>/health/live</code>, <code>/health/ready</code>, <code>/health/dependencies</code>) at startup.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS</code></td>
+<td>No</td>
+<td><code>false</code></td>
+<td>Allows localhost Redis URLs and localhost CORS origins in production mode when set to <code>true</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="observability-runtime-api">Observability (runtime API)</h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ATROPOS_TRACING_ENABLED</code></td>
+<td>No</td>
+<td><code>false</code> in <code>local-dev</code>/<code>ci</code>, <code>true</code> in <code>production</code></td>
+<td>Enables OpenTelemetry tracing setup.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_EXPORTER</code></td>
+<td>No</td>
+<td><code>otlp</code></td>
+<td>Exporter (<code>otlp</code>, <code>jaeger</code>, or <code>console</code>).</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_ENDPOINT</code></td>
+<td>Required when tracing is enabled in production profile</td>
+<td>exporter-specific fallback</td>
+<td>Endpoint for trace export (e.g. OTLP collector URL).</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_SERVICE_NAME</code></td>
+<td>No</td>
+<td><code>atropos-runtime</code></td>
+<td>OpenTelemetry service name.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_INSECURE</code></td>
+<td>No</td>
+<td><code>true</code></td>
+<td>Whether exporter transport is insecure (where applicable).</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_SAMPLE_RATIO</code></td>
+<td>No</td>
+<td><code>1.0</code></td>
+<td>Trace sampling ratio in <code>[0.0, 1.0]</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="production-validation-rules">Production validation rules</h3>
+<p>When <code>ATROPOS_RUNTIME_PROFILE=production</code>, startup validation requires all of the following:</p>
+<ol>
+<li><code>ATROPOS_STORE_BACKEND=redis</code></li>
+<li><code>ATROPOS_REDIS_URL</code> set</li>
+<li><code>ATROPOS_API_TOKEN</code> set</li>
+<li><code>ATROPOS_ALLOWED_ORIGINS</code> contains at least one origin</li>
+<li><code>ATROPOS_LOG_FORMAT</code> resolves to <code>json</code> (structured logging)</li>
+<li><code>ATROPOS_REQUIRE_HEALTH_ENDPOINTS</code> remains enabled</li>
+<li>Localhost Redis/CORS defaults are rejected unless <code>ATROPOS_ALLOW_UNSAFE_LOCALHOST_DEFAULTS=true</code></li>
+<li>If <code>ATROPOS_TRACING_ENABLED=true</code>, <code>ATROPOS_TRACING_ENDPOINT</code> must be set</li>
+</ol>
+<p>This prevents implicit localhost assumptions in production mode and makes durability/observability requirements explicit.</p>
+<h2 id="worker-runtime">Worker runtime</h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ATROPOS_API_BASE_URL</code></td>
+<td>Yes</td>
+<td><code>http://atropos-api:8000</code></td>
+<td>API base URL that worker probes for readiness dependency checks.</td>
+</tr>
+<tr>
+<td><code>WORKER_HOST</code></td>
+<td>No</td>
+<td><code>0.0.0.0</code></td>
+<td>Host bind interface for worker health HTTP server.</td>
+</tr>
+<tr>
+<td><code>WORKER_PORT</code></td>
+<td>No</td>
+<td><code>9000</code></td>
+<td>Port bind for worker health HTTP server.</td>
+</tr>
+<tr>
+<td><code>WORKER_POLL_INTERVAL_SECONDS</code></td>
+<td>No</td>
+<td><code>5</code></td>
+<td>Seconds between worker dependency checks.</td>
+</tr>
+<tr>
+<td><code>WORKER_REQUEST_TIMEOUT_SECONDS</code></td>
+<td>No</td>
+<td><code>2</code></td>
+<td>HTTP timeout used for each worker dependency check.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_LOG_LEVEL</code></td>
+<td>No</td>
+<td><code>INFO</code></td>
+<td>Logging level for worker process output.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="probe-endpoints">Probe endpoints</h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Liveness</th>
+<th>Readiness</th>
+<th>Dependencies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API</td>
+<td><code>/health/live</code></td>
+<td><code>/health/ready</code></td>
+<td><code>/health/dependencies</code></td>
+</tr>
+<tr>
+<td>Worker</td>
+<td><code>/livez</code> (or <code>/health/live</code>)</td>
+<td><code>/readyz</code> (or <code>/health/ready</code>)</td>
+<td><code>/depz</code> (or <code>/health/dependencies</code>)</td>
+</tr>
+</tbody>
+</table>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

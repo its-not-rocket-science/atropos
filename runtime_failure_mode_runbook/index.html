@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/runtime_failure_mode_runbook/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Atropos runtime failure-mode matrix and operator runbook - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Atropos runtime failure-mode matrix and operator runbook";
+        var mkdocs_page_input_path = "runtime_failure_mode_runbook.md";
+        var mkdocs_page_url = "/atropos/runtime_failure_mode_runbook/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Atropos runtime failure-mode matrix and operator runbook</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="atropos-runtime-failure-mode-matrix-and-operator-runbook">Atropos runtime failure-mode matrix and operator runbook</h1>
+<h2 id="failure-mode-matrix">Failure-mode matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Failure mode</th>
+<th>Detection signal</th>
+<th>API behavior</th>
+<th>Data integrity behavior</th>
+<th>Operator action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API restart (durable store)</td>
+<td>Process restart + <code>/health/ready</code> recovered_items &gt; 0</td>
+<td>Service becomes ready after startup + dependency health checks</td>
+<td>Job idempotency and scored-ingestion dedupe state are preserved</td>
+<td>Validate <code>/health/ready</code>, then resume traffic</td>
+</tr>
+<tr>
+<td>API restart (in-memory store)</td>
+<td>Process restart</td>
+<td>Service returns ready, but state is empty</td>
+<td>Queue + dedupe state are lost (expected for non-durable mode)</td>
+<td>Use only for dev/test; use Redis in production</td>
+</tr>
+<tr>
+<td>Worker restart/retry</td>
+<td>Duplicate request IDs from workers</td>
+<td>First attempt accepted, retries deduplicated</td>
+<td>Exactly-once-per-request-id semantics for accepted groups</td>
+<td>Ensure workers persist/reuse request IDs across retries</td>
+</tr>
+<tr>
+<td>Store outage</td>
+<td><code>/health/dependencies</code> degraded; write endpoints return HTTP 503</td>
+<td>Writes/reads fail explicitly with <code>Runtime store unavailable during &lt;endpoint&gt;</code></td>
+<td>No silent success; retries required after dependency recovery</td>
+<td>Restore dependency, verify readiness=200, replay failed requests with same IDs</td>
+</tr>
+<tr>
+<td>Duplicate environment registration</td>
+<td>Repeated <code>POST /environments</code> same id</td>
+<td>200 with <code>created=false</code> for duplicates</td>
+<td>No duplicate environment records</td>
+<td>None required</td>
+</tr>
+<tr>
+<td>Partial ingestion</td>
+<td>Ingestion response <code>status=partial_failed</code>, <code>failed_groups&gt;0</code></td>
+<td>API returns 200 + partial status</td>
+<td>Accepted groups committed, failed groups recoverable by retry</td>
+<td>Retry failed request with same request id and corrected failed groups</td>
+</tr>
+<tr>
+<td>Batch delivery interruption</td>
+<td>Group status <code>interrupted</code>; partial_failed result</td>
+<td>API returns partial result for request</td>
+<td>Interrupted group claim is released; later retry can complete group</td>
+<td>Replay same request id after dependency/network issue resolved</td>
+</tr>
+</tbody>
+</table>
+<h2 id="operational-procedures">Operational procedures</h2>
+<h3 id="1-triage-checklist">1) Triage checklist</h3>
+<ol>
+<li>Check <code>GET /health/live</code> (process up).</li>
+<li>Check <code>GET /health/dependencies</code> (dependency health).</li>
+<li>Check <code>GET /health/ready</code> (control-plane + dependency + shutdown status).</li>
+<li>For ingestion incidents, inspect request responses for:</li>
+<li><code>status</code></li>
+<li><code>failed_groups</code></li>
+<li><code>duplicate_groups</code></li>
+<li><code>deduplicated</code></li>
+</ol>
+<h3 id="2-recovery-playbooks">2) Recovery playbooks</h3>
+<h4 id="store-outage">Store outage</h4>
+<ol>
+<li>Mitigate dependency issue (Redis/network).</li>
+<li>Wait for <code>/health/dependencies</code> = 200 and <code>/health/ready</code> = 200.</li>
+<li>Replay failed writes with <strong>same request IDs</strong>.</li>
+<li>Confirm dedupe via response fields and data count checks.</li>
+</ol>
+<h4 id="batch-interruption">Batch interruption</h4>
+<ol>
+<li>Identify impacted request id/group id.</li>
+<li>Retry ingestion with the same request id after transport/store recovery.</li>
+<li>Verify group lifecycle reaches <code>acknowledged</code> and request <code>status=completed</code>.</li>
+</ol>
+<h4 id="restart-event">Restart event</h4>
+<ol>
+<li>Validate recovered state using <code>/health/ready</code> (<code>recovered_items</code>).</li>
+<li>Re-run idempotent retries from workers/clients if needed.</li>
+<li>Confirm no duplicate records by spot-checking <code>/scored_data_list</code> counts.</li>
+</ol>
+<h2 id="slo-oriented-alerts-recommended">SLO-oriented alerts (recommended)</h2>
+<ul>
+<li>Alert on <code>/health/dependencies</code> non-200 for &gt; 2 minutes.</li>
+<li>Alert on sustained growth of duplicate retries without corresponding success.</li>
+<li>Alert on repeated <code>partial_failed</code> ingestion responses per environment.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

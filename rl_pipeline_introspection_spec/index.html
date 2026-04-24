@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/rl_pipeline_introspection_spec/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>RL Pipeline Introspection Spec - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "RL Pipeline Introspection Spec";
+        var mkdocs_page_input_path = "rl_pipeline_introspection_spec.md";
+        var mkdocs_page_url = "/atropos/rl_pipeline_introspection_spec/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">RL Pipeline Introspection Spec</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="rl-pipeline-introspection-spec">RL Pipeline Introspection Spec</h1>
+<h2 id="goal">Goal</h2>
+<p>Enable users to answer: <strong>"why did this trajectory get this reward?"</strong> by attaching structured introspection to every trajectory step.</p>
+<h2 id="stage-model">Stage Model</h2>
+<p>Each step carries stage-level introspection for:
+- <code>generation</code>
+- <code>parsing</code>
+- <code>scoring</code></p>
+<p>Each stage contains:
+1. <code>metadata</code> (versioning, component identity, static context)
+2. <code>intermediate_output</code> (machine-parseable values from that stage)
+3. <code>reasoning_trace</code> (human-readable ordered explanation)</p>
+<h2 id="step-introspection-schema">Step Introspection Schema</h2>
+<pre class="codehilite"><code class="language-json">{
+  &quot;step_idx&quot;: 5,
+  &quot;action&quot;: 1,
+  &quot;position_before&quot;: 4,
+  &quot;position_after&quot;: 5,
+  &quot;reward&quot;: 11.0,
+  &quot;done&quot;: true,
+  &quot;introspection&quot;: {
+    &quot;generation&quot;: {
+      &quot;stage&quot;: &quot;generation&quot;,
+      &quot;metadata&quot;: {
+        &quot;generator&quot;: &quot;LineWorldGenerator&quot;,
+        &quot;goal&quot;: 5,
+        &quot;max_steps&quot;: 20
+      },
+      &quot;intermediate_output&quot;: {
+        &quot;position_before&quot;: 4,
+        &quot;position_after&quot;: 5,
+        &quot;step_idx&quot;: 5,
+        &quot;reached_goal&quot;: true,
+        &quot;out_of_steps&quot;: false
+      },
+      &quot;reasoning_trace&quot;: [
+        &quot;Applied delta=1 to position=4.&quot;,
+        &quot;New position=5, step_idx=5.&quot;,
+        &quot;Computed done flag from reached_goal OR out_of_steps.&quot;
+      ]
+    },
+    &quot;parsing&quot;: {
+      &quot;stage&quot;: &quot;parsing&quot;,
+      &quot;metadata&quot;: {
+        &quot;parser&quot;: &quot;LineWorldParser&quot;,
+        &quot;action_space&quot;: &quot;[-1, +1]&quot;
+      },
+      &quot;intermediate_output&quot;: {
+        &quot;raw_action&quot;: 1,
+        &quot;parsed_delta&quot;: 1
+      },
+      &quot;reasoning_trace&quot;: [
+        &quot;Received raw action 1.&quot;,
+        &quot;Validated action against [-1, +1] and mapped to delta=1.&quot;
+      ]
+    },
+    &quot;scoring&quot;: {
+      &quot;stage&quot;: &quot;scoring&quot;,
+      &quot;metadata&quot;: {
+        &quot;reward_model&quot;: &quot;LineWorldRewardFunction&quot;,
+        &quot;components&quot;: &quot;progress,success_bonus,timeout_penalty&quot;
+      },
+      &quot;intermediate_output&quot;: {
+        &quot;progress&quot;: 1.0,
+        &quot;success_bonus&quot;: 10.0,
+        &quot;timeout_penalty&quot;: 0.0,
+        &quot;total_reward&quot;: 11.0
+      },
+      &quot;reasoning_trace&quot;: [
+        &quot;progress = position_after - position_before.&quot;,
+        &quot;success_bonus = 10.0 when reached_goal else 0.0.&quot;,
+        &quot;timeout_penalty = -5.0 when out_of_steps and not reached_goal.&quot;,
+        &quot;total_reward = progress + success_bonus + timeout_penalty.&quot;
+      ]
+    }
+  }
+}
+</code></pre>
+
+<h2 id="logging-schema-event-stream">Logging Schema (Event Stream)</h2>
+<p>Emit one event per stage plus one per finalized trajectory step.</p>
+<h3 id="common-envelope">Common envelope</h3>
+<pre class="codehilite"><code class="language-json">{
+  &quot;event_name&quot;: &quot;rl.stage.completed&quot;,
+  &quot;ts&quot;: &quot;2026-04-09T12:34:56Z&quot;,
+  &quot;run_id&quot;: &quot;run_123&quot;,
+  &quot;trajectory_id&quot;: &quot;traj_456&quot;,
+  &quot;episode_id&quot;: &quot;ep_001&quot;,
+  &quot;step_idx&quot;: 5,
+  &quot;stage&quot;: &quot;scoring&quot;,
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;payload&quot;: {}
+}
+</code></pre>
+
+<h3 id="event-types">Event types</h3>
+<ul>
+<li><code>rl.stage.completed</code></li>
+<li>payload = one <code>StageIntrospection</code> object.</li>
+<li><code>rl.step.recorded</code></li>
+<li>payload = full <code>LineWorldStepRecord</code> including full <code>introspection</code>.</li>
+<li><code>rl.step.failed</code></li>
+<li>payload includes <code>stage</code>, <code>error_type</code>, <code>error_message</code>, and available partial introspection.</li>
+</ul>
+<h2 id="step-by-step-replay-design">Step-by-Step Replay Design</h2>
+<p>A replay client should:
+1. Load trajectory step records in ascending <code>step_idx</code>.
+2. For each step, render three panes (generation/parsing/scoring).
+3. Display <code>reasoning_trace</code> as ordered bullets with raw/intermediate values side-by-side.
+4. Support a per-step <strong>"Explain reward"</strong> action that highlights <code>scoring.intermediate_output</code> + formula trace.</p>
+<h2 id="debug-ui-json-first-contract">Debug UI / JSON-first Contract</h2>
+<ul>
+<li>JSON is the source of truth (<code>LineWorldStepRecord</code> + nested introspection).</li>
+<li>UI is optional and can be generated from JSON without domain-specific adapters.</li>
+<li>Minimal UI widgets:</li>
+<li>timeline (step index, reward, done)</li>
+<li>stage tabs</li>
+<li>diff view for state changes (<code>position_before</code> → <code>position_after</code>)</li>
+<li>reward equation card (<code>progress + success_bonus + timeout_penalty</code>)</li>
+</ul>
+<h2 id="acceptance-criteria">Acceptance Criteria</h2>
+<ul>
+<li>Every recorded step includes all 3 stages.</li>
+<li>Each stage has non-empty <code>reasoning_trace</code>.</li>
+<li>Replay can reconstruct reward explanation without re-running environment logic.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

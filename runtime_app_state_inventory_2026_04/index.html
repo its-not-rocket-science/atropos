@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/runtime_app_state_inventory_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Runtime app.state Inventory and Control-Plane Durability Audit (2026-04) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Runtime app.state Inventory and Control-Plane Durability Audit (2026-04)";
+        var mkdocs_page_input_path = "runtime_app_state_inventory_2026_04.md";
+        var mkdocs_page_url = "/atropos/runtime_app_state_inventory_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Runtime app.state Inventory and Control-Plane Durability Audit (2026-04)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="runtime-appstate-inventory-and-control-plane-durability-audit-2026-04">Runtime <code>app.state</code> Inventory and Control-Plane Durability Audit (2026-04)</h1>
+<p>This document audits mutable FastAPI <code>app.state</code> usage in <code>src/atroposlib/api/server.py</code> and classifies each field by operational durability requirements.</p>
+<h2 id="scope">Scope</h2>
+<ul>
+<li>API module audited: <code>src/atroposlib/api/server.py</code></li>
+<li>Control-plane backing store: <code>AtroposStore</code> protocol with <code>RedisStore</code> (durable) and <code>InMemoryStore</code> (dev/test only)</li>
+</ul>
+<h2 id="mutable-appstate-fields-currently-used">Mutable <code>app.state</code> fields currently used</h2>
+<h3 id="1-runtime_store">1) <code>runtime_store</code></h3>
+<ul>
+<li><strong>Type:</strong> <code>AtroposStore</code></li>
+<li><strong>Purpose:</strong> Request-time dependency access and compatibility accessor via <code>get_runtime_state(...)</code>.</li>
+<li><strong>Classification:</strong> <strong>safe to remain ephemeral</strong>.</li>
+<li><strong>Rationale:</strong> This is not control-plane data itself; it is a process-local pointer to the backend that owns durable state.</li>
+</ul>
+<h2 id="previously-process-local-fields-moved-off-appstate">Previously process-local fields moved off <code>app.state</code></h2>
+<p>The following mutable lifecycle fields were intentionally moved to an internal <code>RuntimeProcessState</code> instance (closure-local in app factory), because they are process lifecycle metadata and not queue/control-plane state:</p>
+<ul>
+<li><code>is_shutting_down</code></li>
+<li><code>ready</code></li>
+<li><code>startup_error</code></li>
+<li><code>store_startup_state</code></li>
+</ul>
+<h3 id="classification">Classification</h3>
+<ul>
+<li><strong>safe to remain ephemeral</strong> (process lifecycle only).</li>
+<li><strong>not a source of truth for queue/buffer/batch/registration/status/dedupe data</strong>.</li>
+</ul>
+<h2 id="control-plane-state-durability-mapping">Control-plane state durability mapping</h2>
+<p>Critical operational state is persisted behind <code>AtroposStore</code>:</p>
+<ul>
+<li>Job queue and job status (<code>enqueue_job</code>, <code>get_job_status</code>)</li>
+<li>Idempotency dedupe for jobs</li>
+<li>Scored-data ingestion request dedupe</li>
+<li>Group-level acceptance/buffering/batching/delivery/ack status</li>
+<li>Scored-data environment record lists</li>
+<li>Queue depth/age metrics source data</li>
+</ul>
+<h3 id="store-requirements-by-deployment-mode">Store requirements by deployment mode</h3>
+<ul>
+<li><strong>Production (<code>HardeningTier.PRODUCTION_SAFE</code>)</strong></li>
+<li>Must use a <strong>durable</strong> backend (<code>store.durable == True</code>), enforced by assertion at app build time.</li>
+<li>Default backend is Redis, requiring explicit Redis URL when no store is injected.</li>
+<li><strong>Research/Internal tiers</strong></li>
+<li>May use <code>InMemoryStore</code> for local/dev workflows.</li>
+</ul>
+<h2 id="derivedcache-only-state">Derived/cache-only state</h2>
+<p>The following are derived view/state and may remain process-local:</p>
+<ul>
+<li>Startup readiness envelope (<code>ready</code>, <code>startup_error</code>, <code>is_shutting_down</code>)</li>
+<li>Startup snapshot (<code>store_startup_state</code>: recovered item count + dependency health at startup)</li>
+<li>Prometheus in-process aggregations (observability counters/gauges), which are telemetry and not control-plane source of truth.</li>
+</ul>
+<h2 id="production-safety-assertions">Production safety assertions</h2>
+<p>Production app construction now fails fast if a non-durable store is configured:</p>
+<ul>
+<li>Error: <code>Production-safe tier requires a durable store backend; got backend='memory'</code></li>
+</ul>
+<p>This prevents accidental in-memory fallback in production runtime profiles.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

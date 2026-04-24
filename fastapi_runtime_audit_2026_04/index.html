@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/fastapi_runtime_audit_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>FastAPI runtime production-readiness audit (April 2026) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "FastAPI runtime production-readiness audit (April 2026)";
+        var mkdocs_page_input_path = "fastapi_runtime_audit_2026_04.md";
+        var mkdocs_page_url = "/atropos/fastapi_runtime_audit_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">FastAPI runtime production-readiness audit (April 2026)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="fastapi-runtime-production-readiness-audit-april-2026">FastAPI runtime production-readiness audit (April 2026)</h1>
+<h2 id="scope">Scope</h2>
+<p>Target runtime module: <code>src/atroposlib/api/server.py</code>.</p>
+<h2 id="risk-matrix">Risk matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Risk area</th>
+<th>Current risk</th>
+<th>Why it matters</th>
+<th>Research-safe</th>
+<th>Internal-team-safe</th>
+<th>Production-safe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In-memory state (<code>queue</code>, status map)</td>
+<td>High</td>
+<td>Process restart loses queue/status; multi-worker deployment diverges state by process</td>
+<td>Acceptable for local experiments</td>
+<td>Move status to shared store; keep queue in-memory only for low criticality</td>
+<td>External durable queue + external status store required</td>
+</tr>
+<tr>
+<td>Reset endpoint exposure</td>
+<td>High</td>
+<td>Accidental or malicious state wipe causes data loss and control-plane disruption</td>
+<td>Allow only in isolated dev envs</td>
+<td>Disable by default</td>
+<td>Remove endpoint or gate behind strong admin auth + audit logging</td>
+</tr>
+<tr>
+<td>Open CORS (<code>*</code>)</td>
+<td>Medium-High</td>
+<td>Browser clients from any origin can call public endpoints; increases token leakage and abuse surface</td>
+<td>Accept if no auth and local notebook usage</td>
+<td>Restrict origins to approved internal domains</td>
+<td>Strict allowlist + TLS + origin review pipeline</td>
+</tr>
+<tr>
+<td>Missing authentication</td>
+<td>High</td>
+<td>Anyone with network path can enqueue/reset/read status</td>
+<td>Optional in sandbox</td>
+<td>Require API token on writes</td>
+<td>Strong authN/authZ (OIDC/JWT, scopes, service identities)</td>
+</tr>
+<tr>
+<td>Queue durability</td>
+<td>High</td>
+<td>Jobs disappear on restart, crash, autoscaling, or rolling deploy</td>
+<td>Accept in ephemeral research</td>
+<td>At-least status durability, optional queue persistence</td>
+<td>Durable broker with retries, dead-letter queues, idempotency keys</td>
+</tr>
+<tr>
+<td>Concurrent mutation of <code>app.state</code></td>
+<td>Medium</td>
+<td>Race conditions corrupt queue depth/status under concurrent requests</td>
+<td>Serialize with a lock</td>
+<td>Keep lock and typed state accessors</td>
+<td>Replace with external atomic primitives/transactions</td>
+</tr>
+</tbody>
+</table>
+<h2 id="hardening-roadmap">Hardening roadmap</h2>
+<h3 id="1-research-safe">1) Research-safe</h3>
+<ul>
+<li>Keep in-memory queue and status for speed.</li>
+<li>Keep reset endpoint enabled for quick iteration.</li>
+<li>Allow broad CORS for local tools.</li>
+<li>Auth optional.</li>
+<li>Add typed state container and lock to avoid accidental races.</li>
+</ul>
+<h3 id="2-internal-team-safe">2) Internal-team-safe</h3>
+<ul>
+<li>Disable reset endpoint in default runtime profile.</li>
+<li>Require API token for all mutating endpoints.</li>
+<li>Restrict CORS to known internal origins.</li>
+<li>Persist status to Redis/Postgres; keep in-memory queue only if workload tolerance is high.</li>
+<li>Add request logging with actor identity and endpoint.</li>
+</ul>
+<h3 id="3-production-safe">3) Production-safe</h3>
+<ul>
+<li>Remove in-memory queue as source of truth; move to durable broker (Redis Streams, RabbitMQ, SQS).</li>
+<li>Persist job state transitions in durable DB (Postgres preferred for auditability).</li>
+<li>Add strong authN/authZ (OIDC/JWT), role-based policy, and endpoint-level authorization.</li>
+<li>Remove reset endpoint from public surface; use an internal maintenance workflow with explicit approvals.</li>
+<li>Add idempotency keys, retry policies, DLQ, and replay tooling.</li>
+<li>Run with multiple workers and externalized shared state only.</li>
+</ul>
+<h2 id="example-refactors-implemented">Example refactors implemented</h2>
+<ol>
+<li>Introduced typed runtime state with <code>AppRuntimeState</code> dataclass and helper accessor <code>get_runtime_state</code>.</li>
+<li>Added explicit hardening tiers (<code>research-safe</code>, <code>internal-team-safe</code>, <code>production-safe</code>) with policy mapping.</li>
+<li>Gated reset endpoint by policy rather than unconditional exposure.</li>
+<li>Added write-endpoint auth dependency with <code>X-API-Token</code> verification for safer tiers.</li>
+<li>Replaced ad hoc state mutation with lock-guarded mutation blocks.</li>
+</ol>
+<h2 id="persistence-strategy-recommendation-queue-status">Persistence strategy recommendation (queue + status)</h2>
+<h3 id="queue">Queue</h3>
+<ul>
+<li><strong>Research-safe</strong>: in-memory <code>deque</code>.</li>
+<li><strong>Internal-team-safe</strong>: Redis list/stream acceptable when occasional data loss is tolerable.</li>
+<li><strong>Production-safe</strong>: durable message broker with ack/retry semantics.</li>
+</ul>
+<h3 id="status">Status</h3>
+<ul>
+<li>Use a separate status store keyed by <code>job_id</code>.</li>
+<li>Start with Redis hash (fast, simple) or Postgres table (audit-friendly).</li>
+<li>Recommended production schema fields:</li>
+<li><code>job_id</code>, <code>state</code>, <code>created_at</code>, <code>updated_at</code>, <code>attempt</code>, <code>worker_id</code>, <code>last_error</code>.</li>
+<li>Persist every transition (<code>queued</code>, <code>running</code>, <code>succeeded</code>, <code>failed</code>) and include a monotonic version/timestamp for conflict resolution.</li>
+</ul>
+<h3 id="migration-order">Migration order</h3>
+<ol>
+<li>Keep API contract stable (<code>/jobs</code>, <code>/jobs/{id}</code>) while introducing storage adapters.</li>
+<li>Add abstract queue/status interfaces and a memory-backed adapter.</li>
+<li>Implement Redis/Postgres adapters and switch via configuration.</li>
+<li>Run dual-write for one release window, then cut over reads.</li>
+<li>Remove in-memory source-of-truth once confidence is high.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

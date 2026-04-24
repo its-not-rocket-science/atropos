@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/base_env_runtime_audit_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>BaseEnv Runtime Audit (April 2026) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "BaseEnv Runtime Audit (April 2026)";
+        var mkdocs_page_input_path = "base_env_runtime_audit_2026_04.md";
+        var mkdocs_page_url = "/atropos/base_env_runtime_audit_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">BaseEnv Runtime Audit (April 2026)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="baseenv-runtime-audit-april-2026">BaseEnv Runtime Audit (April 2026)</h1>
+<h2 id="scope">Scope</h2>
+<p>This audit reviews <code>src/atroposlib/envs/base.py</code> and runtime-related modules under
+<code>src/atroposlib/envs/</code> to ensure <code>BaseEnv</code> remains a thin contract + orchestration
+surface instead of a god class.</p>
+<h2 id="1-responsibilities-still-owned-by-baseenv-before-this-change">1) Responsibilities still owned by <code>BaseEnv</code> (before this change)</h2>
+<p><code>BaseEnv</code> was already significantly slimmed down, but still retained a few mixed concerns:</p>
+<ol>
+<li><strong>Dependency wiring + lifecycle bootstrap</strong></li>
+<li>Chose defaults and resolved legacy constructor aliases (<code>worker_manager</code>, <code>logging_manager</code>, <code>transport</code>).</li>
+<li>Built runtime controller and env-logic adapters inline.</li>
+<li>Managed seed bootstrapping and propagation.</li>
+<li><strong>Compatibility method implementations</strong></li>
+<li>Implemented inline wrappers for serving streams, reset behavior, CLI conversion,
+     config merge, worker orchestration alias, transport alias, logging alias, and checkpoint alias.</li>
+<li><strong>Environment contract/orchestration API (kept intentionally)</strong></li>
+<li><code>step</code>, <code>process</code>, <code>evaluate</code>, <code>serve</code>, and compatibility properties.</li>
+</ol>
+<h2 id="2-extraction-performed">2) Extraction performed</h2>
+<p>To remove remaining god-class behavior while preserving public ergonomics:</p>
+<ul>
+<li>Added <strong><code>dependency_factory.py</code></strong>:</li>
+<li><code>BaseEnvDependencyFactory</code> now owns collaborator construction, legacy alias resolution,
+    runtime controller composition, and seed propagation.</li>
+<li>Emits a <code>RuntimeWiring</code> DTO with explicit dependencies.</li>
+<li>Added <strong><code>compatibility_adapter.py</code></strong>:</li>
+<li><code>BaseEnvCompatibilityAdapter</code> now owns legacy wrappers and utility compatibility calls:
+    stream serving, reset, CLI/config adapters, and legacy alias methods.</li>
+<li>Updated <strong><code>BaseEnv</code></strong> to:</li>
+<li>call factory for composition,</li>
+<li>delegate compatibility behavior to adapter,</li>
+<li>retain stable public method/property surface.</li>
+</ul>
+<h2 id="3-updated-runtime-module-dependency-diagram">3) Updated runtime module dependency diagram</h2>
+<pre class="codehilite"><code class="language-mermaid">flowchart TD
+  BaseEnv[BaseEnv\n(thin orchestration facade)]
+  Factory[BaseEnvDependencyFactory]
+  Compat[BaseEnvCompatibilityAdapter]
+  Controller[RuntimeController]
+
+  EnvLogic[EnvLogic / PassthroughEnvLogic]
+  WorkerRuntime[WorkerRuntime]
+  TransportClient[TransportClient]
+  MetricsLogger[MetricsLogger]
+  CheckpointManager[CheckpointManager]
+  CliAdapter[CliAdapter]
+
+  BaseEnv --&gt; Factory
+  BaseEnv --&gt; Compat
+  BaseEnv --&gt; Controller
+
+  Factory --&gt; WorkerRuntime
+  Factory --&gt; TransportClient
+  Factory --&gt; MetricsLogger
+  Factory --&gt; CheckpointManager
+  Factory --&gt; CliAdapter
+  Factory --&gt; EnvLogic
+  Factory --&gt; Controller
+
+  Controller --&gt; WorkerRuntime
+  Controller --&gt; TransportClient
+  Controller --&gt; MetricsLogger
+  Controller --&gt; CheckpointManager
+  Controller --&gt; EnvLogic
+
+  Compat --&gt; WorkerRuntime
+  Compat --&gt; TransportClient
+  Compat --&gt; MetricsLogger
+  Compat --&gt; CheckpointManager
+  Compat --&gt; CliAdapter
+</code></pre>
+
+<h2 id="4-testability-decomposition-summary">4) Testability decomposition summary</h2>
+<p>Each extracted unit has isolated tests:</p>
+<ul>
+<li><code>BaseEnvDependencyFactory</code> wiring + seed propagation contract.</li>
+<li><code>BaseEnvCompatibilityAdapter</code> stream/single serve behavior.</li>
+<li><code>BaseEnvCompatibilityAdapter</code> delegation of legacy APIs.</li>
+</ul>
+<p>This keeps <code>BaseEnv</code> tests focused on external behavior while unit tests verify
+internal composition seams.</p>
+<h2 id="5-baseenv-complexity-summary-before-vs-after">5) BaseEnv complexity summary (before vs after)</h2>
+<p>Measured with a lightweight AST script:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Before</th>
+<th style="text-align: right;">After</th>
+<th style="text-align: right;">Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File LOC (<code>base.py</code>)</td>
+<td style="text-align: right;">158</td>
+<td style="text-align: right;">159</td>
+<td style="text-align: right;">+1</td>
+</tr>
+<tr>
+<td><code>BaseEnv</code> methods</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Class decision nodes (<code>if/for/while/try/...</code>)</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-9</td>
+</tr>
+</tbody>
+</table>
+<p>Interpretation:
+- Public API count is unchanged (backward compatibility preserved).
+- Conditional/wiring complexity moved out of <code>BaseEnv</code> into dedicated, testable services.</p>
+<h2 id="backward-compatibility-status">Backward compatibility status</h2>
+<p>Preserved:</p>
+<ul>
+<li>Constructor aliases (<code>worker_manager</code>, <code>transport</code>, <code>logging_manager</code>).</li>
+<li>Legacy methods (<code>orchestrate_workers</code>, <code>call_api</code>, <code>log_event</code>, <code>checkpoint</code>).</li>
+<li>Orchestration aliases (<code>process</code>, <code>evaluate</code>, <code>serve</code>).</li>
+<li>Legacy collaborator properties (<code>runtime</code>, <code>worker_manager</code>, <code>transport</code>, <code>logger</code>, <code>logging_manager</code>).</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

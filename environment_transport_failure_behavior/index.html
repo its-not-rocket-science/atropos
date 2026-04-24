@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/environment_transport_failure_behavior/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Environment transport failure behavior - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Environment transport failure behavior";
+        var mkdocs_page_input_path = "environment_transport_failure_behavior.md";
+        var mkdocs_page_url = "/atropos/environment_transport_failure_behavior/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Environment transport failure behavior</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="environment-transport-failure-behavior">Environment transport failure behavior</h1>
+<p>The environment-to-API transport path (<code>TransportClient</code>) now enforces explicit request identity,
+bounded retries, and typed terminal failures so failed sends do not get silently dropped.</p>
+<h2 id="request-identity">Request identity</h2>
+<ul>
+<li>Every call to <code>TransportClient.send(payload)</code> guarantees a <code>request_id</code>.</li>
+<li>If the caller provides <code>payload["request_id"]</code>, that value is reused.</li>
+<li>Otherwise, the client generates one via <code>request_id_factory</code> (default UUID4).</li>
+<li>The same <code>request_id</code> is reused across all retries for that logical send operation.</li>
+</ul>
+<h2 id="retry-policy">Retry policy</h2>
+<p><code>TransportClient</code> retries <strong>only retryable errors</strong>:</p>
+<ul>
+<li><code>TransportTimeoutError</code> (timeouts)</li>
+<li><code>TransportServerError</code> (HTTP/transport 5xx)</li>
+<li><code>RetryableTransportError</code> (custom mapped retriable exception classes)</li>
+</ul>
+<p>Backoff is bounded exponential:</p>
+<ul>
+<li><code>delay = min(base_backoff_seconds * backoff_multiplier^(retry_count-1), max_backoff_seconds)</code></li>
+<li>default: <code>base_backoff_seconds=0.05</code>, <code>backoff_multiplier=2.0</code>, <code>max_backoff_seconds=1.0</code></li>
+</ul>
+<h2 id="error-taxonomy">Error taxonomy</h2>
+<ul>
+<li><code>TransportError</code>: base class</li>
+<li><code>RetryableTransportError</code> / <code>NonRetryableTransportError</code>: policy boundary</li>
+<li><code>TransportTimeoutError</code>: timeout retryable</li>
+<li><code>TransportServerError</code>: 5xx retryable</li>
+<li><code>TransportClientError</code>: 4xx non-retryable</li>
+<li><code>TransportMalformedResponseError</code>: malformed/non-conformant response non-retryable</li>
+<li><code>TransportRetriesExhaustedError</code>: raised when retry budget is consumed</li>
+</ul>
+<h2 id="metrics-surfaced-by-transport">Metrics surfaced by transport</h2>
+<p><code>TransportClient.metrics</code> tracks counters for operations and failures:</p>
+<ul>
+<li><code>transport_success_total</code></li>
+<li><code>transport_retries_total</code></li>
+<li><code>transport_retry_count_total</code></li>
+<li><code>transport_terminal_failures_total</code></li>
+<li><code>transport_error_total:&lt;ErrorType&gt;</code></li>
+<li><code>transport_retries_total:&lt;ErrorType&gt;</code></li>
+<li><code>transport_terminal_failures_total:&lt;ErrorType&gt;</code></li>
+</ul>
+<p>These counters make retry pressure and terminal failures visible for alerting and debugging.</p>
+<h2 id="terminal-failure-semantics">Terminal failure semantics</h2>
+<p>On failure after retries, <code>send()</code> raises a typed exception (<code>TransportRetriesExhaustedError</code> or a
+non-retryable subtype) and does <strong>not</strong> swallow the payload. The caller receives the exception and
+can route the failed request to durable storage / dead-letter handling.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

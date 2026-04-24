@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/rl_env_component_contracts/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>RL Environment Component Contracts - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "RL Environment Component Contracts";
+        var mkdocs_page_input_path = "rl_env_component_contracts.md";
+        var mkdocs_page_url = "/atropos/rl_env_component_contracts/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">RL Environment Component Contracts</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="rl-environment-component-contracts">RL Environment Component Contracts</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<p>This module split separates environment concerns into explicit, independently testable units while preserving original <code>LineWorldEnv</code> behavior.</p>
+<h2 id="new-module-structure">New module structure</h2>
+<pre class="codehilite"><code class="language-text">src/atropos/rl_env/
+  __init__.py
+  contracts.py
+  line_world.py
+examples/minimal_trajectory_example.py
+</code></pre>
+
+<h2 id="component-definitions">Component definitions</h2>
+<h3 id="1-parser">1) <code>Parser</code></h3>
+<ul>
+<li><strong>Input</strong>: <code>raw_action: int</code>.</li>
+<li><strong>Output</strong>: <code>LineWorldParsedAction(delta: int)</code>.</li>
+<li><strong>Failure modes</strong>:</li>
+<li><code>TypeError</code> if input is not <code>int</code>.</li>
+<li><code>ValueError</code> if input is outside action space <code>{-1, +1}</code>.</li>
+<li><strong>Test strategy</strong>:</li>
+<li>unit test valid action mapping.</li>
+<li>unit test invalid type/value rejections.</li>
+</ul>
+<h3 id="2-generator">2) <code>Generator</code></h3>
+<ul>
+<li><strong>Input</strong>: <code>(state: LineWorldState, parsed_action: LineWorldParsedAction)</code>.</li>
+<li><strong>Output</strong>: <code>LineWorldTransition</code> (state delta + terminal flags).</li>
+<li><strong>Failure modes</strong>:</li>
+<li><code>RuntimeError</code> when state invariants fail (<code>max_steps &lt;= 0</code>).</li>
+<li><code>ValueError</code>/<code>RuntimeError</code> for malformed parsed action or impossible transitions.</li>
+<li><strong>Test strategy</strong>:</li>
+<li>deterministic transition test with fixed start state.</li>
+<li>terminal-condition tests (<code>reached_goal</code>, <code>out_of_steps</code>, <code>done</code>).</li>
+</ul>
+<h3 id="3-rewardfunction">3) <code>RewardFunction</code></h3>
+<ul>
+<li><strong>Input</strong>: <code>LineWorldTransition</code>.</li>
+<li><strong>Output</strong>: <code>LineWorldReward(value, components)</code>.</li>
+<li><strong>Failure modes</strong>:</li>
+<li><code>RuntimeError</code> for transition invariant violations.</li>
+<li><strong>Test strategy</strong>:</li>
+<li>unit tests for progress-only, success bonus, timeout penalty, and composed totals.</li>
+</ul>
+<h3 id="4-trajectorybuilder">4) <code>TrajectoryBuilder</code></h3>
+<ul>
+<li><strong>Input</strong>: <code>(transition, reward)</code>.</li>
+<li><strong>Output</strong>: <code>LineWorldStepRecord</code>.</li>
+<li><strong>Failure modes</strong>:</li>
+<li><code>RuntimeError</code> when step ordering is non-monotonic.</li>
+<li><strong>Test strategy</strong>:</li>
+<li>append-order tests.</li>
+<li>reset test to verify episode boundary semantics.</li>
+</ul>
+<h3 id="5-envorchestrator-lineworldorchestrator">5) <code>EnvOrchestrator</code> (<code>LineWorldOrchestrator</code>)</h3>
+<ul>
+<li><strong>Input</strong>: component instances + initial state.</li>
+<li><strong>Output</strong>:</li>
+<li><code>async_reset() -&gt; LineWorldState</code>.</li>
+<li><code>async_step(raw_action) -&gt; LineWorldStepRecord</code>.</li>
+<li><strong>Failure modes</strong>:</li>
+<li>propagates collaborator exceptions without swallowing.</li>
+<li>state mismatch bugs manifest as transition/reward invariant exceptions.</li>
+<li><strong>Test strategy</strong>:</li>
+<li>integration test asserting equivalence to legacy sync behavior.</li>
+<li>async tests validating <code>async_step</code>/<code>async_reset</code> flow.</li>
+</ul>
+<h2 id="refactored-real-environment-lineworldenv">Refactored real environment: <code>LineWorldEnv</code></h2>
+<p><code>LineWorldEnv</code> is now a thin compatibility wrapper over <code>LineWorldOrchestrator</code>:</p>
+<ul>
+<li>Keeps original sync methods (<code>reset</code>, <code>step</code>) for no-break migration.</li>
+<li>Adds async methods (<code>async_reset</code>, <code>async_step</code>) for concurrent rollouts.</li>
+<li>Preserves reward and done semantics from the original example implementation.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

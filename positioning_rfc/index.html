@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/positioning_rfc/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>RFC: Atropos Positioning and Scope Boundaries - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "RFC: Atropos Positioning and Scope Boundaries";
+        var mkdocs_page_input_path = "positioning_rfc.md";
+        var mkdocs_page_url = "/atropos/positioning_rfc/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">RFC: Atropos Positioning and Scope Boundaries</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="rfc-atropos-positioning-and-scope-boundaries">RFC: Atropos Positioning and Scope Boundaries</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<ul>
+<li><strong>Status:</strong> Proposed</li>
+<li><strong>Authors:</strong> Atropos maintainers</li>
+<li><strong>Last updated:</strong> 2026-04-11</li>
+<li><strong>Audience:</strong> Maintainers, contributors, adopters</li>
+</ul>
+<h2 id="1-summary">1. Summary</h2>
+<p>This RFC clarifies Atropos positioning to reduce architectural drift and scope creep.</p>
+<p><strong>Decision:</strong> Atropos is <strong>primarily a production RL platform for decision support and optimization governance</strong>, with:</p>
+<ul>
+<li>a <strong>limited research mode</strong> for fast offline iteration, and</li>
+<li>a <strong>supporting (not primary) data pipeline layer</strong> for trajectory capture and reproducibility.</li>
+</ul>
+<p>In short:</p>
+<ol>
+<li><strong>Research playground?</strong> <strong>Partially</strong> (constrained, reproducibility-first, not open-ended).</li>
+<li><strong>Production RL platform?</strong> <strong>Yes (primary identity).</strong></li>
+<li><strong>Data pipeline layer?</strong> <strong>Only as an enabling subsystem, not the product center.</strong></li>
+</ol>
+<h2 id="2-problem-statement">2. Problem Statement</h2>
+<p>Atropos has evolved across experimentation, benchmarking, telemetry, and runtime concerns. Without a clear center, the codebase risks:</p>
+<ul>
+<li>accumulating overlapping abstractions,</li>
+<li>broadening public APIs without long-term ownership,</li>
+<li>delaying production-grade hardening while adding experimental surface area.</li>
+</ul>
+<p>This RFC defines a narrow strategic center and explicit boundaries for what gets first-class support.</p>
+<h2 id="3-positioning-decision">3. Positioning Decision</h2>
+<h3 id="31-primary-positioning">3.1 Primary Positioning</h3>
+<p>Atropos is a <strong>production RL platform</strong> that helps teams:</p>
+<ul>
+<li>run controlled optimization/evaluation loops,</li>
+<li>capture decision-grade evidence (quality, latency, cost, risk),</li>
+<li>enforce promotion/rollback policies from reproducible artifacts.</li>
+</ul>
+<h3 id="32-secondary-positioning">3.2 Secondary Positioning</h3>
+<p>Atropos includes:</p>
+<ul>
+<li>a <strong>research-facing workflow</strong> for local or staging experimentation,</li>
+<li>a <strong>pipeline substrate</strong> for ingesting/storing trajectory and telemetry artifacts.</li>
+</ul>
+<p>These are productized only to the extent they strengthen the production decision loop.</p>
+<h3 id="33-positioning-test-for-new-proposals">3.3 Positioning Test (for new proposals)</h3>
+<p>A new feature is in-scope only if it materially improves at least one of:</p>
+<ol>
+<li><strong>Production decision confidence</strong> (better promotion/reject signals),</li>
+<li><strong>Operational safety</strong> (fewer regressions, better rollback/readiness),</li>
+<li><strong>Reproducibility and auditability</strong> (deterministic reruns and lineage).</li>
+</ol>
+<p>If a proposal mainly adds exploratory flexibility without improving these, it is out-of-scope or experimental.</p>
+<h2 id="4-core-abstractions">4. Core Abstractions</h2>
+<p>The following abstractions are the long-lived core:</p>
+<ol>
+<li><strong>Environment Contract</strong></li>
+<li>Stable interface for tasks, rollouts, rewards/signals, and step lifecycle.</li>
+<li>
+<p>Purpose: isolate scenario logic from orchestration/runtime concerns.</p>
+</li>
+<li>
+<p><strong>Policy/Strategy Unit</strong></p>
+</li>
+<li>Encapsulates an optimization or control policy (e.g., baseline vs candidate).</li>
+<li>
+<p>Purpose: make comparisons explicit and reproducible.</p>
+</li>
+<li>
+<p><strong>Run Specification (RunSpec)</strong></p>
+</li>
+<li>Immutable, versioned experiment/run definition: configs, seeds, dataset snapshot IDs, model identity.</li>
+<li>
+<p>Purpose: deterministic reruns and cross-team consistency.</p>
+</li>
+<li>
+<p><strong>Trajectory Record</strong></p>
+</li>
+<li>Canonical event schema for steps, outcomes, resource usage, and quality signals.</li>
+<li>
+<p>Purpose: single source of truth for both offline analysis and production evidence.</p>
+</li>
+<li>
+<p><strong>Evaluation Gate</strong></p>
+</li>
+<li>Policy-driven pass/hold/reject criteria spanning quality, latency, cost, reliability.</li>
+<li>
+<p>Purpose: convert metrics into operational decisions.</p>
+</li>
+<li>
+<p><strong>Promotion Artifact</strong></p>
+</li>
+<li>Signed/traceable bundle of evidence, decision rationale, and deployment metadata.</li>
+<li>Purpose: enforce auditability and safe handoff into runtime systems.</li>
+</ol>
+<h2 id="5-non-goals">5. Non-Goals</h2>
+<p>The following are intentionally not first-class Atropos goals:</p>
+<ol>
+<li><strong>General-purpose data engineering platform</strong></li>
+<li>
+<p>No ambition to replace warehouse ETL frameworks, stream processors, or generic lakehouse stacks.</p>
+</li>
+<li>
+<p><strong>Open-ended research sandbox with unconstrained APIs</strong></p>
+</li>
+<li>
+<p>Atropos supports experimentation, but not at the cost of stable production contracts.</p>
+</li>
+<li>
+<p><strong>Full model training framework replacement</strong></p>
+</li>
+<li>
+<p>Atropos may integrate with training tooling; it does not aim to become a broad training stack.</p>
+</li>
+<li>
+<p><strong>Observability-suite replacement</strong></p>
+</li>
+<li>
+<p>Atropos emits decision-centric telemetry and integrates with existing observability systems.</p>
+</li>
+<li>
+<p><strong>One-off benchmarking utilities without decision path</strong></p>
+</li>
+<li>Metrics without policy/gating relevance should remain peripheral.</li>
+</ol>
+<h2 id="6-stability-guarantees">6. Stability Guarantees</h2>
+<p>Stability is tiered to prevent accidental contract expansion.</p>
+<h3 id="61-stable-semver-protected">6.1 Stable (SemVer-protected)</h3>
+<ul>
+<li>Public CLI commands documented in <code>docs/cli.md</code>.</li>
+<li>Public Python APIs documented in <code>docs/api.md</code> and explicitly marked stable.</li>
+<li>Canonical trajectory schema and required fields for compatibility.</li>
+<li>RunSpec serialization format and version negotiation behavior.</li>
+</ul>
+<p><strong>Guarantee:</strong> Breaking changes only in major releases, with migration guidance.</p>
+<h3 id="62-beta-explicitly-evolving">6.2 Beta (Explicitly evolving)</h3>
+<ul>
+<li>Feature-flagged orchestration helpers.</li>
+<li>Advanced optimization plugins with evolving extension points.</li>
+<li>Experimental rollout automation adapters.</li>
+</ul>
+<p><strong>Guarantee:</strong> Best-effort backward compatibility; deprecations announced before removal when feasible.</p>
+<h3 id="63-experimental-no-compatibility-promise">6.3 Experimental (No compatibility promise)</h3>
+<ul>
+<li>Prototype APIs hidden behind explicit experimental namespaces/flags.</li>
+<li>Internal-only data fields not included in canonical schema contracts.</li>
+</ul>
+<p><strong>Guarantee:</strong> May change or be removed without deprecation windows.</p>
+<h2 id="7-roadmap-aligned-with-positioning">7. Roadmap Aligned With Positioning</h2>
+<h3 id="phase-1-0-3-months-contract-consolidation">Phase 1 (0-3 months): Contract Consolidation</h3>
+<ul>
+<li>Freeze and document the core abstractions (Environment Contract, RunSpec, Trajectory Record, Evaluation Gate).</li>
+<li>Remove or quarantine duplicate APIs that bypass canonical run and trajectory paths.</li>
+<li>Add compatibility tests for schema/version behavior.</li>
+</ul>
+<p><strong>Exit criteria:</strong> New features cannot ship without mapping to a core abstraction and stability tier.</p>
+<h3 id="phase-2-3-6-months-production-safety-and-decisioning">Phase 2 (3-6 months): Production Safety and Decisioning</h3>
+<ul>
+<li>Harden promotion gating with policy packs (quality/latency/cost/reliability).</li>
+<li>Standardize promotion artifacts and audit reports.</li>
+<li>Improve rollback/readiness integration points for runtime workflows.</li>
+</ul>
+<p><strong>Exit criteria:</strong> At least one end-to-end “evaluate → gate → promote/hold” path is deterministic and documented.</p>
+<h3 id="phase-3-6-12-months-ecosystem-and-scale">Phase 3 (6-12 months): Ecosystem and Scale</h3>
+<ul>
+<li>Expand adapters and plugins only where they preserve core contracts.</li>
+<li>Provide migration tooling for older trajectory and run formats.</li>
+<li>Add governance-level UX/reporting for multi-team environments.</li>
+</ul>
+<p><strong>Exit criteria:</strong> Upgrades preserve decision evidence continuity across versions.</p>
+<h2 id="8-governance-rules-to-prevent-scope-creep">8. Governance Rules to Prevent Scope Creep</h2>
+<p>For every architecture proposal and major PR, require a brief “Positioning Check”:</p>
+<ol>
+<li>Which core abstraction does this change strengthen?</li>
+<li>Which stability tier is affected?</li>
+<li>What explicit non-goal does this avoid?</li>
+<li>How does it improve production decision confidence/safety/reproducibility?</li>
+</ol>
+<p>Any proposal that cannot answer these in concrete terms should not be accepted as core roadmap work.</p>
+<h2 id="9-risks-and-mitigations">9. Risks and Mitigations</h2>
+<ul>
+<li><strong>Risk:</strong> Research users feel constrained.</li>
+<li>
+<p><strong>Mitigation:</strong> Keep a clearly labeled experimental lane with strict boundary to stable interfaces.</p>
+</li>
+<li>
+<p><strong>Risk:</strong> Existing modules rely on overlapping legacy paths.</p>
+</li>
+<li>
+<p><strong>Mitigation:</strong> Provide deprecation maps and migration helpers tied to RunSpec/Trajectory canonicalization.</p>
+</li>
+<li>
+<p><strong>Risk:</strong> Short-term velocity drop during consolidation.</p>
+</li>
+<li><strong>Mitigation:</strong> Timebox Phase 1 and enforce compatibility tests to avoid repeated redesign cycles.</li>
+</ul>
+<h2 id="10-final-positioning-statement">10. Final Positioning Statement</h2>
+<p>Atropos is a <strong>production RL decision platform</strong> with research and pipeline capabilities intentionally scoped to support that mission. Every durable investment should improve <strong>decision quality, operational safety, or reproducibility</strong>; everything else remains optional or experimental.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

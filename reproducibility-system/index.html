@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/reproducibility-system/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Reproducibility System Design - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Reproducibility System Design";
+        var mkdocs_page_input_path = "reproducibility-system.md";
+        var mkdocs_page_url = "/atropos/reproducibility-system/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Reproducibility System Design</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="reproducibility-system-design">Reproducibility System Design</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<h2 id="scope">Scope</h2>
+<p>This design defines a project-wide reproducibility contract for Atropos runs (CLI and Python API), including Monte Carlo analysis, validation benchmarks, pruning workflows, pipeline execution, and A/B test simulation paths.</p>
+<hr />
+<h2 id="1-sources-of-nondeterminism">1) Sources of nondeterminism</h2>
+<h3 id="a-sampling-stochastic-behavior">A. Sampling / stochastic behavior</h3>
+<p>Current stochastic paths include:</p>
+<ul>
+<li>Monte Carlo uncertainty simulation using Python <code>random</code> with optional seed support.</li>
+<li>Validation fallback/simulated metrics with random variance in synthetic mode.</li>
+<li>A/B test simulation helpers that use random draws.</li>
+<li>Potential framework-level stochastic kernels in PyTorch and NumPy paths.</li>
+</ul>
+<p>Risk: repeated runs with same inputs can produce different outputs if seed discipline is incomplete or inconsistent across libraries/processes.</p>
+<h3 id="b-environment-randomness-and-drift">B. Environment randomness and drift</h3>
+<ul>
+<li>Dynamic time-based fields (<code>now</code>, <code>time.time</code>) embedded in outputs.</li>
+<li>Cloud pricing and external API retrieval that can change between runs.</li>
+<li>Model/artifact resolution by mutable tags (e.g., <code>main</code>, <code>latest</code>) rather than immutable revisions.</li>
+<li>Dependency drift (Python package versions, CUDA/cuDNN/Torch versions, OS/kernel).</li>
+<li>Hardware drift (GPU type/count/driver differences).</li>
+</ul>
+<p>Risk: even with fixed seeds, results drift due to changing runtime context.</p>
+<h3 id="c-async-scheduling-parallel-execution-nondeterminism">C. Async / scheduling / parallel execution nondeterminism</h3>
+<ul>
+<li>Multi-process/distributed validation and benchmark execution order.</li>
+<li>Thread/process scheduling in telemetry collection and distributed utilities.</li>
+<li>Potentially nondeterministic reductions and floating-point ordering in distributed or GPU contexts.</li>
+</ul>
+<p>Risk: run ordering and floating-point accumulation can diverge unless constrained and logged.</p>
+<hr />
+<h2 id="2-proposed-reproducibility-architecture">2) Proposed reproducibility architecture</h2>
+<h2 id="21-seed-control-system">2.1 Seed control system</h2>
+<h3 id="a-hierarchical-seed-model">A. Hierarchical seed model</h3>
+<p>Define one root seed and deterministic derivation for all subcomponents:</p>
+<ul>
+<li><code>root_seed</code> (required in reproducible mode)</li>
+<li><code>derived_seed(component_name, stage_name, rank, worker_id)</code> using a stable hash function</li>
+<li>Component-specific seed assignment at startup</li>
+</ul>
+<p>Suggested derivation formula:</p>
+<ul>
+<li><code>derived = int(sha256(f"{root_seed}:{component}:{stage}:{rank}:{worker}").hexdigest()[:16], 16) % 2**31</code></li>
+</ul>
+<p>This avoids cross-component coupling and preserves replayability when new components are added.</p>
+<h3 id="b-deterministic-seeding-targets">B. Deterministic seeding targets</h3>
+<p>At run start, seed all relevant RNGs:</p>
+<ul>
+<li>Python <code>random.seed(...)</code></li>
+<li>NumPy <code>np.random.seed(...)</code> (or Generator with fixed SeedSequence)</li>
+<li>PyTorch CPU + CUDA RNG (<code>torch.manual_seed</code>, <code>torch.cuda.manual_seed_all</code>)</li>
+<li>Any framework-specific seeds passed through integration wrappers</li>
+</ul>
+<h3 id="c-deterministic-execution-toggles">C. Deterministic execution toggles</h3>
+<p>Add strict mode that enforces deterministic settings where available:</p>
+<ul>
+<li><code>torch.use_deterministic_algorithms(True)</code></li>
+<li>cuDNN deterministic settings (<code>benchmark=False</code>, deterministic=True)</li>
+<li>Optional env vars (e.g., CUBLAS workspace settings) documented per backend</li>
+</ul>
+<p>If deterministic mode cannot be guaranteed for a selected operation/device, fail fast in strict mode (do not silently continue).</p>
+<h2 id="22-config-versioning">2.2 Config versioning</h2>
+<h3 id="a-versioned-run-config-envelope">A. Versioned run config envelope</h3>
+<p>Wrap existing config in a versioned envelope:</p>
+<pre class="codehilite"><code class="language-yaml">reproducibility:
+  schema_version: &quot;1.0&quot;
+  mode: &quot;strict&quot;   # strict | best_effort | off
+  root_seed: 1337
+  lock_dependencies: true
+  lock_model_revision: true
+  capture_env: &quot;full&quot;  # minimal | full
+
+pipeline:
+  ... existing config ...
+</code></pre>
+
+<h3 id="b-config-fingerprinting">B. Config fingerprinting</h3>
+<p>Compute canonical config hash:</p>
+<ul>
+<li>Normalize YAML/JSON (sorted keys, stable float/string formatting)</li>
+<li>Hash with SHA-256</li>
+<li>Store as <code>config_hash</code></li>
+</ul>
+<p>All run artifacts reference this hash.</p>
+<h3 id="c-compatibility-policy">C. Compatibility policy</h3>
+<ul>
+<li>Increment <code>schema_version</code> on breaking reproducibility metadata changes.</li>
+<li>Maintain migration adapters for prior minor versions.</li>
+<li>Reject unknown major versions in strict mode.</li>
+</ul>
+<h2 id="23-run-metadata-logging">2.3 Run metadata logging</h2>
+<p>Emit a structured run manifest per execution (<code>run_manifest.json</code>) plus stage-level events.</p>
+<h3 id="a-identity-fields">A. Identity fields</h3>
+<ul>
+<li><code>run_id</code> (content-addressed deterministic ID in strict mode)</li>
+<li><code>parent_run_id</code> (for resumed/retried runs)</li>
+<li><code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code></li>
+</ul>
+<h3 id="b-code-provenance">B. Code provenance</h3>
+<ul>
+<li><code>git_commit_sha</code>, <code>git_dirty</code>, <code>git_branch</code></li>
+<li><code>source_tree_hash</code> (optional; strict mode recommended)</li>
+<li><code>package_version</code> (<code>atropos.__version__</code>)</li>
+</ul>
+<h3 id="c-runtime-environment">C. Runtime environment</h3>
+<ul>
+<li>Python version, platform, kernel</li>
+<li>Installed package lock snapshot (name/version)</li>
+<li>CPU/GPU model, count, driver, CUDA/cuDNN/Torch versions</li>
+<li>Container image digest (if containerized)</li>
+</ul>
+<h3 id="d-inputs-and-external-dependencies">D. Inputs and external dependencies</h3>
+<ul>
+<li><code>config_hash</code> + embedded normalized config</li>
+<li>Model identifiers + immutable revisions/digests</li>
+<li>Input dataset fingerprints (path + size + sha256)</li>
+<li>External API snapshots (pricing payload hash + retrieved timestamp)</li>
+</ul>
+<h3 id="e-determinism-controls">E. Determinism controls</h3>
+<ul>
+<li>Root seed + derived seeds by component</li>
+<li>Deterministic flags status and enforcement result</li>
+<li>Parallelism settings (workers, ranks, thread counts)</li>
+</ul>
+<h3 id="f-outputs-and-metrics">F. Outputs and metrics</h3>
+<ul>
+<li>Output artifact list with hashes</li>
+<li>Final metrics + stage metrics</li>
+<li>Exit status + error taxonomy + traceback hash (if failed)</li>
+</ul>
+<hr />
+<h2 id="3-definition-of-a-replayable-run">3) Definition of a replayable run</h2>
+<p>A run is <strong>replayable</strong> if another operator can reproduce outputs within declared tolerance using only stored artifacts and documented tooling.</p>
+<h2 id="required-to-store-minimum-contract">Required to store (minimum contract)</h2>
+<ol>
+<li><strong>Exact code identity</strong></li>
+<li>Git commit SHA</li>
+<li>
+<p>Dirty-state indicator (must be false for strict replay)</p>
+</li>
+<li>
+<p><strong>Exact configuration</strong></p>
+</li>
+<li>Full normalized config</li>
+<li>Config schema version</li>
+<li>
+<p>Config hash</p>
+</li>
+<li>
+<p><strong>Exact randomness state</strong></p>
+</li>
+<li>Root seed</li>
+<li>Seed derivation algorithm version</li>
+<li>
+<p>Derived seeds per component/worker</p>
+</li>
+<li>
+<p><strong>Exact execution environment</strong></p>
+</li>
+<li>Python + package versions (lock snapshot)</li>
+<li>OS/kernel</li>
+<li>Torch/CUDA/cuDNN versions</li>
+<li>
+<p>Hardware fingerprint</p>
+</li>
+<li>
+<p><strong>Exact input references</strong></p>
+</li>
+<li>Model revisions/digests</li>
+<li>Dataset and file hashes</li>
+<li>
+<p>External data snapshots or pinned payload hashes</p>
+</li>
+<li>
+<p><strong>Exact outputs</strong></p>
+</li>
+<li>Result artifacts + checksums</li>
+<li>
+<p>Stage outputs/events</p>
+</li>
+<li>
+<p><strong>Execution policy</strong></p>
+</li>
+<li>Reproducibility mode (<code>strict</code>/<code>best_effort</code>)</li>
+<li>Deterministic flags actually applied</li>
+<li>Parallelism settings</li>
+</ol>
+<h2 id="replay-acceptance-criteria">Replay acceptance criteria</h2>
+<ul>
+<li><strong>Bitwise mode (strict CPU paths):</strong> artifact hashes must match exactly.</li>
+<li><strong>Numerical mode (GPU/distributed):</strong> metrics must be within declared epsilon tolerances, and all non-metric artifacts (configs/manifests) must hash-match.</li>
+</ul>
+<hr />
+<h2 id="current-implementation-guarantees-april-2026">Current implementation guarantees (April 2026)</h2>
+<p>Atropos now ships a baseline reproducibility stack focused on environment debugging and publishable RL rollouts:</p>
+<ul>
+<li><strong>Global seed propagation</strong></li>
+<li>CLI-level <code>--global-seed</code> initializes a root reproducibility context and seeds Python/NumPy/PyTorch (if installed).</li>
+<li><code>BaseEnv(seed=...)</code> propagates deterministic derived seeds to worker orchestration and attaches an <code>inference_seed</code> to transport payloads.</li>
+<li>
+<p><code>WorkerManager</code> emits a stable <code>worker_seed</code> derived from root seed + worker selection context.</p>
+</li>
+<li>
+<p><strong>Deterministic replay mode</strong></p>
+</li>
+<li><code>LineWorldEnv.save_rollout(path)</code> stores initial state, seed, and full step history.</li>
+<li><code>LineWorldEnv.replay_from_rollout(path)</code> replays actions and validates exact record equality at every step.</li>
+<li>CLI command: <code>atropos-llm replay-rollout &lt;path&gt;</code> for one-command deterministic replay verification.</li>
+</ul>
+<h3 id="guarantee-boundary">Guarantee boundary</h3>
+<ul>
+<li><strong>Exact replay is guaranteed for LineWorld rollouts</strong> when:</li>
+<li>the rollout artifact is unchanged,</li>
+<li>the same Atropos code version is used,</li>
+<li>deterministic parser/generator/reward components are retained.</li>
+<li><strong>Inference seeding is best-effort</strong> for external model APIs: Atropos forwards deterministic seeds (<code>inference_seed</code>) but upstream provider behavior may vary by SDK/backend.</li>
+</ul>
+<hr />
+<h2 id="4-cli-api-changes-to-enforce-reproducibility">4) CLI / API changes to enforce reproducibility</h2>
+<h2 id="cli-additions">CLI additions</h2>
+<h3 id="global-flags">Global flags</h3>
+<ul>
+<li><code>--repro-mode {strict,best-effort,off}</code></li>
+<li><code>--seed &lt;int&gt;</code> (promote to global, not command-specific)</li>
+<li><code>--repro-manifest &lt;path&gt;</code> (default: <code>&lt;output_dir&gt;/run_manifest.json</code>)</li>
+<li><code>--config-lock &lt;path&gt;</code> (optional lock file for env/model/input pinning)</li>
+<li><code>--fail-on-nondeterminism</code> (alias for strict fail-fast)</li>
+<li><code>--replay &lt;manifest_or_lock_path&gt;</code> (execute from recorded manifest)</li>
+</ul>
+<h3 id="command-behavior-changes">Command behavior changes</h3>
+<ul>
+<li>In <code>strict</code> mode, commands fail if:</li>
+<li>seed missing,</li>
+<li>git tree dirty (unless <code>--allow-dirty</code>),</li>
+<li>unpinned model revision,</li>
+<li>unresolved external inputs without snapshots.</li>
+<li>Write manifest for every command that executes a run (<code>pipeline</code>, <code>validate</code>, <code>benchmark</code>, <code>monte-carlo</code>, pruning integration).</li>
+</ul>
+<h2 id="python-api-additions">Python API additions</h2>
+<h3 id="new-objects">New objects</h3>
+<ul>
+<li><code>ReproConfig</code> dataclass</li>
+<li><code>mode</code>, <code>root_seed</code>, <code>allow_dirty</code>, <code>capture_env_level</code>, <code>epsilon_policy</code></li>
+<li><code>RunManifest</code> model</li>
+<li>strongly typed schema and JSON export/import</li>
+</ul>
+<h3 id="new-helper-apis">New helper APIs</h3>
+<ul>
+<li><code>set_global_reproducibility(repro: ReproConfig) -&gt; None</code></li>
+<li><code>derive_seed(component: str, stage: str, rank: int = 0, worker: int = 0) -&gt; int</code></li>
+<li><code>write_run_manifest(manifest: RunManifest, path: Path) -&gt; None</code></li>
+<li><code>replay_run(manifest_path: Path) -&gt; ReplayResult</code></li>
+</ul>
+<h3 id="integration-points">Integration points</h3>
+<ul>
+<li>Initialize reproducibility context at CLI entrypoint.</li>
+<li>Inject derived seeds into each stage runner and external integration call.</li>
+<li>Attach manifest hooks in pipeline/validation/benchmark runners.</li>
+</ul>
+<hr />
+<h2 id="reproducibility-checklist">Reproducibility checklist</h2>
+<h2 id="before-run">Before run</h2>
+<ul>
+<li>[ ] Select reproducibility mode (<code>strict</code> or <code>best_effort</code>).</li>
+<li>[ ] Set root seed.</li>
+<li>[ ] Confirm clean git state (or explicitly allow dirty).</li>
+<li>[ ] Pin model revisions/digests.</li>
+<li>[ ] Resolve and hash input files/datasets.</li>
+<li>[ ] Freeze dependencies or capture lock snapshot.</li>
+<li>[ ] Configure deterministic backend flags.</li>
+</ul>
+<h2 id="during-run">During run</h2>
+<ul>
+<li>[ ] Derive and apply seeds per component/worker.</li>
+<li>[ ] Record stage start/end + parameters.</li>
+<li>[ ] Persist external API payload snapshots/hashes.</li>
+<li>[ ] Capture parallelism and scheduler-relevant settings.</li>
+</ul>
+<h2 id="after-run">After run</h2>
+<ul>
+<li>[ ] Write manifest (<code>run_manifest.json</code>).</li>
+<li>[ ] Hash all output artifacts.</li>
+<li>[ ] Store failure metadata if run fails.</li>
+<li>[ ] Verify replayability (smoke replay in CI).</li>
+</ul>
+<hr />
+<h2 id="required-metadata-schema-json">Required metadata schema (JSON)</h2>
+<pre class="codehilite"><code class="language-json">{
+  &quot;schema_version&quot;: &quot;1.0&quot;,
+  &quot;run&quot;: {
+    &quot;run_id&quot;: &quot;string&quot;,
+    &quot;parent_run_id&quot;: &quot;string|null&quot;,
+    &quot;mode&quot;: &quot;strict|best_effort|off&quot;,
+    &quot;started_at&quot;: &quot;ISO-8601&quot;,
+    &quot;ended_at&quot;: &quot;ISO-8601&quot;,
+    &quot;duration_ms&quot;: 0,
+    &quot;status&quot;: &quot;success|failed|partial&quot;
+  },
+  &quot;code&quot;: {
+    &quot;git_commit_sha&quot;: &quot;string&quot;,
+    &quot;git_branch&quot;: &quot;string&quot;,
+    &quot;git_dirty&quot;: false,
+    &quot;source_tree_hash&quot;: &quot;sha256:string|null&quot;,
+    &quot;atropos_version&quot;: &quot;string&quot;
+  },
+  &quot;config&quot;: {
+    &quot;schema_version&quot;: &quot;string&quot;,
+    &quot;normalized&quot;: {},
+    &quot;config_hash&quot;: &quot;sha256:string&quot;
+  },
+  &quot;determinism&quot;: {
+    &quot;root_seed&quot;: 1337,
+    &quot;seed_derivation_version&quot;: &quot;v1&quot;,
+    &quot;component_seeds&quot;: {
+      &quot;pipeline.assess.rank0.worker0&quot;: 12345
+    },
+    &quot;torch_deterministic&quot;: true,
+    &quot;cudnn_deterministic&quot;: true,
+    &quot;cudnn_benchmark&quot;: false,
+    &quot;parallelism&quot;: {
+      &quot;num_workers&quot;: 1,
+      &quot;world_size&quot;: 1,
+      &quot;omp_num_threads&quot;: 1
+    }
+  },
+  &quot;environment&quot;: {
+    &quot;python_version&quot;: &quot;string&quot;,
+    &quot;platform&quot;: &quot;string&quot;,
+    &quot;kernel&quot;: &quot;string&quot;,
+    &quot;packages&quot;: [
+      {&quot;name&quot;: &quot;numpy&quot;, &quot;version&quot;: &quot;x.y.z&quot;}
+    ],
+    &quot;hardware&quot;: {
+      &quot;cpu&quot;: &quot;string&quot;,
+      &quot;gpus&quot;: [&quot;string&quot;],
+      &quot;cuda_version&quot;: &quot;string|null&quot;,
+      &quot;cudnn_version&quot;: &quot;string|null&quot;,
+      &quot;driver_version&quot;: &quot;string|null&quot;
+    },
+    &quot;container&quot;: {
+      &quot;image&quot;: &quot;string|null&quot;,
+      &quot;digest&quot;: &quot;string|null&quot;
+    }
+  },
+  &quot;inputs&quot;: {
+    &quot;models&quot;: [
+      {&quot;name&quot;: &quot;string&quot;, &quot;revision&quot;: &quot;string&quot;, &quot;digest&quot;: &quot;string|null&quot;}
+    ],
+    &quot;datasets&quot;: [
+      {&quot;path&quot;: &quot;string&quot;, &quot;size_bytes&quot;: 0, &quot;sha256&quot;: &quot;string&quot;}
+    ],
+    &quot;external_snapshots&quot;: [
+      {
+        &quot;source&quot;: &quot;cloud_pricing&quot;,
+        &quot;retrieved_at&quot;: &quot;ISO-8601&quot;,
+        &quot;payload_hash&quot;: &quot;sha256:string&quot;,
+        &quot;snapshot_path&quot;: &quot;string&quot;
+      }
+    ]
+  },
+  &quot;stages&quot;: [
+    {
+      &quot;name&quot;: &quot;assess&quot;,
+      &quot;started_at&quot;: &quot;ISO-8601&quot;,
+      &quot;ended_at&quot;: &quot;ISO-8601&quot;,
+      &quot;status&quot;: &quot;success|failed|skipped&quot;,
+      &quot;params_hash&quot;: &quot;sha256:string&quot;,
+      &quot;metrics&quot;: {}
+    }
+  ],
+  &quot;outputs&quot;: {
+    &quot;artifacts&quot;: [
+      {&quot;path&quot;: &quot;string&quot;, &quot;sha256&quot;: &quot;string&quot;, &quot;size_bytes&quot;: 0}
+    ],
+    &quot;final_metrics&quot;: {},
+    &quot;error&quot;: {
+      &quot;category&quot;: &quot;string|null&quot;,
+      &quot;message&quot;: &quot;string|null&quot;,
+      &quot;traceback_hash&quot;: &quot;sha256:string|null&quot;
+    }
+  }
+}
+</code></pre>
+
+<hr />
+<h2 id="implementation-plan">Implementation plan</h2>
+<h2 id="phase-1-foundation-1-sprint">Phase 1: Foundation (1 sprint)</h2>
+<ol>
+<li>Add <code>reproducibility.py</code> module with:</li>
+<li><code>ReproConfig</code>, seed derivation, deterministic toggles.</li>
+<li>Introduce <code>RunManifest</code> model + JSON serializer.</li>
+<li>Add canonical config hashing utility.</li>
+<li>Add global CLI flags and wire to command context.</li>
+</ol>
+<p>Deliverable: reproducibility context can be initialized and seed all libraries consistently.</p>
+<h2 id="phase-2-instrumentation-12-sprints">Phase 2: Instrumentation (1–2 sprints)</h2>
+<ol>
+<li>Integrate manifest capture in:</li>
+<li>pipeline runner,</li>
+<li>validation runner,</li>
+<li>distributed benchmark,</li>
+<li>monte-carlo path,</li>
+<li>pruning integration wrappers.</li>
+<li>Record external snapshots for cloud pricing and other dynamic data.</li>
+<li>Add artifact hashing and stage event logging.</li>
+</ol>
+<p>Deliverable: every major run command emits <code>run_manifest.json</code>.</p>
+<h2 id="phase-3-replay-enforcement-1-sprint">Phase 3: Replay + Enforcement (1 sprint)</h2>
+<ol>
+<li>Implement <code>--replay</code> command flow from manifest.</li>
+<li>Add strict-mode guardrails (fail on dirty tree/unpinned revisions/missing seed).</li>
+<li>Add replay verification utility with epsilon policy.</li>
+</ol>
+<p>Deliverable: users can rerun from manifest and validate equivalence.</p>
+<h2 id="phase-4-ci-hardening-ongoing">Phase 4: CI hardening (ongoing)</h2>
+<ol>
+<li>Add CI job that executes a deterministic smoke test twice and compares manifests/artifacts.</li>
+<li>Add schema compatibility tests and migration tests.</li>
+<li>Document operator runbook for incident replay.</li>
+</ol>
+<p>Deliverable: reproducibility regressions are detected before release.</p>
+<hr />
+<h2 id="notes-on-practical-limits">Notes on practical limits</h2>
+<ul>
+<li>Full bitwise reproducibility may be infeasible across heterogeneous GPUs/drivers.</li>
+<li>The system should distinguish:</li>
+<li><strong>strict reproducible</strong> (bitwise where possible),</li>
+<li><strong>scientifically reproducible</strong> (within numeric tolerance).</li>
+<li>Manifest must explicitly state which guarantee applies to a given run.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

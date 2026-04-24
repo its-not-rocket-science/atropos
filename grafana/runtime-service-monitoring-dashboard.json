@@ -1,0 +1,99 @@
+{
+  "title": "Atropos Runtime Service Monitoring",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Queue Depth",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "atropos_runtime_queue_depth",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Buffered Groups",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "atropos_buffered_groups",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Ingestion Rate (records/s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_ingestion_records_total[5m])) by (env)",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Duplicate Ingestion Rejections",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_duplicate_ingestion_rejections_total[5m])) by (env, endpoint)",
+          "legendFormat": "{{env}} {{endpoint}}"
+        }
+      ]
+    },
+    {
+      "title": "Batch Formation P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_batch_formation_latency_seconds_bucket[5m])) by (le, env))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Worker Count",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "atropos_worker_count",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Rollout Processing P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_rollout_latency_seconds_bucket[5m])) by (le, env))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Failed Sends to API",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(atropos_failed_sends_total[5m])) by (env)",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Eval Duration P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_eval_duration_seconds_bucket[5m])) by (le, env))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    }
+  ]
+}

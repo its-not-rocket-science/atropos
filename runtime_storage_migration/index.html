@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/runtime_storage_migration/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>FastAPI Runtime Storage Migration Guide - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "FastAPI Runtime Storage Migration Guide";
+        var mkdocs_page_input_path = "runtime_storage_migration.md";
+        var mkdocs_page_url = "/atropos/runtime_storage_migration/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">FastAPI Runtime Storage Migration Guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="fastapi-runtime-storage-migration-guide">FastAPI Runtime Storage Migration Guide</h1>
+<h2 id="why-this-change">Why this change</h2>
+<p>The runtime server no longer relies on process-local <code>app.state</code> dictionaries/deques for queue and status metadata. It now uses a pluggable storage abstraction so you can run multiple API instances safely and survive process restarts.</p>
+<h2 id="new-architecture">New architecture</h2>
+<ul>
+<li><code>AtroposStore</code> protocol (aliased as <code>RuntimeStore</code> for compatibility) defines storage operations for environment registration, enqueue, dedupe, buffering, status fetch, and reset.</li>
+<li><code>InMemoryStore</code> preserves existing behavior for local development and tests.</li>
+<li><code>RedisStore</code> provides multi-instance coordination and fault-tolerant persistence.</li>
+<li><code>PostgresStore</code> is included as a stub for future implementation.</li>
+</ul>
+<h2 id="breakingapi-changes">Breaking/API changes</h2>
+<ul>
+<li><code>build_runtime_app(...)</code> now accepts <code>store: RuntimeStore | None</code>.</li>
+<li>In production tier (<code>HardeningTier.PRODUCTION_SAFE</code>), default store is Redis and requires an explicit URL:</li>
+<li><code>ATROPOS_REDIS_URL</code> env var, or</li>
+<li><code>redis_url=...</code> passed to <code>build_runtime_app(...)</code>.</li>
+<li>Production tier now asserts <code>store.durable is True</code>; injecting <code>InMemoryStore</code> raises <code>ValueError</code>.</li>
+<li><code>POST /jobs</code> supports optional <code>X-Idempotency-Key</code> and returns:</li>
+<li><code>job_id</code></li>
+<li><code>queue_depth</code></li>
+<li><code>deduplicated</code></li>
+<li><code>POST /environments</code> registers an environment explicitly and returns:</li>
+<li><code>environment_id</code></li>
+<li><code>created</code> (idempotent registration flag)</li>
+<li><code>GET /environments</code> lists currently registered environments.</li>
+<li><code>GET /health</code> now includes <code>store</code> backend name.</li>
+</ul>
+<h2 id="migration-steps">Migration steps</h2>
+<ol>
+<li>Install runtime dependency for Redis deployments:
+   <code>bash
+   pip install redis</code></li>
+<li>Set <code>ATROPOS_REDIS_URL</code> for production pods:
+   <code>bash
+   export ATROPOS_REDIS_URL="redis://redis.internal:6379/0"</code></li>
+<li>Pass idempotency key from clients on retries:</li>
+<li><code>X-Idempotency-Key: &lt;stable-request-key&gt;</code></li>
+<li>(Optional) Explicitly inject store during app construction:
+   ```python
+   from atroposlib.api import build_runtime_app, HardeningTier, RedisStore</li>
+</ol>
+<p>app = build_runtime_app(
+       tier=HardeningTier.PRODUCTION_SAFE,
+       api_token="...",
+       allowed_origins=["https://internal.example"],
+       store=RedisStore.from_url("redis://redis.internal:6379/0"),
+   )
+   ```</p>
+<h2 id="operational-notes">Operational notes</h2>
+<ul>
+<li>Redis idempotency entries expire after 24 hours by default.</li>
+<li>Reset endpoint clears all keys under configured prefix.</li>
+<li>Use dedicated key prefixes per environment (<code>dev</code>, <code>staging</code>, <code>prod</code>) to isolate queues.</li>
+</ul>
+<h2 id="startupshutdown-lifecycle-and-probes">Startup/shutdown lifecycle and probes</h2>
+<ul>
+<li>Runtime startup now explicitly initializes the store backend before serving traffic.</li>
+<li>Graceful shutdown marks the API as not ready and closes backend resources.</li>
+<li>New probe endpoints:</li>
+<li><code>GET /health/live</code> for liveness (<code>200</code> unless startup fatally failed)</li>
+<li><code>GET /health/ready</code> for readiness (<code>200</code> only when initialized, dependencies healthy, and not shutting down)</li>
+<li><code>GET /health/dependencies</code> for direct dependency status (<code>redis</code>, <code>in_memory</code>, etc.)</li>
+<li>Readiness payload includes:</li>
+<li><code>store_durable</code> (whether backend is durable)</li>
+<li><code>recovered_items</code> (queue/scored state discovered at startup)</li>
+</ul>
+<h2 id="kubernetes-deployment-notes">Kubernetes deployment notes</h2>
+<p>Example probe wiring:</p>
+<pre class="codehilite"><code class="language-yaml">livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8011
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8011
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+startupProbe:
+  httpGet:
+    path: /health/ready
+    port: 8011
+  failureThreshold: 30
+  periodSeconds: 2
+</code></pre>
+
+<p>Recommended runtime settings:</p>
+<ul>
+<li>Set <code>terminationGracePeriodSeconds</code> high enough to finish in-flight requests.</li>
+<li>Use Redis (or another durable backend) in production so restart preserves critical request/idempotency state.</li>
+<li>Keep <code>ATROPOS_REDIS_URL</code> configured via Secret/ConfigMap.</li>
+</ul>
+<h2 id="systemd-deployment-notes">systemd deployment notes</h2>
+<p>Recommended service behaviors:</p>
+<ul>
+<li>Use <code>ExecStart</code> with your ASGI server command (for example <code>uvicorn ...</code>).</li>
+<li>Set <code>Restart=on-failure</code> to recover from crashes.</li>
+<li>Set <code>TimeoutStopSec</code> to allow graceful FastAPI shutdown hooks to run.</li>
+<li>Add <code>Environment=ATROPOS_REDIS_URL=...</code> for durable state.</li>
+</ul>
+<p>Example snippet:</p>
+<pre class="codehilite"><code class="language-ini">[Service]
+ExecStart=/usr/bin/env uvicorn mymodule:app --host 0.0.0.0 --port 8011
+Restart=on-failure
+TimeoutStopSec=30
+Environment=ATROPOS_REDIS_URL=redis://redis.internal:6379/0
+</code></pre>
+
+<h2 id="restart-recovery-verification">Restart recovery verification</h2>
+<p>For production-grade restart behavior, run with a shared durable store backend (Redis).</p>
+<p>Expected outcomes across API process restarts:</p>
+<ul>
+<li>Job idempotency keys still deduplicate (<code>POST /jobs</code> returns same <code>job_id</code>).</li>
+<li>Existing <code>job_id</code> status remains queryable (<code>GET /jobs/{job_id}</code>).</li>
+<li>Scored ingestion request IDs still deduplicate retries (<code>POST /scored_data</code> / <code>/scored_data_list</code>).</li>
+</ul>
+<p>Reference tests:</p>
+<ul>
+<li><code>test_production_restart_recovers_job_and_dedup_state</code></li>
+<li><code>test_production_restart_recovers_scored_request_dedupe_state</code></li>
+<li><code>test_production_tier_rejects_inmemory_store</code></li>
+</ul>
+<p>See also: <code>docs/runtime_app_state_inventory_2026_04.md</code> for full <code>app.state</code> audit and classification.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

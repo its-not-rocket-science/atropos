@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/trajectory_data_pipeline_analysis/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Trajectory Data Pipeline Analysis - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Trajectory Data Pipeline Analysis";
+        var mkdocs_page_input_path = "trajectory_data_pipeline_analysis.md";
+        var mkdocs_page_url = "/atropos/trajectory_data_pipeline_analysis/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Trajectory Data Pipeline Analysis</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="trajectory-data-pipeline-analysis">Trajectory Data Pipeline Analysis</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<p>This document maps the current codebase into an explicit, debuggable data pipeline for trajectory-like experiment flow.</p>
+<h2 id="1-lifecycle-trace-input-generation-parsing-scoring-storage">1) Lifecycle trace: input → generation → parsing → scoring → storage</h2>
+<h3 id="as-implemented-today-ab-testing-path">As implemented today (A/B testing path)</h3>
+<pre class="codehilite"><code class="language-text">[ABTestConfig + deployed variant endpoints]
+  -&gt; ExperimentRunner.start()
+  -&gt; background monitoring loop
+
+input
+  -&gt; _collect_telemetry_metrics() (real) OR _collect_metrics() (synthetic fallback)
+
+generation
+  -&gt; telemetry collector returns TelemetryData (aggregated + samples)
+  -&gt; runner builds VariantMetrics per variant
+
+parsing/normalization
+  -&gt; metric-name mapping (telemetry_field_map)
+  -&gt; convert values to {mean,std,count}
+
+scoring
+  -&gt; analyze_experiment_results()
+  -&gt; synthetic sample reconstruction from aggregate stats
+  -&gt; analyze_variant_comparison() produces p-value/effect size/significance
+
+storage/output
+  -&gt; ExperimentResult assembled in _get_current_result()
+  -&gt; ExperimentStore.save_result()/update_experiment() JSON persistence
+</code></pre>
+
+<h3 id="planned-rl-style-trajectory-path-from-decomposition-plan">Planned RL-style trajectory path (from decomposition plan)</h3>
+<pre class="codehilite"><code class="language-text">AgentOutput.raw_text
+  -&gt; ActionPipeline.parse()
+  -&gt; ActionPipeline.validate(state)
+  -&gt; ActionPipeline.normalize()
+  -&gt; TransitionModel.apply(state, action)
+  -&gt; RewardModel.compute(prev_state, outcome)
+  -&gt; EpisodeEngine emits result + telemetry
+  -&gt; TrajectoryStore.append({action, outcome})
+</code></pre>
+
+<h2 id="2-where-state-is-implicit-or-mutated">2) Where state is implicit or mutated</h2>
+<ol>
+<li><strong>Runner-global mutable caches</strong></li>
+<li><code>ExperimentRunner</code> mutates <code>_variant_metrics</code>, <code>_statistical_results</code>, <code>_deployment_ids</code>, <code>_error_counts</code>, <code>_status</code>, <code>_start_time</code>, <code>_end_time</code> across async thread cycles.</li>
+<li>
+<p>This makes replay/debugging hard because each cycle overwrites prior snapshots.</p>
+</li>
+<li>
+<p><strong>Dual-mode metric source is implicit</strong></p>
+</li>
+<li><code>_collect_metrics()</code> silently falls back to synthetic random metrics if telemetry collection fails.</li>
+<li>
+<p>This can contaminate scoring with non-production-like data unless explicitly marked.</p>
+</li>
+<li>
+<p><strong>Scoring reconstructs pseudo-raw samples</strong></p>
+</li>
+<li><code>analyze_experiment_results()</code> generates Gaussian samples from summary statistics.</li>
+<li>
+<p>The synthetic reconstruction is not carried forward as lineage metadata, so downstream consumers cannot distinguish "real" vs "simulated" evidence.</p>
+</li>
+<li>
+<p><strong>Storage payload schema is weakly typed at write boundary</strong></p>
+</li>
+<li><code>ExperimentStore</code> persists generic dicts (<code>save_experiment</code>) and mixes config/result/status fields.</li>
+<li>
+<p>Status is stored as enum <code>.value</code> (int) in some paths, while read/list logic treats status as lower-case strings.</p>
+</li>
+<li>
+<p><strong>Trajectory contract only exists in planning doc</strong></p>
+</li>
+<li>The RL decomposition defines <code>TrajectoryStore.append(record)</code> but record type is not yet concrete, inviting drift between parser/reward/output schemas.</li>
+</ol>
+<h2 id="3-proposed-typed-schemas">3) Proposed typed schemas</h2>
+<p>Use pydantic v2 models (or frozen dataclasses with validators). Pydantic shown below for validation and JSON-schema export.</p>
+<pre class="codehilite"><code class="language-python">from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, ConfigDict
+
+
+class RewardComponent(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    name: str
+    value: float
+    weight: float = 1.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class RewardOutput(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    total: float
+    components: list[RewardComponent] = Field(default_factory=list)
+    penalties: dict[str, float] = Field(default_factory=dict)
+    normalized: float | None = None
+    uncertainty: float | None = None
+    scoring_version: str
+
+
+class StepRecord(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    step_idx: int
+    timestamp: datetime
+    input_payload: dict[str, Any]
+    generated_text: str | None = None
+    parsed_action: dict[str, Any] | None = None
+    transition_outcome: dict[str, Any]
+    reward: RewardOutput
+    done: bool
+    info: dict[str, Any] = Field(default_factory=dict)
+
+
+class GroupType(str, Enum):
+    CONTROL = &quot;control&quot;
+    TREATMENT = &quot;treatment&quot;
+
+
+class GroupRecord(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    group_id: str
+    experiment_id: str
+    group_type: GroupType
+    variant_ids: list[str]
+    traffic_weight: float
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TrajectoryRecord(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    trajectory_id: str
+    episode_id: str
+    experiment_id: str | None = None
+    group_id: str | None = None
+    source: Literal[&quot;production&quot;, &quot;replay&quot;, &quot;synthetic&quot;]
+    start_time: datetime
+    end_time: datetime | None = None
+    initial_state: dict[str, Any]
+    final_state: dict[str, Any] | None = None
+    steps: list[StepRecord] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+</code></pre>
+
+<h2 id="4-logging-hooks-to-make-flow-debuggable">4) Logging hooks to make flow debuggable</h2>
+<p>Emit structured events with stable keys (<code>event_name</code>, <code>experiment_id</code>, <code>trajectory_id</code>, <code>step_idx</code>, <code>stage_ms</code>, <code>source</code>).</p>
+<ol>
+<li><strong>Input hook</strong> (<code>input.received</code>)</li>
+<li>At monitor cycle start and per variant endpoint pull.</li>
+<li>
+<p>Include endpoint, server_type, requested metrics, polling window.</p>
+</li>
+<li>
+<p><strong>Generation hook</strong> (<code>metrics.collected</code>)</p>
+</li>
+<li>
+<p>Capture collector success/failure, sample_count, latency of collection, fallback reason.</p>
+</li>
+<li>
+<p><strong>Parsing hook</strong> (<code>metrics.parsed</code>)</p>
+</li>
+<li>
+<p>Emit field mapping decisions (requested metric -&gt; telemetry field), dropped metrics, type coercions.</p>
+</li>
+<li>
+<p><strong>Scoring hook</strong> (<code>scoring.completed</code>)</p>
+</li>
+<li>
+<p>Emit control/treatment IDs, test type, p-value, effect size, significance, whether synthetic samples used.</p>
+</li>
+<li>
+<p><strong>Storage hook</strong> (<code>storage.write</code>)</p>
+</li>
+<li>
+<p>Emit path, bytes written, schema version, checksum, write duration, atomic replace status.</p>
+</li>
+<li>
+<p><strong>Trajectory step hook</strong> (<code>trajectory.step</code>)</p>
+</li>
+<li>For RL path: include parsed action hash, reward total + components, done flag, state hash before/after.</li>
+</ol>
+<h2 id="5-refactoring-suggestions-for-independent-testability">5) Refactoring suggestions for independent testability</h2>
+<ol>
+<li><strong>Split collection into pure + side-effect layers</strong></li>
+<li><code>TelemetryFetcher.fetch(endpoint)-&gt;RawTelemetryBlob</code></li>
+<li><code>TelemetryParser.parse(blob)-&gt;ParsedMetrics</code></li>
+<li><code>MetricsAggregator.aggregate(parsed)-&gt;VariantMetrics</code></li>
+<li>
+<p>Unit-test each with deterministic fixtures.</p>
+</li>
+<li>
+<p><strong>Make scoring purely functional</strong></p>
+</li>
+<li><code>score_variant_pair(control: MetricSeries, treatment: MetricSeries, config)-&gt;StatisticalResult</code></li>
+<li>
+<p>Inject RNG or remove synthetic sampling by requiring raw samples in typed input.</p>
+</li>
+<li>
+<p><strong>Introduce explicit pipeline context object</strong></p>
+</li>
+<li>Immutable <code>PipelineContext</code> passed stage-to-stage (instead of mutating runner fields).</li>
+<li>
+<p>Keep append-only <code>stage_events</code> for replay and debugging.</p>
+</li>
+<li>
+<p><strong>Version storage schema and enforce at boundary</strong></p>
+</li>
+<li><code>ExperimentEnvelope{schema_version, payload_type, payload}</code>.</li>
+<li>
+<p>Validate before write and on read; reject or migrate old versions.</p>
+</li>
+<li>
+<p><strong>Add stage contract tests</strong></p>
+</li>
+<li>Golden tests for: telemetry parse mapping, scoring parity, storage round-trip.</li>
+<li>
+<p>Add trajectory-level snapshot test that verifies full lineage (<code>input -&gt; parse -&gt; score -&gt; store</code>) with fixed seed.</p>
+</li>
+<li>
+<p><strong>Threading determinism</strong></p>
+</li>
+<li>Move monitor loop clock/sleep behind interface (<code>Clock</code>, <code>Sleeper</code>) and inject fake time in tests.</li>
+<li>Expose one-cycle method (<code>run_monitor_cycle</code>) to test exactly one pipeline pass without background threads.</li>
+</ol>
+<h2 id="suggested-target-diagram-explicit-contracts">Suggested target diagram (explicit contracts)</h2>
+<pre class="codehilite"><code class="language-text">RawInput
+  -&gt; [InputAdapter] -&gt; InputEvent
+  -&gt; [Collector] -&gt; CollectedMetrics
+  -&gt; [Parser/Normalizer] -&gt; ParsedMetrics
+  -&gt; [Scorer] -&gt; RewardOutput/StatisticalResult
+  -&gt; [TrajectoryAssembler] -&gt; TrajectoryRecord
+  -&gt; [Store] -&gt; PersistedEnvelope
+
+At every edge: typed model + structured log + stage timing + trace_id
+</code></pre>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

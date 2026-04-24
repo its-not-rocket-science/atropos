@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/cognitive_complexity_report_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Cognitive Complexity Report (April 2026) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Cognitive Complexity Report (April 2026)";
+        var mkdocs_page_input_path = "cognitive_complexity_report_2026_04.md";
+        var mkdocs_page_url = "/atropos/cognitive_complexity_report_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Cognitive Complexity Report (April 2026)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="cognitive-complexity-report-april-2026">Cognitive Complexity Report (April 2026)</h1>
+<h2 id="scope-and-method">Scope and method</h2>
+<p>Analyzed the Python codebase under <code>src/atropos</code> with a lightweight static AST scan to estimate:</p>
+<ul>
+<li>file size (lines of text),</li>
+<li>class overload risk (composite score = <code>2 * method_count + branch_nodes</code>),</li>
+<li>responsibility breadth (count of distinct method-intent buckets inferred from method names).</li>
+</ul>
+<p>This is not a strict Sonar-style cognitive complexity score, but a practical architecture triage metric for identifying where refactoring likely yields the largest maintainability gains.</p>
+<h2 id="1-largest-files">1) Largest files</h2>
+<p>Top files by line count (repository-wide):</p>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>File</th>
+<th style="text-align: right;">Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>src/atropos/cli.py</code></td>
+<td style="text-align: right;">2402</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>scripts/patched_prune.py</code></td>
+<td style="text-align: right;">1471</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>src/atropos/visualization.py</code></td>
+<td style="text-align: right;">1126</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>src/atropos/pruning_integration.py</code></td>
+<td style="text-align: right;">994</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>scripts/measure_quality_speed_tradeoffs.py</code></td>
+<td style="text-align: right;">926</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>src/atropos/abtesting/runner.py</code></td>
+<td style="text-align: right;">798</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>src/atropos/deployment/platforms.py</code></td>
+<td style="text-align: right;">781</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>scripts/combined_optimization.py</code></td>
+<td style="text-align: right;">748</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>scripts/validate_on_models.py</code></td>
+<td style="text-align: right;">716</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>src/atropos/pipeline/runner.py</code></td>
+<td style="text-align: right;">690</td>
+</tr>
+</tbody>
+</table>
+<p>Primary maintainability hotspots in production package code (<code>src/atropos</code>) are therefore:</p>
+<ul>
+<li><code>cli.py</code></li>
+<li><code>visualization.py</code></li>
+<li><code>pruning_integration.py</code></li>
+<li><code>abtesting/runner.py</code></li>
+<li><code>deployment/platforms.py</code></li>
+<li><code>pipeline/runner.py</code></li>
+</ul>
+<h2 id="2-most-overloaded-classes">2) Most overloaded classes</h2>
+<p>Top overloaded classes by composite overload score (<code>2 * methods + branches</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Class</th>
+<th>File</th>
+<th style="text-align: right;">Methods</th>
+<th style="text-align: right;">Branch nodes</th>
+<th style="text-align: right;">Responsibility buckets</th>
+<th style="text-align: right;">Overload score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>ExperimentRunner</code></td>
+<td><code>src/atropos/abtesting/runner.py</code></td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">90</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">130</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>PipelineRunner</code></td>
+<td><code>src/atropos/pipeline/runner.py</code></td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>HyperparameterTuner</code></td>
+<td><code>src/atropos/tuning/hyperparameter_tuner.py</code></td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">60</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>CloudPricingEngine</code></td>
+<td><code>src/atropos/costs/cloud_pricing.py</code></td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">58</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>ModelValidator</code></td>
+<td><code>src/atropos/validation/runner.py</code></td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">49</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>DistributedBenchmarkWrapper</code></td>
+<td><code>src/atropos/validation/distributed_benchmark.py</code></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">42</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>PruningFramework</code></td>
+<td><code>src/atropos/pruning/base.py</code></td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">39</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>VLLMCollector</code></td>
+<td><code>src/atropos/telemetry_collector.py</code></td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">39</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>ExperimentStore</code></td>
+<td><code>src/atropos/abtesting/store.py</code></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>WandbTracker</code></td>
+<td><code>src/atropos/integrations.py</code></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">35</td>
+</tr>
+</tbody>
+</table>
+<h3 id="responsibility-breadth-observations">Responsibility breadth observations</h3>
+<ul>
+<li><strong>Very high breadth + very high branching:</strong> <code>ExperimentRunner</code> is the most urgent target.</li>
+<li><strong>High branching with low bucket diversity:</strong> <code>PipelineRunner</code> and <code>HyperparameterTuner</code> look control-flow heavy rather than domain-broad; simplify decision logic and orchestration paths.</li>
+<li><strong>Moderate breadth with infra concerns mixed in:</strong> <code>CloudPricingEngine</code>, <code>ExperimentStore</code>, and <code>PruningFramework</code> combine multiple concerns and can be split along data access/strategy boundaries.</li>
+</ul>
+<h2 id="3-responsibilities-per-class-quantified">3) Responsibilities per class (quantified)</h2>
+<p>Responsibility buckets for top classes (derived from method naming intent):</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">Responsibility buckets (count)</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ExperimentRunner</code></td>
+<td style="text-align: right;">10</td>
+<td>lifecycle control, analysis, metrics/reporting, deployment-adjacent flow, state transitions</td>
+</tr>
+<tr>
+<td><code>PipelineRunner</code></td>
+<td style="text-align: right;">2</td>
+<td>orchestration + execution path branching (overly centralized control flow)</td>
+</tr>
+<tr>
+<td><code>HyperparameterTuner</code></td>
+<td style="text-align: right;">2</td>
+<td>search/tune core but with high internal logic depth</td>
+</tr>
+<tr>
+<td><code>CloudPricingEngine</code></td>
+<td style="text-align: right;">5</td>
+<td>pricing retrieval, defaults, estimation, catalog listing, data refresh</td>
+</tr>
+<tr>
+<td><code>ModelValidator</code></td>
+<td style="text-align: right;">3</td>
+<td>validation orchestration, checks, reporting/aggregation</td>
+</tr>
+<tr>
+<td><code>DistributedBenchmarkWrapper</code></td>
+<td style="text-align: right;">3</td>
+<td>benchmark orchestration, distributed execution, result normalization</td>
+</tr>
+<tr>
+<td><code>PruningFramework</code></td>
+<td style="text-align: right;">6</td>
+<td>framework adaptation, prune/test/build/introspection concerns mixed</td>
+</tr>
+<tr>
+<td><code>VLLMCollector</code></td>
+<td style="text-align: right;">3</td>
+<td>collection orchestration, extraction, transport/storage</td>
+</tr>
+<tr>
+<td><code>ExperimentStore</code></td>
+<td style="text-align: right;">6</td>
+<td>CRUD + indexing/listing + persistence policy</td>
+</tr>
+<tr>
+<td><code>WandbTracker</code></td>
+<td style="text-align: right;">3</td>
+<td>run lifecycle + logging + metadata sync</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-simplification-proposals">4) Simplification proposals</h2>
+<h3 id="a-experimentrunner-highest-priority">A. <code>ExperimentRunner</code> (highest priority)</h3>
+<p><strong>Problems</strong>
+- Mixes experiment lifecycle, variant selection, statistics, gating decisions, and persistence interactions.
+- Branch-heavy methods increase regression risk.</p>
+<p><strong>Simplifications</strong>
+- Extract a pure <code>ExperimentDecisionEngine</code> for stop/pause/resume/winner selection logic.
+- Extract <code>ExperimentExecutionService</code> for run lifecycle mechanics.
+- Keep <code>ExperimentRunner</code> as thin facade coordinating injected collaborators.
+- Replace nested conditionals with rule objects (strategy pattern) for experiment state transitions.</p>
+<h3 id="b-pipelinerunner">B. <code>PipelineRunner</code></h3>
+<p><strong>Problems</strong>
+- Centralized orchestration with heavy conditional dispatch.</p>
+<p><strong>Simplifications</strong>
+- Split into <code>PipelinePlanner</code> (build plan DAG) and <code>PipelineExecutor</code> (execute nodes).
+- Introduce typed stage handlers (<code>ValidationStage</code>, <code>PruningStage</code>, <code>ReportingStage</code>) instead of large <code>if/elif</code> chains.</p>
+<h3 id="c-hyperparametertuner">C. <code>HyperparameterTuner</code></h3>
+<p><strong>Problems</strong>
+- Search policy, objective evaluation, and result tracking likely co-located.</p>
+<p><strong>Simplifications</strong>
+- Separate into <code>SearchStrategy</code>, <code>ObjectiveEvaluator</code>, and <code>TuningHistoryStore</code>.
+- Make objective evaluation side-effect free for testability.</p>
+<h3 id="d-cloudpricingengine">D. <code>CloudPricingEngine</code></h3>
+<p><strong>Problems</strong>
+- Provider normalization, cache refresh, and estimation math likely intertwined.</p>
+<p><strong>Simplifications</strong>
+- Provider adapters per cloud (<code>AWSPricingAdapter</code>, <code>AzurePricingAdapter</code>, <code>GCPPricingAdapter</code>).
+- <code>PricingCatalog</code> for normalized data access.
+- <code>CostEstimator</code> for deterministic math (no I/O).</p>
+<h3 id="e-pruningframework-integrations">E. <code>PruningFramework</code> + integrations</h3>
+<p><strong>Problems</strong>
+- Base abstraction includes too many concerns (capabilities, invocation semantics, validation/test hooks).</p>
+<p><strong>Simplifications</strong>
+- Keep <code>PruningFramework</code> minimal (protocol + metadata).
+- Move execution details into framework-specific <code>Runner</code> classes.
+- Separate capability discovery from execution path.</p>
+<h2 id="5-proposed-class-splits-concrete">5) Proposed class splits (concrete)</h2>
+<h3 id="experimentrunner-split"><code>ExperimentRunner</code> split</h3>
+<ul>
+<li><code>ExperimentRunner</code> (facade)</li>
+<li><code>ExperimentExecutionService</code></li>
+<li><code>ExperimentDecisionEngine</code></li>
+<li><code>ExperimentMetricsAggregator</code></li>
+<li><code>ExperimentStateRepository</code> (via store abstraction)</li>
+</ul>
+<h3 id="pipelinerunner-split"><code>PipelineRunner</code> split</h3>
+<ul>
+<li><code>PipelineRunner</code> (facade)</li>
+<li><code>PipelinePlanner</code></li>
+<li><code>PipelineExecutor</code></li>
+<li><code>StageHandler</code> implementations per domain step</li>
+</ul>
+<h3 id="cloudpricingengine-split"><code>CloudPricingEngine</code> split</h3>
+<ul>
+<li><code>CloudPricingEngine</code> (API facade)</li>
+<li><code>PricingCatalog</code> (read/caching)</li>
+<li><code>CostEstimator</code> (math)</li>
+<li><code>ProviderAdapter</code> implementations</li>
+</ul>
+<h2 id="6-prioritized-refactor-plan">6) Prioritized refactor plan</h2>
+<h3 id="phase-0-baseline-safety-12-days">Phase 0 — Baseline safety (1–2 days)</h3>
+<ol>
+<li>Freeze current behavior with characterization tests around A/B runner and pipeline runner outputs.</li>
+<li>Add lightweight complexity guardrail script to CI (method count / branch thresholds per class).</li>
+</ol>
+<h3 id="phase-1-highest-roi-decomposition-35-days">Phase 1 — Highest ROI decomposition (3–5 days)</h3>
+<ol>
+<li>Refactor <code>ExperimentRunner</code> into facade + extracted decision/execution services.</li>
+<li>Introduce dependency injection seams for statistics and persistence collaborators.</li>
+<li>Keep external API backward-compatible.</li>
+</ol>
+<h3 id="phase-2-orchestration-untangling-34-days">Phase 2 — Orchestration untangling (3–4 days)</h3>
+<ol>
+<li>Split <code>PipelineRunner</code> into planner/executor/stage handlers.</li>
+<li>Replace large branching with registry-based stage dispatch.</li>
+</ol>
+<h3 id="phase-3-pricing-and-integration-cleanup-35-days">Phase 3 — Pricing and integration cleanup (3–5 days)</h3>
+<ol>
+<li>Extract <code>CostEstimator</code> and provider adapters from <code>CloudPricingEngine</code>.</li>
+<li>Slim <code>PruningFramework</code> base and move behavior into framework-specific runner classes.</li>
+</ol>
+<h3 id="phase-4-hardening-and-governance-ongoing">Phase 4 — Hardening and governance (ongoing)</h3>
+<ol>
+<li>Enforce complexity budgets in CI (e.g., max methods/class, max branch nodes/method).</li>
+<li>Track trend of top-10 overloaded classes per release.</li>
+<li>Require architecture notes for new classes exceeding threshold.</li>
+</ol>
+<h2 id="suggested-success-metrics">Suggested success metrics</h2>
+<ul>
+<li>30–40% reduction in overload score for <code>ExperimentRunner</code> and <code>PipelineRunner</code>.</li>
+<li>No class in <code>src/atropos</code> with &gt;12 methods <strong>and</strong> &gt;40 branch nodes.</li>
+<li>Reduced PR review time and defect rate in orchestration modules.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

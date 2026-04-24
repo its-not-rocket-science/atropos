@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/canonical_trajectory_schema/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Canonical Trajectory Schema (Atropos v1.0.0) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Canonical Trajectory Schema (Atropos v1.0.0)";
+        var mkdocs_page_input_path = "canonical_trajectory_schema.md";
+        var mkdocs_page_url = "/atropos/canonical_trajectory_schema/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Canonical Trajectory Schema (Atropos v1.0.0)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="canonical-trajectory-schema-atropos-v100">Canonical Trajectory Schema (Atropos v1.0.0)</h1>
+<p>This specification defines a <strong>versioned canonical trajectory record</strong> for Atropos as a reusable data layer for:</p>
+<ul>
+<li>RLHF pipelines</li>
+<li>Offline RL datasets</li>
+<li>Native Atropos RL environments</li>
+</ul>
+<h2 id="schema-envelope">Schema envelope</h2>
+<ul>
+<li><code>schema_name</code> (string, const): <code>atropos.trajectory</code></li>
+<li><code>schema_version</code> (string, const): <code>1.0.0</code></li>
+<li><code>trajectory_id</code> (string)</li>
+<li><code>episode_id</code> (string)</li>
+<li><code>created_at</code> (ISO-8601 UTC timestamp)</li>
+<li><code>steps</code> (array of <code>TrajectoryStep</code>)</li>
+<li><code>metadata</code> (object)</li>
+<li><code>environment_state</code> (optional JSON value)</li>
+</ul>
+<h2 id="step-schema">Step schema</h2>
+<p>Each <code>TrajectoryStep</code> contains:</p>
+<ul>
+<li><code>step_idx</code> (int, contiguous starting at 1)</li>
+<li><code>tokens_in</code> (list[int])</li>
+<li><code>tokens_out</code> (list[int])</li>
+<li><code>reward</code>:</li>
+<li><code>total</code> (float)</li>
+<li><code>components</code> (map[str, float])</li>
+<li><code>source</code> (string)</li>
+<li><code>action</code> (JSON value, optional)</li>
+<li><code>observation</code> (JSON value, optional)</li>
+<li><code>next_observation</code> (JSON value, optional)</li>
+<li><code>done</code> (bool)</li>
+<li><code>metadata</code> (object)</li>
+</ul>
+<h2 id="serialization-formats">Serialization formats</h2>
+<h3 id="json">JSON</h3>
+<p>Canonical JSON representation uses one envelope per trajectory and preserves nested objects.</p>
+<h3 id="arrow-compatible-rows">Arrow-compatible rows</h3>
+<p>Canonical row flattening uses one row per step with trajectory-level fields repeated:</p>
+<ul>
+<li><code>schema_name</code>, <code>schema_version</code>, <code>trajectory_id</code>, <code>episode_id</code>, <code>created_at</code></li>
+<li><code>step_idx</code>, <code>tokens_in</code>, <code>tokens_out</code></li>
+<li><code>reward_total</code>, <code>reward_components</code>, <code>reward_source</code></li>
+<li><code>action</code>, <code>observation</code>, <code>next_observation</code> (JSON-encoded strings)</li>
+<li><code>done</code>, <code>step_metadata</code>, <code>trajectory_metadata</code>, <code>environment_state</code></li>
+</ul>
+<h2 id="conversion-tools">Conversion tools</h2>
+<p>Atropos now provides converters for:</p>
+<ul>
+<li><code>LineWorldEnv</code> in-memory step history</li>
+<li><code>LineWorldEnv.save_rollout</code> JSON payloads</li>
+<li>RLHF preference/pair records (<code>prompt</code>, <code>response</code>, token fields, reward/score fields)</li>
+<li>Offline RL transition datasets (<code>observation</code>, <code>action</code>, <code>next_observation</code>, <code>reward</code>, <code>done</code>)</li>
+</ul>
+<h2 id="api-surface">API surface</h2>
+<p>Implemented under <code>atropos.trajectory</code>:</p>
+<ul>
+<li>Schema: <code>TrajectoryRecord</code>, <code>TrajectoryStep</code>, <code>RewardSignal</code>, <code>build_schema_spec</code></li>
+<li>Serde: <code>to_json</code>, <code>from_json</code>, <code>write_json</code>, <code>read_json</code>, <code>to_arrow_rows</code>, <code>from_arrow_rows</code></li>
+<li>Conversion: <code>from_line_world_history</code>, <code>from_line_world_rollout</code>, <code>from_rlhf_pairs</code>, <code>from_offline_rl_transitions</code></li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

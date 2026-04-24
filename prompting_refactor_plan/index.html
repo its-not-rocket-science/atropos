@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/prompting_refactor_plan/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Prompting Refactor Plan for Bundled Environments - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Prompting Refactor Plan for Bundled Environments";
+        var mkdocs_page_input_path = "prompting_refactor_plan.md";
+        var mkdocs_page_url = "/atropos/prompting_refactor_plan/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Prompting Refactor Plan for Bundled Environments</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="prompting-refactor-plan-for-bundled-environments">Prompting Refactor Plan for Bundled Environments</h1>
+<h2 id="1-prompt-assumptions-tied-to-model-behavior">1) Prompt assumptions tied to model behavior</h2>
+<p>The hidden-reasoning-era templates generally blend two independent concerns:</p>
+<ol>
+<li><strong>Task/evaluation constraints (stable):</strong></li>
+<li>Required answer marker (e.g. <code>#### &lt;number&gt;</code> for GSM8K).</li>
+<li>Final output normalization expected by evaluator.</li>
+<li><strong>Reasoning-style assumptions (model-dependent):</strong></li>
+<li>Instructing the model to emit <code>&lt;think&gt;...&lt;/think&gt;</code>.</li>
+<li>Persona prompts like “you are a deep thinking AI”.</li>
+<li>Provider-specific chain-of-thought phrasing that does not affect scoring.</li>
+</ol>
+<h3 id="refactor-principle">Refactor principle</h3>
+<p>Treat these as separate layers:</p>
+<ul>
+<li><strong>Benchmark spec layer:</strong> immutable formatting + extraction contract.</li>
+<li><strong>Reasoning guidance layer:</strong> runtime-selectable hinting policy.</li>
+</ul>
+<h2 id="2-proposed-prompt-abstraction">2) Proposed prompt abstraction</h2>
+<p>A compact abstraction was added under <code>environments/prompting.py</code>:</p>
+<ul>
+<li><code>BenchmarkPromptSpec</code></li>
+<li><code>task_instructions</code></li>
+<li><code>output_format_requirements</code></li>
+<li><code>PromptingConfig</code></li>
+<li><code>mode</code>: <code>no_think | think_tag | provider_reasoning</code></li>
+<li><code>provider</code> (optional)</li>
+<li><code>PromptBuilder</code></li>
+<li>Accepts <code>(spec, config)</code></li>
+<li>Produces <code>{system, user}</code> prompt bundle</li>
+</ul>
+<h3 id="mode-semantics">Mode semantics</h3>
+<ul>
+<li><strong>no_think</strong></li>
+<li>No chain-of-thought request; response constrained to benchmark format.</li>
+<li><strong>think_tag</strong></li>
+<li>Backward-compatible <code>&lt;think&gt;...&lt;/think&gt;</code> style, but isolated to one mode.</li>
+<li><strong>provider_reasoning</strong></li>
+<li>Provider-specific guidance without hard-coding “deep thinking AI” text.</li>
+</ul>
+<h2 id="3-refactor-plan-for-additional-environments">3) Refactor plan for additional environments</h2>
+<ol>
+<li><strong>Inventory current prompt templates</strong></li>
+<li>Locate templates containing <code>&lt;think&gt;</code> or “deep thinking AI”.</li>
+<li><strong>Extract benchmark contracts</strong></li>
+<li>Move answer-format instructions and parse regex into environment-local constants.</li>
+<li><strong>Adopt <code>PromptBuilder</code></strong></li>
+<li>Replace inline mega-prompt strings with <code>BenchmarkPromptSpec + PromptingConfig</code>.</li>
+<li><strong>Keep evaluator contracts unchanged</strong></li>
+<li>Preserve answer extraction regex + canonical formatting markers.</li>
+<li><strong>Default safely</strong></li>
+<li>Set default mode to <code>no_think</code>; allow opt-in legacy mode where needed.</li>
+<li><strong>Regression checks</strong></li>
+<li>Compare accuracy and parse-rate before/after by mode.</li>
+</ol>
+<h2 id="4-migrated-gsm8k-example">4) Migrated GSM8K example</h2>
+<p><code>environments/gsm8k_server.py</code> now demonstrates:</p>
+<ul>
+<li>Prompt generation through <code>PromptBuilder</code>.</li>
+<li>Stable GSM8K-compatible answer parsing via <code>ANSWER_PATTERN</code>.</li>
+<li>Compatibility helper <code>is_correct</code> that compares normalized <code>####</code> answers.</li>
+<li><code>migrated_gsm8k_prompt_example()</code> showing the same question in all three modes.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
