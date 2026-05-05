@@ -53,6 +53,21 @@ class RuntimeDeploymentConfig:
     def validate_for_runtime(self) -> None:
         """Validate profile-specific requirements before app startup."""
 
+        if (
+            self.tier is RuntimeHardeningTier.PRODUCTION_SAFE
+            and self.mode is not RuntimeMode.PRODUCTION
+        ):
+            raise ValueError(
+                "Production-safe hardening tier requires ATROPOS_RUNTIME_PROFILE=production "
+                "so production mode is explicit"
+            )
+
+        if (
+            self.mode is RuntimeMode.PRODUCTION
+            and self.tier is not RuntimeHardeningTier.PRODUCTION_SAFE
+        ):
+            raise ValueError("Production profile requires ATROPOS_HARDENING_TIER=production-safe")
+
         if self.mode is RuntimeMode.PRODUCTION:
             if self.store_backend != "redis":
                 raise ValueError(

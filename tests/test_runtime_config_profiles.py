@@ -73,6 +73,36 @@ def test_production_profile_requires_explicit_durable_and_observability_settings
         load_runtime_deployment_config_from_env()
 
 
+def test_production_safe_tier_requires_explicit_production_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ATROPOS_RUNTIME_PROFILE", "local-dev")
+    monkeypatch.setenv("ATROPOS_HARDENING_TIER", "production-safe")
+    monkeypatch.setenv("ATROPOS_STORE_BACKEND", "redis")
+    monkeypatch.setenv("ATROPOS_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("ATROPOS_API_TOKEN", "prod-token")
+    monkeypatch.setenv("ATROPOS_ALLOWED_ORIGINS", "https://api.example.com")
+    monkeypatch.setenv("ATROPOS_LOG_FORMAT", "json")
+
+    with pytest.raises(ValueError, match="ATROPOS_RUNTIME_PROFILE=production"):
+        load_runtime_deployment_config_from_env()
+
+
+def test_production_profile_requires_production_safe_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ATROPOS_RUNTIME_PROFILE", "production")
+    monkeypatch.setenv("ATROPOS_HARDENING_TIER", "internal-team-safe")
+    monkeypatch.setenv("ATROPOS_REDIS_URL", "redis://redis.internal:6379/0")
+    monkeypatch.setenv("ATROPOS_API_TOKEN", "prod-token")
+    monkeypatch.setenv("ATROPOS_ALLOWED_ORIGINS", "https://api.example.com")
+    monkeypatch.setenv("ATROPOS_LOG_FORMAT", "json")
+    monkeypatch.setenv("ATROPOS_TRACING_ENABLED", "false")
+
+    with pytest.raises(ValueError, match="ATROPOS_HARDENING_TIER=production-safe"):
+        load_runtime_deployment_config_from_env()
+
+
 def test_production_profile_rejects_unsafe_localhost_defaults(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

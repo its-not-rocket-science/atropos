@@ -28,6 +28,7 @@ Compatibility and CI expectations by tier are defined in [Stability Tiers](stabi
 - [Deployment Guide](deployment.md)
 - [Environment Variables](environment_variables.md)
 - [Platform Architecture RFC](platform_architecture_rfc.md)
+- [Platform Hardening Verification Pass (2026-04)](platform_hardening_verification_pass_2026_04.md)
 - [Adoption Assessment (2026-04)](adoption_assessment_2026_04.md)
 - [Production Readiness Audit (2026-04)](production_readiness_audit_2026_04.md)
 
