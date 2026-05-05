@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/rl_env_decomposition_plan/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Async RL Environment Decomposition Plan (LLM-Focused) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Async RL Environment Decomposition Plan (LLM-Focused)";
+        var mkdocs_page_input_path = "rl_env_decomposition_plan.md";
+        var mkdocs_page_url = "/atropos/rl_env_decomposition_plan/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Async RL Environment Decomposition Plan (LLM-Focused)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="async-rl-environment-decomposition-plan-llm-focused">Async RL Environment Decomposition Plan (LLM-Focused)</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<h2 id="objective">Objective</h2>
+<p>Reduce cognitive complexity in a large base environment class <strong>without reducing capability</strong> and without a greenfield rewrite.</p>
+<hr />
+<h2 id="1-responsibilities-currently-co-located-in-a-monolithic-baseenvironment">1) Responsibilities currently co-located in a monolithic <code>BaseEnvironment</code></h2>
+<p>In async RL-for-LLM frameworks, the base env often accumulates these concerns:</p>
+<ol>
+<li><strong>Episode lifecycle orchestration</strong></li>
+<li><code>reset()</code>, <code>step()</code>, termination, truncation, timeout logic.</li>
+<li><strong>LLM generation / inference transport</strong></li>
+<li>Prompt construction, model adapter calls, retry/backoff, streaming handling.</li>
+<li><strong>Action parsing &amp; validation</strong></li>
+<li>Convert raw text/tool outputs into typed actions; schema checks; repair/fallback.</li>
+<li><strong>State transition / world simulation</strong></li>
+<li>Apply validated action to environment state; compute next observation payload.</li>
+<li><strong>Reward/scoring computation</strong></li>
+<li>Sparse/dense rewards, penalties, shaping, normalization, clipping.</li>
+<li><strong>Instrumentation and logging</strong></li>
+<li>Traces, per-step metrics, token usage, debug snapshots.</li>
+<li><strong>Persistence / replay export</strong></li>
+<li>Trajectory serialization, artifacts, failure dumps.</li>
+<li><strong>Concurrency controls</strong></li>
+<li>Async task scheduling, cancellation, timeouts, semaphore limits.</li>
+<li><strong>Configuration plumbing</strong></li>
+<li>Merge defaults/overrides, experiment flags, runtime adapters.</li>
+</ol>
+<p>This leads to high fan-in/out, difficult test seams, and brittle extension points.</p>
+<hr />
+<h2 id="2-proposed-decomposition-single-responsibility-components-interfaces">2) Proposed decomposition (single-responsibility components + interfaces)</h2>
+<h3 id="core-design-principle">Core design principle</h3>
+<p>Keep a <strong>thin compatibility facade</strong> (<code>BaseEnvironment</code>) that delegates to explicit collaborators.</p>
+<h3 id="components-and-boundaries">Components and boundaries</h3>
+<h4 id="a-episodeengine">A. <code>EpisodeEngine</code></h4>
+<p><strong>Responsibility</strong>: orchestrate reset/step/terminal flow only.</p>
+<p><strong>Interface</strong>
+- <code>async reset(seed: int | None = None) -&gt; Observation</code>
+- <code>async step(action_input: AgentOutput) -&gt; StepResult</code>
+- <code>async close() -&gt; None</code></p>
+<p>Depends on: <code>ActionPipeline</code>, <code>TransitionModel</code>, <code>RewardModel</code>, <code>TelemetrySink</code>, <code>TrajectoryStore</code>.</p>
+<hr />
+<h4 id="b-generationclient">B. <code>GenerationClient</code></h4>
+<p><strong>Responsibility</strong>: model/tool invocation and transport concerns.</p>
+<p><strong>Interface</strong>
+- <code>async generate(request: GenerationRequest) -&gt; GenerationResponse</code></p>
+<p>Handles retry, timeout, streaming aggregation, and provider-specific adaptation.</p>
+<hr />
+<h4 id="c-actionpipeline">C. <code>ActionPipeline</code></h4>
+<p><strong>Responsibility</strong>: parse, validate, and normalize generated output into domain action.</p>
+<p><strong>Interface</strong>
+- <code>parse(raw: str) -&gt; ParsedAction</code>
+- <code>validate(parsed: ParsedAction, state: EnvState) -&gt; ValidationResult</code>
+- <code>normalize(parsed: ParsedAction) -&gt; DomainAction</code></p>
+<hr />
+<h4 id="d-transitionmodel">D. <code>TransitionModel</code></h4>
+<p><strong>Responsibility</strong>: pure state transition logic.</p>
+<p><strong>Interface</strong>
+- <code>apply(state: EnvState, action: DomainAction) -&gt; TransitionOutcome</code></p>
+<p>No logging and no reward logic inside.</p>
+<hr />
+<h4 id="e-rewardmodel">E. <code>RewardModel</code></h4>
+<p><strong>Responsibility</strong>: compute reward/aux metrics from transition outcome.</p>
+<p><strong>Interface</strong>
+- <code>compute(prev_state: EnvState, outcome: TransitionOutcome) -&gt; RewardResult</code></p>
+<p>Can be composed as: <code>CompositeRewardModel([task_reward, safety_penalty, format_bonus])</code>.</p>
+<hr />
+<h4 id="f-observationbuilder">F. <code>ObservationBuilder</code></h4>
+<p><strong>Responsibility</strong>: construct agent-visible observation from internal state/outcome.</p>
+<p><strong>Interface</strong>
+- <code>build(state: EnvState, outcome: TransitionOutcome | None) -&gt; Observation</code></p>
+<hr />
+<h4 id="g-telemetrysink">G. <code>TelemetrySink</code></h4>
+<p><strong>Responsibility</strong>: structured metrics/events/traces only.</p>
+<p><strong>Interface</strong>
+- <code>on_step(event: StepTelemetry) -&gt; None</code>
+- <code>on_error(event: ErrorTelemetry) -&gt; None</code>
+- <code>flush() -&gt; None</code></p>
+<p>Adapters: stdout/jsonl/OpenTelemetry/W&amp;B.</p>
+<hr />
+<h4 id="h-trajectorystore">H. <code>TrajectoryStore</code></h4>
+<p><strong>Responsibility</strong>: persist and retrieve trajectories/checkpoints.</p>
+<p><strong>Interface</strong>
+- <code>append(record: TrajectoryRecord) -&gt; None</code>
+- <code>finalize(episode_id: str) -&gt; None</code></p>
+<hr />
+<h4 id="i-asyncruntimepolicy">I. <code>AsyncRuntimePolicy</code></h4>
+<p><strong>Responsibility</strong>: execution policy for concurrency.</p>
+<p><strong>Interface</strong>
+- <code>run_with_timeout(coro, timeout_s: float)</code>
+- <code>guarded_gather(tasks, max_concurrency: int)</code>
+- <code>cancel_scope(task_ids: list[str])</code></p>
+<hr />
+<h2 id="3-incremental-migration-plan-backward-compatible">3) Incremental migration plan (backward compatible)</h2>
+<h3 id="phase-0-stabilize-contract-no-behavior-change">Phase 0: Stabilize contract (no behavior change)</h3>
+<ol>
+<li>Freeze and document current <code>BaseEnvironment</code> public API.</li>
+<li>Add golden trajectory tests around representative envs.</li>
+<li>Add step-level snapshot tests for reward and termination behavior.</li>
+</ol>
+<h3 id="phase-1-extract-passive-collaborators-first">Phase 1: Extract passive collaborators first</h3>
+<ol>
+<li>Move parsing logic into <code>ActionPipeline</code>.</li>
+<li>Move reward logic into <code>RewardModel</code>.</li>
+<li>Move logging into <code>TelemetrySink</code>.</li>
+<li>Keep <code>BaseEnvironment</code> calling old method names but delegate internally.</li>
+</ol>
+<h3 id="phase-2-extract-orchestration">Phase 2: Extract orchestration</h3>
+<ol>
+<li>Introduce <code>EpisodeEngine</code> used by <code>BaseEnvironment.step/reset</code>.</li>
+<li>Keep legacy hooks (<code>before_step</code>, <code>after_step</code>, etc.) via adapter bridge.</li>
+</ol>
+<h3 id="phase-3-extract-asyncruntime-layer">Phase 3: Extract async/runtime layer</h3>
+<ol>
+<li>Move timeout/retry/concurrency controls into <code>AsyncRuntimePolicy</code> + <code>GenerationClient</code>.</li>
+<li>Enable feature flag for new runtime path.</li>
+</ol>
+<h3 id="phase-4-promote-new-extension-points">Phase 4: Promote new extension points</h3>
+<ol>
+<li>Mark monolithic overrides as deprecated (with timeline).</li>
+<li>Provide migration guide mapping old hooks -&gt; new interfaces.</li>
+<li>Add compatibility shim for at least 2 minor releases.</li>
+</ol>
+<h3 id="backward-compatibility-mechanics">Backward-compatibility mechanics</h3>
+<ul>
+<li><code>BaseEnvironment</code> remains import-stable and method-stable.</li>
+<li>Legacy subclass methods are still invoked through <code>LegacyHookAdapter</code>.</li>
+<li>Config flag:</li>
+<li><code>env.architecture_mode = "legacy" | "hybrid" | "componentized"</code>.</li>
+</ul>
+<hr />
+<h2 id="4-before-vs-after-architecture-diagrams">4) BEFORE vs AFTER architecture diagrams</h2>
+<h3 id="before-monolithic">BEFORE (monolithic)</h3>
+<pre class="codehilite"><code class="language-text">+-------------------------------------------------------------+
+|                       BaseEnvironment                       |
+|-------------------------------------------------------------|
+| reset/step lifecycle                                        |
+| prompt/generation transport                                 |
+| parsing + validation                                        |
+| transition logic                                            |
+| reward computation                                          |
+| logging/metrics/tracing                                     |
+| persistence/replay                                          |
+| async timeout/retry/concurrency                             |
+| config plumbing                                             |
++-------------------------------------------------------------+
+</code></pre>
+
+<h3 id="after-componentized-compatibility-facade">AFTER (componentized + compatibility facade)</h3>
+<pre class="codehilite"><code class="language-text">           +------------------------------+
+           |        BaseEnvironment       |
+           |  (stable facade + shim)      |
+           +--------------+---------------+
+                          |
+                          v
+                 +------------------+
+                 |   EpisodeEngine  |
+                 +--+----+----+----+
+                    |    |    |    |
+                    |    |    |    +--------------------+
+                    |    |    +-----&gt; TelemetrySink     |
+                    |    |         +--------------------+
+                    |    +---------&gt; RewardModel        |
+                    |              +--------------------+
+                    +-------------&gt; ActionPipeline      |
+                    |              +--------------------+
+                    +-------------&gt; TransitionModel     |
+                    |              +--------------------+
+                    +-------------&gt; ObservationBuilder  |
+                    |              +--------------------+
+                    +-------------&gt; TrajectoryStore     |
+                    |
+                    +-------------&gt; GenerationClient
+                                   (uses AsyncRuntimePolicy)
+</code></pre>
+
+<hr />
+<h2 id="5-risks-of-over-modularization-and-controls">5) Risks of over-modularization (and controls)</h2>
+<ol>
+<li><strong>Interface explosion / ceremony</strong></li>
+<li>Mitigation: keep ~6–9 core interfaces; avoid micro-classes for trivial transforms.</li>
+<li><strong>Performance overhead from indirection</strong></li>
+<li>Mitigation: batch telemetry writes; avoid per-token deep adapter chains in hot path.</li>
+<li><strong>Debugging across many boundaries</strong></li>
+<li>Mitigation: shared correlation IDs (<code>run_id</code>, <code>episode_id</code>, <code>step_id</code>) and unified step trace.</li>
+<li><strong>Inconsistent ownership of state</strong></li>
+<li>Mitigation: single authoritative <code>EnvState</code> lifecycle owned by <code>EpisodeEngine</code>.</li>
+<li><strong>Partial migration drift (legacy + new behavior mismatch)</strong></li>
+<li>Mitigation: golden trajectory parity tests and feature-flag A/B validation.</li>
+</ol>
+<hr />
+<h2 id="suggested-file-structure">Suggested file structure</h2>
+<pre class="codehilite"><code class="language-text">src/rl_env/
+  base_environment.py            # compatibility facade
+  engine/
+    episode_engine.py
+    runtime_policy.py
+  generation/
+    client.py
+    request_response.py
+  action/
+    pipeline.py
+    parsers.py
+    validators.py
+  transition/
+    model.py
+    state.py
+  reward/
+    model.py
+    composite.py
+  observation/
+    builder.py
+  telemetry/
+    sink.py
+    events.py
+  trajectory/
+    store.py
+    records.py
+  compat/
+    legacy_hook_adapter.py
+</code></pre>
+
+<hr />
+<h2 id="example-refactored-class-skeletons">Example refactored class skeletons</h2>
+<pre class="codehilite"><code class="language-python"># src/rl_env/base_environment.py
+from __future__ import annotations
+
+class BaseEnvironment:
+    &quot;&quot;&quot;Backward-compatible facade. Public API remains stable.&quot;&quot;&quot;
+
+    def __init__(self, engine, legacy_adapter=None):
+        self._engine = engine
+        self._legacy = legacy_adapter
+
+    async def reset(self, seed: int | None = None):
+        if self._legacy:
+            self._legacy.before_reset(seed)
+        obs = await self._engine.reset(seed=seed)
+        if self._legacy:
+            self._legacy.after_reset(obs)
+        return obs
+
+    async def step(self, action_input):
+        if self._legacy:
+            self._legacy.before_step(action_input)
+        result = await self._engine.step(action_input)
+        if self._legacy:
+            self._legacy.after_step(result)
+        return result
+</code></pre>
+
+<pre class="codehilite"><code class="language-python"># src/rl_env/engine/episode_engine.py
+from __future__ import annotations
+
+class EpisodeEngine:
+    def __init__(
+        self,
+        generation_client,
+        action_pipeline,
+        transition_model,
+        reward_model,
+        observation_builder,
+        telemetry_sink,
+        trajectory_store,
+    ):
+        self.generation_client = generation_client
+        self.action_pipeline = action_pipeline
+        self.transition_model = transition_model
+        self.reward_model = reward_model
+        self.observation_builder = observation_builder
+        self.telemetry_sink = telemetry_sink
+        self.trajectory_store = trajectory_store
+        self.state = None
+
+    async def reset(self, seed: int | None = None):
+        self.state = self.transition_model.initial_state(seed=seed)
+        obs = self.observation_builder.build(self.state, outcome=None)
+        return obs
+
+    async def step(self, action_input):
+        parsed = self.action_pipeline.parse(action_input.raw_text)
+        valid = self.action_pipeline.validate(parsed, self.state)
+        action = self.action_pipeline.normalize(valid.value)
+
+        outcome = self.transition_model.apply(self.state, action)
+        reward = self.reward_model.compute(self.state, outcome)
+        self.state = outcome.next_state
+
+        obs = self.observation_builder.build(self.state, outcome)
+        result = {
+            &quot;observation&quot;: obs,
+            &quot;reward&quot;: reward.value,
+            &quot;done&quot;: outcome.done,
+            &quot;info&quot;: {&quot;metrics&quot;: reward.metrics},
+        }
+        self.telemetry_sink.on_step({&quot;result&quot;: result})
+        self.trajectory_store.append({&quot;action&quot;: action, &quot;outcome&quot;: outcome})
+        return result
+</code></pre>
+
+<pre class="codehilite"><code class="language-python"># src/rl_env/action/pipeline.py
+from __future__ import annotations
+
+class ActionPipeline:
+    def __init__(self, parser, validator, normalizer):
+        self.parser = parser
+        self.validator = validator
+        self.normalizer = normalizer
+
+    def parse(self, raw: str):
+        return self.parser.parse(raw)
+
+    def validate(self, parsed, state):
+        return self.validator.validate(parsed, state)
+
+    def normalize(self, parsed):
+        return self.normalizer.normalize(parsed)
+</code></pre>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520">
+<rect width="100%" height="100%" fill="white"/>
+<text x="450.0" y="30" text-anchor="middle" font-size="20" font-family="Arial">Predicted vs Actual Memory (GB)</text>
+<text x="450" y="260" text-anchor="middle" font-size="16">No successful runs with actual memory metrics.</text>
+</svg>

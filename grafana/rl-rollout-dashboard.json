@@ -1,0 +1,29 @@
+{
+  "title": "Atropos RL Rollout Diagnostics",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Rollout Latency P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(atropos_rollout_latency_seconds_bucket[5m])) by (le, env))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "title": "Worker Utilization",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "atropos_worker_utilization_ratio",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    }
+  ]
+}

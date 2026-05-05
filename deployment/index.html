@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/deployment/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Deployment guide - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Deployment guide";
+        var mkdocs_page_input_path = "deployment.md";
+        var mkdocs_page_url = "/atropos/deployment/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Deployment guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="deployment-guide">Deployment guide</h1>
+<p>This guide documents deployable runtime services that exist in the current repository and maps them to concrete deployment artifacts.</p>
+<p>Production hardening for the runtime service path is implemented in-repo (auth, readiness/dependency gates, durable Redis backing for production profile, and structured observability).</p>
+<h2 id="what-is-deployable-today">What is deployable today</h2>
+<p>The current runtime architecture is a 3-service deployment:</p>
+<ol>
+<li><strong>Atropos Runtime API</strong> (<code>atroposlib.api.asgi:app</code>) for jobs, scored data ingestion, environment registration, and health/metrics endpoints.</li>
+<li><strong>Durable backing store</strong> (Redis) required whenever <code>ATROPOS_RUNTIME_PROFILE=production</code>.</li>
+<li><strong>Runtime worker service</strong> (<code>python -m atroposlib.workers.runtime</code>) that exposes probe endpoints and continuously gates readiness on API readiness.</li>
+</ol>
+<p>Artifacts in this repo that deploy those real code paths:</p>
+<ul>
+<li>API image: <code>docker/Dockerfile.api</code></li>
+<li>Worker image: <code>docker/Dockerfile.worker</code></li>
+<li>Local multi-service stack: <code>docker-compose.deploy.yml</code></li>
+<li>Kubernetes manifests: <code>deploy/k8s/*.yaml</code></li>
+<li>Runtime env examples: <code>examples/runtime-profiles/*.env</code></li>
+</ul>
+<h2 id="health-endpoint-contract">Health endpoint contract</h2>
+<h3 id="api-8000">API (<code>:8000</code>)</h3>
+<ul>
+<li><code>GET /health</code></li>
+<li><code>GET /health/live</code></li>
+<li><code>GET /health/ready</code></li>
+<li><code>GET /health/dependencies</code></li>
+<li><code>GET /metrics</code></li>
+</ul>
+<h3 id="worker-9000">Worker (<code>:9000</code>)</h3>
+<ul>
+<li><code>GET /livez</code> and <code>GET /health/live</code></li>
+<li><code>GET /readyz</code> and <code>GET /health/ready</code></li>
+<li><code>GET /depz</code> and <code>GET /health/dependencies</code></li>
+<li><code>GET /metrics</code></li>
+</ul>
+<h2 id="local-deployment-docker-compose">Local deployment (Docker Compose)</h2>
+<h3 id="start-stack">Start stack</h3>
+<pre class="codehilite"><code class="language-bash">docker compose -f docker-compose.deploy.yml up --build -d
+</code></pre>
+
+<h3 id="smoke-checks">Smoke checks</h3>
+<pre class="codehilite"><code class="language-bash">curl -sf http://localhost:8000/health/live
+curl -sf http://localhost:8000/health/ready
+curl -sf http://localhost:8000/health/dependencies
+curl -sf http://localhost:9000/livez
+curl -sf http://localhost:9000/readyz
+curl -sf http://localhost:9000/depz
+</code></pre>
+
+<h3 id="auth-write-path-check">Auth + write-path check</h3>
+<pre class="codehilite"><code class="language-bash">curl -i -X POST http://localhost:8000/jobs \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Token: local-dev-token' \
+  -d '{&quot;task&quot;:&quot;smoke&quot;}'
+</code></pre>
+
+<h3 id="stop-stack">Stop stack</h3>
+<pre class="codehilite"><code class="language-bash">docker compose -f docker-compose.deploy.yml down
+</code></pre>
+
+<h2 id="kubernetes-deployment">Kubernetes deployment</h2>
+<h3 id="apply-manifests">Apply manifests</h3>
+<pre class="codehilite"><code class="language-bash">kubectl apply -f deploy/k8s/namespace.yaml
+kubectl apply -f deploy/k8s/configmap.yaml
+kubectl apply -f deploy/k8s/secret.yaml
+kubectl apply -f deploy/k8s/redis.yaml
+kubectl apply -f deploy/k8s/api.yaml
+kubectl apply -f deploy/k8s/worker.yaml
+</code></pre>
+
+<h3 id="verify-rollout">Verify rollout</h3>
+<pre class="codehilite"><code class="language-bash">kubectl -n atropos rollout status deploy/atropos-redis
+kubectl -n atropos rollout status deploy/atropos-api
+kubectl -n atropos rollout status deploy/atropos-worker
+</code></pre>
+
+<h3 id="port-forward-smoke-checks">Port-forward smoke checks</h3>
+<pre class="codehilite"><code class="language-bash">kubectl -n atropos port-forward svc/atropos-api 8000:8000
+kubectl -n atropos port-forward deploy/atropos-worker 9000:9000
+curl -sf http://localhost:8000/health/ready
+curl -sf http://localhost:8000/health/dependencies
+curl -sf http://localhost:9000/readyz
+curl -sf http://localhost:9000/depz
+</code></pre>
+
+<h2 id="production-configuration-notes">Production configuration notes</h2>
+<ul>
+<li>Set <code>ATROPOS_RUNTIME_PROFILE=production</code>.</li>
+<li>Keep <code>ATROPOS_STORE_BACKEND=redis</code> and configure <code>ATROPOS_REDIS_URL</code>.</li>
+<li>Set <code>ATROPOS_API_TOKEN</code> via secret management.</li>
+<li>Provide non-empty <code>ATROPOS_ALLOWED_ORIGINS</code>.</li>
+<li>Keep <code>ATROPOS_REQUIRE_HEALTH_ENDPOINTS=true</code>.</li>
+<li>Use structured logs (<code>ATROPOS_LOG_FORMAT=json</code>).</li>
+</ul>
+<p>For full variable descriptions and validation behavior, see <code>docs/environment_variables.md</code>.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

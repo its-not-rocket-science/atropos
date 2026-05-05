@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/platform_acceptance_checklist/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Platform Acceptance Checklist - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Platform Acceptance Checklist";
+        var mkdocs_page_input_path = "platform_acceptance_checklist.md";
+        var mkdocs_page_url = "/atropos/platform_acceptance_checklist/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Platform Acceptance Checklist</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="platform-acceptance-checklist">Platform Acceptance Checklist</h1>
+<p>This checklist defines minimum acceptance criteria for <strong>platform-core</strong> changes so the codebase does not regress to research-only assumptions.</p>
+<h2 id="platform-core-modules">Platform-core modules</h2>
+<p>Treat the following as platform-core surfaces that require release gating:</p>
+<ul>
+<li><code>src/atroposlib/api/</code></li>
+<li><code>src/atroposlib/envs/</code></li>
+<li><code>src/atroposlib/workers/runtime.py</code></li>
+<li><code>src/atroposlib/observability.py</code></li>
+<li><code>src/atroposlib/logging_utils.py</code></li>
+<li><code>src/atroposlib/plugins/servers.py</code></li>
+<li><code>src/atroposlib/api/storage.py</code></li>
+</ul>
+<p>When a pull request touches one or more paths above, release review must include this checklist and all CI platform-core invariant checks must pass.</p>
+<h2 id="durable-state">durable state</h2>
+<ul>
+<li>[ ] Durable store writes are covered by tests (<code>test_runtime_server_storage.py</code>, storage adapter tests).</li>
+<li>[ ] Restart scenarios preserve required state and do not duplicate durable records.</li>
+</ul>
+<h2 id="idempotent-ingestion">idempotent ingestion</h2>
+<ul>
+<li>[ ] Replayed inputs are safe (no duplicate side-effects).</li>
+<li>[ ] API/runtime ingestion paths maintain idempotency contract coverage.</li>
+</ul>
+<h2 id="healthreadiness">health/readiness</h2>
+<ul>
+<li>[ ] Runtime exposes health/readiness behavior aligned with deployment expectations.</li>
+<li>[ ] Health checks fail closed for critical dependency failures.</li>
+</ul>
+<h2 id="structured-logs">structured logs</h2>
+<ul>
+<li>[ ] Logs are structured, parseable, and include stable keys for correlation.</li>
+<li>[ ] Log schema changes are called out in release notes.</li>
+</ul>
+<h2 id="service-metrics">service metrics</h2>
+<ul>
+<li>[ ] Core runtime metrics remain emitted and scrapeable.</li>
+<li>[ ] Metric name/label changes are reviewed for dashboard impact.</li>
+</ul>
+<h2 id="integration-tests">integration tests</h2>
+<ul>
+<li>[ ] Runtime integration tests validate end-to-end storage/API behavior.</li>
+<li>[ ] CI includes platform-core targeted tests in addition to baseline suite.</li>
+</ul>
+<h2 id="restart-recovery">restart recovery</h2>
+<ul>
+<li>[ ] Recovery behavior is validated by tests and/or documented drills.</li>
+<li>[ ] Partial failures recover without manual data surgery.</li>
+</ul>
+<h2 id="deployment-artifacts">deployment artifacts</h2>
+<ul>
+<li>[ ] Kubernetes manifests and runtime Dockerfiles stay aligned with runtime interfaces.</li>
+<li>[ ] Release package includes deployable artifacts required by operations.</li>
+</ul>
+<h2 id="config-validation">config validation</h2>
+<ul>
+<li>[ ] Runtime profile/config examples remain valid and documented.</li>
+<li>[ ] Invalid config handling remains explicit and test-covered.</li>
+</ul>
+<h2 id="ci-enforcement-mapping">CI enforcement mapping</h2>
+<p>The following automated checks enforce this checklist:</p>
+<ul>
+<li><code>python scripts/check_platform_core_invariants.py</code></li>
+<li><code>pytest tests/test_runtime_server_storage.py tests/test_api_runtime_e2e_integration.py tests/test_structured_logging.py tests/test_runtime_controller.py tests/test_worker_runtime_observability.py</code></li>
+<li>Baseline quality gates (<code>ruff</code>, <code>mypy</code>, non-integration pytest suite)</li>
+</ul>
+<p>A pull request is not release-ready unless all checks above are green.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

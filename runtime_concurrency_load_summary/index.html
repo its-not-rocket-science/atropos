@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/runtime_concurrency_load_summary/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Runtime concurrency/load test summary - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Runtime concurrency/load test summary";
+        var mkdocs_page_input_path = "runtime_concurrency_load_summary.md";
+        var mkdocs_page_url = "/atropos/runtime_concurrency_load_summary/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Runtime concurrency/load test summary</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="runtime-concurrencyload-test-summary">Runtime concurrency/load test summary</h1>
+<p>Last updated: 2026-04-17 (UTC)</p>
+<h2 id="scope">Scope</h2>
+<p>This suite targets the pre-production failure modes called out for runtime and API scaling:</p>
+<ol>
+<li>Many concurrent environment workers submitting groups.</li>
+<li>Partial-batch pressure (mixed valid/invalid groups).</li>
+<li>Duplicate submission storms.</li>
+<li>Backpressure behavior under full trainer queues.</li>
+<li>Rapid environment register/disconnect cycles.</li>
+</ol>
+<h2 id="stress-suite">Stress suite</h2>
+<p>Run:</p>
+<pre class="codehilite"><code class="language-bash">pytest -m stress tests/test_runtime_api_load_stress.py
+</code></pre>
+
+<p>Pass/fail criteria implemented in tests:</p>
+<ul>
+<li><strong>Concurrent group ingestion:</strong> all requests must return HTTP 200 and zero unintended deduplication.</li>
+<li><strong>Partial-batch pressure:</strong> status must be <code>partial_failed</code> with exact accepted/failed group accounting.</li>
+<li><strong>Duplicate storms:</strong> exactly one accepted write, all other writes deduplicated.</li>
+<li><strong>Backpressure:</strong> worker recommendation must drop materially under sustained queue depth pressure and respect configured floor/ceiling.</li>
+<li><strong>Register/disconnect cycles:</strong> every cycle must produce healthy readiness and successful ingest before disconnect.</li>
+</ul>
+<h2 id="benchmark-script">Benchmark script</h2>
+<p>Run:</p>
+<pre class="codehilite"><code class="language-bash">PYTHONPATH=src python benchmarks/runtime_concurrency_benchmark.py \
+  --workers 24 \
+  --requests 600 \
+  --duplicate-attempts 400 \
+  --cycles 40
+</code></pre>
+
+<h3 id="thresholds-default">Thresholds (default)</h3>
+<ul>
+<li><code>success_ratio &gt;= 1.0</code> for concurrent ingestion.</li>
+<li><code>p95_latency_ms &lt;= 10.0</code> for in-memory concurrent ingestion.</li>
+<li><code>duplicate_leakage_ratio &lt;= 0.0</code> (no duplicate acceptance beyond first writer).</li>
+<li><code>throttling_ratio &lt;= 0.45</code> under sustained queue pressure.</li>
+<li>API register/disconnect cycles must be all-success when FastAPI is installed; otherwise scenario is skipped and reported.</li>
+</ul>
+<h3 id="observed-run-in-this-environment">Observed run in this environment</h3>
+<pre class="codehilite"><code>concurrent_group_ingestion       PASS success_ratio=1.0000 deduplicated_count=0.0000 p50_latency_ms=0.0468 p95_latency_ms=0.0911 throughput_req_s=7697.1326
+duplicate_submission_storm       PASS accepted_total=1.0000 first_writer_wins=1.0000 duplicate_leakage_ratio=0.0000
+worker_backpressure              PASS workers_before=32.0000 workers_after=6.0000 throttling_ratio=0.1875 final_rate_limit=0.2000
+api_register_disconnect_cycles   PASS skipped_no_fastapi=1.0000 cycles=40.0000
+</code></pre>
+
+<h2 id="observed-bottlenecks-and-race-risk-hotspots">Observed bottlenecks and race-risk hotspots</h2>
+<ol>
+<li><strong>Global lock contention in <code>InMemoryStore</code>:</strong> both enqueue and scored-data ingest paths serialize on a single process lock, so p95 latency will rise non-linearly as thread count increases.</li>
+<li><strong>Queue-metrics scan cost in durable backends:</strong> <code>get_scored_queue_metrics</code> scans all group status keys, which can create O(n) pressure under high cardinality.</li>
+<li><strong>Request-level dedupe granularity:</strong> duplicate storms with the same <code>request_id</code> are controlled well, but callers must ensure stable request IDs; otherwise retries can bypass dedupe.</li>
+<li><strong>Backpressure depends on trainer feedback cadence:</strong> throttling only adjusts when queue-depth feedback is provided, so missing/slow feedback delays worker downshift.</li>
+<li><strong>API lifecycle churn:</strong> readiness and ingest across repeated client lifecycle cycles are stable in stress tests; production risk shifts to dependency startup latency (e.g., Redis/network) rather than in-process state.</li>
+</ol>
+<h2 id="recommended-production-gate">Recommended production gate</h2>
+<p>Require all of the following before release:</p>
+<ul>
+<li>Stress suite green in CI (<code>pytest -m stress ...</code>).</li>
+<li>Benchmark script exits 0 with default thresholds on target hardware profile.</li>
+<li>Track trendlines for p95 latency and throttling ratio between commits; block regressions &gt;20% unless justified.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

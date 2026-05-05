@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/observability/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Atropos Observability - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Atropos Observability";
+        var mkdocs_page_input_path = "observability.md";
+        var mkdocs_page_url = "/atropos/observability/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Atropos Observability</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="atropos-observability">Atropos Observability</h1>
+<p>Atropos runtime now exposes production-ready observability primitives:</p>
+<ul>
+<li><strong>Structured logging</strong> via <code>atroposlib.observability.setup_json_logging()</code>.</li>
+<li><strong>Prometheus-compatible metrics</strong> exposed by FastAPI at <code>GET /metrics</code>.</li>
+<li><strong>OpenTelemetry tracing hooks</strong> around end-to-end runtime and ingestion spans.</li>
+</ul>
+<h2 id="audit-scope-experiment-metrics-vs-platform-health">Audit scope: experiment metrics vs platform health</h2>
+<p>Atropos uses <strong>two telemetry planes</strong> that should not be conflated:</p>
+<ol>
+<li><strong>Experiment metrics (W&amp;B-compatible, model quality/business outcomes)</strong><br />
+   Examples: reward curves, quality deltas, throughput deltas across control/treatment variants.
+   These are used to decide <em>whether a model change is better</em>.</li>
+<li><strong>Platform/service health metrics (Prometheus + logs + traces)</strong><br />
+   Examples: API error rate, queue depth, duplicate ingestion counters, dependency readiness failures.
+   These are used to decide <em>whether the control plane/runtime is healthy</em>.</li>
+</ol>
+<p>Success criterion: operators can debug degraded control-plane behavior from runtime logs/metrics/traces
+without opening experiment dashboards first.</p>
+<h2 id="instrumentation-plan">Instrumentation plan</h2>
+<h3 id="control-plane-fastapi-runtime-api">Control plane (FastAPI runtime API)</h3>
+<ul>
+<li>Keep structured JSON logs with stable correlation keys (<code>env_id</code>, <code>request_id</code>, <code>batch_id</code>, <code>endpoint</code>).</li>
+<li>Record request middleware metrics for throughput, latency, status, and environment-level request volume.</li>
+<li>Emit queue/duplicate/state gauges and counters during scored-data ingestion.</li>
+<li>Capture error-path request logs (<code>request_failed</code>) and error counters even on unhandled exceptions.</li>
+<li>Expose metrics on <code>GET /metrics</code>.</li>
+</ul>
+<h3 id="runtime-worker-orchestration-loop">Runtime worker / orchestration loop</h3>
+<ul>
+<li>Emit step start/finish structured logs with env, request, batch, worker, and rollout latency.</li>
+<li>Publish worker scaling/health gauges (worker count, utilization, trainer queue pressure, rate-limit ratio).</li>
+<li>Add worker dependency health metrics (<code>checks_total</code>, <code>failures_total</code>, <code>ready</code> gauge) and <code>/metrics</code>.</li>
+<li>Keep <code>failed_sends_total</code> and <code>eval_duration_seconds</code> for failure and slowness diagnosis.</li>
+</ul>
+<h3 id="optional-tracing-hooks">Optional tracing hooks</h3>
+<ul>
+<li>Continue no-op-safe tracing wrapper so tracing can be disabled with zero code changes.</li>
+<li>Add request-level API span (<code>runtime.api.request</code>) plus worker dependency check span
+  (<code>runtime_worker.dependency_check</code>) to connect ingress latency and control-plane readiness.</li>
+</ul>
+<h2 id="tracked-signals">Tracked signals</h2>
+<ul>
+<li><code>atropos_runtime_queue_depth{env=...}</code> (gauge)</li>
+<li><code>atropos_buffered_groups{env=...}</code> (gauge)</li>
+<li><code>atropos_runtime_groups_by_state{env=...,state=...}</code> (gauge)</li>
+<li><code>atropos_ingestion_records_total{env=...}</code> (counter; use <code>rate()</code> for ingestion rate)</li>
+<li><code>atropos_duplicate_ingestion_rejections_total{env=...,endpoint=...}</code> (counter)</li>
+<li><code>atropos_batch_formation_latency_seconds{env=...}</code> (histogram)</li>
+<li><code>atropos_worker_count{env=...}</code> (gauge)</li>
+<li><code>atropos_rollout_latency_seconds{env=...}</code> (histogram)</li>
+<li><code>atropos_failed_sends_total{env=...}</code> (counter)</li>
+<li><code>atropos_eval_duration_seconds{env=...}</code> (histogram)</li>
+<li><code>atropos_worker_utilization_ratio{env=...}</code> (gauge)</li>
+<li><code>atropos_api_errors_total{path=...,status=...}</code> (counter)</li>
+<li><code>atropos_api_requests_by_env_total{env=...,path=...,status=...}</code> (counter)</li>
+<li><code>atropos_worker_dependency_checks_total{dependency=...}</code> (counter)</li>
+<li><code>atropos_worker_dependency_failures_total{dependency=...}</code> (counter)</li>
+<li><code>atropos_worker_dependency_ready{dependency=...}</code> (gauge)</li>
+</ul>
+<h2 id="runtime-middleware">Runtime middleware</h2>
+<p><code>build_runtime_app()</code> now installs API metrics middleware that records request throughput,
+latency, and error counts for every route.</p>
+<h2 id="prometheus-scraping">Prometheus scraping</h2>
+<p>Example <code>prometheus.yml</code> scrape config:</p>
+<pre class="codehilite"><code class="language-yaml">scrape_configs:
+  - job_name: &quot;atropos-runtime&quot;
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - &quot;localhost:8000&quot;
+</code></pre>
+
+<p>For ingestion throughput in Grafana/Prometheus:</p>
+<pre class="codehilite"><code class="language-promql">sum(rate(atropos_ingestion_records_total[5m])) by (env)
+</code></pre>
+
+<h2 id="opentelemetry-tracing">OpenTelemetry tracing</h2>
+<p>Tracing is configurable via environment variables and is disabled by default.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ATROPOS_TRACING_ENABLED</code></td>
+<td><code>false</code></td>
+<td>Master toggle for tracing setup.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_SERVICE_NAME</code></td>
+<td><code>atropos-runtime</code></td>
+<td>OpenTelemetry <code>service.name</code> resource attribute.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_EXPORTER</code></td>
+<td><code>otlp</code></td>
+<td>Exporter: <code>otlp</code>, <code>jaeger</code>, or <code>console</code>.</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_ENDPOINT</code></td>
+<td>unset</td>
+<td>Export endpoint URL (exporter-specific).</td>
+</tr>
+<tr>
+<td><code>ATROPOS_TRACING_SAMPLE_RATIO</code></td>
+<td><code>1.0</code></td>
+<td>Fraction of traces to sample (<code>0.0</code>–<code>1.0</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>When enabled, tracing is initialized during runtime app startup (<code>build_runtime_app</code>) and spans
+are emitted for these critical flows:</p>
+<ul>
+<li><code>baseenv.environment_item_fetch</code></li>
+<li><code>baseenv.trajectory_collection</code></li>
+<li><code>baseenv.postprocess</code></li>
+<li><code>baseenv.send_to_api</code></li>
+<li><code>runtime.ingest_scored_data</code> and <code>runtime.ingest_scored_data.store</code></li>
+<li><code>runtime.batch_construction</code></li>
+<li><code>runtime.trainer_batch_fetch</code></li>
+</ul>
+<p>Each span includes attributes such as environment ID, request ID, worker count, group ID, and
+record counts for debugging latency and failure propagation across distributed runs.</p>
+<h3 id="export-traces-to-jaeger">Export traces to Jaeger</h3>
+<p>Jaeger (collector endpoint):</p>
+<pre class="codehilite"><code class="language-bash">export ATROPOS_TRACING_ENABLED=true
+export ATROPOS_TRACING_EXPORTER=jaeger
+export ATROPOS_TRACING_ENDPOINT=http://localhost:14268/api/traces
+</code></pre>
+
+<p>You need the Jaeger exporter package installed:</p>
+<pre class="codehilite"><code class="language-bash">pip install opentelemetry-sdk opentelemetry-exporter-jaeger-thrift
+</code></pre>
+
+<h3 id="export-traces-to-tempo-via-otlp">Export traces to Tempo (via OTLP)</h3>
+<p>Tempo typically ingests OTLP traces (HTTP/protobuf):</p>
+<pre class="codehilite"><code class="language-bash">export ATROPOS_TRACING_ENABLED=true
+export ATROPOS_TRACING_EXPORTER=otlp
+export ATROPOS_TRACING_ENDPOINT=http://localhost:4318/v1/traces
+</code></pre>
+
+<p>Install OTLP exporter dependencies:</p>
+<pre class="codehilite"><code class="language-bash">pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+</code></pre>
+
+<h2 id="grafana-examples">Grafana examples</h2>
+<p>Import one of:</p>
+<ul>
+<li><code>docs/grafana/runtime-observability-dashboard.json</code></li>
+<li><code>docs/grafana/rl-rollout-dashboard.json</code></li>
+<li><code>docs/grafana/runtime-service-monitoring-dashboard.json</code></li>
+</ul>
+<p>Both dashboards expect a Prometheus datasource scraping the runtime <code>/metrics</code> endpoint.</p>
+<h2 id="operational-questions-and-the-primary-signals">Operational questions and the primary signals</h2>
+<ul>
+<li><strong>What is stuck?</strong><br />
+<code>atropos_runtime_queue_oldest_age_seconds</code>, <code>atropos_runtime_groups_by_state{state!="acknowledged"}</code>.</li>
+<li><strong>What is duplicated?</strong><br />
+<code>rate(atropos_duplicate_ingestion_rejections_total[5m])</code>,
+  <code>rate(atropos_duplicate_ingestion_groups_total[5m])</code>.</li>
+<li><strong>What is slow?</strong><br />
+<code>histogram_quantile(0.95, rate(atropos_api_request_latency_seconds_bucket[5m]))</code>,
+  <code>histogram_quantile(0.95, rate(atropos_rollout_latency_seconds_bucket[5m]))</code>.</li>
+<li><strong>What is failing?</strong><br />
+<code>rate(atropos_api_errors_total[5m])</code>, <code>rate(atropos_failed_sends_total[5m])</code>,
+  <code>rate(atropos_worker_dependency_failures_total[5m])</code>, and <code>request_failed</code> logs.</li>
+<li><strong>What queue is growing?</strong><br />
+<code>deriv(atropos_runtime_queue_depth[10m]) &gt; 0</code> and queue oldest-age trend.</li>
+<li><strong>Which env is noisy?</strong><br />
+<code>sum(rate(atropos_api_requests_by_env_total[5m])) by (env)</code> and per-env error ratio.</li>
+</ul>
+<h2 id="runbook-how-to-debug-a-degraded-atropos-deployment">Runbook: How to debug a degraded Atropos deployment</h2>
+<ol>
+<li><strong>Check dependency and process health</strong></li>
+<li>API: <code>/health</code>, <code>/health/live</code>, <code>/health/ready</code>, <code>/health/dependencies</code></li>
+<li>Worker: <code>/livez</code>, <code>/readyz</code></li>
+<li><strong>Confirm scrape path and data freshness</strong></li>
+<li>Verify Prometheus can scrape <code>/metrics</code> from API and worker services.</li>
+<li><strong>Triage by question</strong></li>
+<li>Stuck: look for high queue oldest age + growing non-acknowledged group counts.</li>
+<li>Duplicated: inspect duplicate counters and request IDs in JSON logs.</li>
+<li>Slow: inspect p95 API and rollout latency panels, then correlate with traces.</li>
+<li>Failing: inspect API error-rate panel, failed send counters, worker dependency failures.</li>
+<li>Noisy env: rank <code>api_requests_by_env_total</code> and compare error ratio by env.</li>
+<li><strong>Use structured logs for fast narrowing</strong></li>
+<li>Filter on <code>request_id</code>, then pivot by <code>env_id</code>, <code>endpoint</code>, <code>batch_id</code>.</li>
+<li>Track <code>request_completed</code>/<code>request_failed</code> and <code>runtime_step_started</code>/<code>runtime_step_finished</code>.</li>
+<li><strong>Use traces for cross-component timing</strong></li>
+<li>Inspect <code>runtime.api.request</code> root spans.</li>
+<li>Follow child spans (<code>runtime.ingest_scored_data*</code>, <code>baseenv.send_to_api</code>,
+     <code>runtime_worker.dependency_check</code>) for bottlenecks and failure points.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

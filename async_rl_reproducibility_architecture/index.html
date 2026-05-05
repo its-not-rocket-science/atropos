@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/async_rl_reproducibility_architecture/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Async RL Reproducibility - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Async RL Reproducibility";
+        var mkdocs_page_input_path = "async_rl_reproducibility_architecture.md";
+        var mkdocs_page_url = "/atropos/async_rl_reproducibility_architecture/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Async RL Reproducibility</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#1-nondeterministic-sources">1) Nondeterministic Sources</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#a-randomness-and-sampling">A. Randomness and sampling</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#b-asynchronous-scheduling">B. Asynchronous scheduling</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#c-runtimeplatform-variability">C. Runtime/platform variability</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#d-externalenvironmental-inputs">D. External/environmental inputs</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#e-loggingserialization-side-effects">E. Logging/serialization side effects</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-deterministic-execution-controls">2) Deterministic Execution Controls</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#21-seed-propagation">2.1 Seed propagation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#required-rules">Required rules</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#deterministic-derivation">Deterministic derivation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#runtime-seed-manifest">Runtime seed manifest</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#22-execution-ordering-control">2.2 Execution ordering control</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#event-model">Event model</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ordering-rules">Ordering rules</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#deterministic-scheduler-modes">Deterministic scheduler modes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#frameworkruntime-toggles">Framework/runtime toggles</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-replay-format-and-minimal-required-data">3) Replay Format and Minimal Required Data</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#31-replay-format">3.1 Replay format</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#file-set">File set</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#manifestjson-required-fields">manifest.json (required fields)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#eventsjsonl-row-shape">events.jsonl row shape</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#32-minimal-data-required-for-full-deterministic-replay">3.2 Minimal data required for full deterministic replay</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-full-run-replay-procedure">4) Full-Run Replay Procedure</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#41-replay-algorithm">4.1 Replay algorithm</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#42-pseudocode">4.2 Pseudocode</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-reference-architecture-component-view">5) Reference architecture (component view)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6-acceptance-criteria-for-deterministic">6) Acceptance criteria for "deterministic"</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Async RL Reproducibility</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="async-rl-reproducibility-architecture">Async RL Reproducibility Architecture</h1>
+<p>This document defines a deterministic execution model for an asynchronous RL system, with explicit controls for seed propagation, execution ordering, and full-run replay.</p>
+<h2 id="1-nondeterministic-sources">1) Nondeterministic Sources</h2>
+<h3 id="a-randomness-and-sampling">A. Randomness and sampling</h3>
+<ul>
+<li>Python <code>random</code> calls (exploration policy, data augmentation, randomized resets).</li>
+<li>NumPy RNG use (buffer sampling, preprocessing transforms).</li>
+<li>Framework RNG streams (PyTorch CPU/GPU RNG for policy/value nets).</li>
+<li>Action sampling from stochastic policies (<code>Categorical</code>, <code>Normal</code>, epsilon-greedy).</li>
+</ul>
+<h3 id="b-asynchronous-scheduling">B. Asynchronous scheduling</h3>
+<ul>
+<li>Different interleavings of actor/environment/learner tasks.</li>
+<li>Unstable ordering from queue consumers in multi-worker loops.</li>
+<li>Races caused by unguarded shared mutable state (replay buffers, counters, metrics).</li>
+<li>Timing-based behavior (<code>time.time()</code> windows, timeout-driven branches).</li>
+</ul>
+<h3 id="c-runtimeplatform-variability">C. Runtime/platform variability</h3>
+<ul>
+<li>Non-deterministic GPU kernels or reduction order differences.</li>
+<li>Thread pool nondeterminism (BLAS/OpenMP thread scheduling).</li>
+<li>Differences across Python, CUDA, cuDNN, and driver versions.</li>
+<li>Floating-point accumulation order differences in distributed reductions.</li>
+</ul>
+<h3 id="d-externalenvironmental-inputs">D. External/environmental inputs</h3>
+<ul>
+<li>Current wall-clock time, timezone, locale.</li>
+<li>OS entropy (<code>os.urandom</code>) usage not tied to run seed.</li>
+<li>Non-versioned environment datasets/config fetched at runtime.</li>
+</ul>
+<h3 id="e-loggingserialization-side-effects">E. Logging/serialization side effects</h3>
+<ul>
+<li>Unstable map/dict iteration if not canonicalized before hashing/ID generation.</li>
+<li>Event timestamps used to derive IDs.</li>
+<li>Partial event flushes on crashes if no write-ahead log.</li>
+</ul>
+<hr />
+<h2 id="2-deterministic-execution-controls">2) Deterministic Execution Controls</h2>
+<h2 id="21-seed-propagation">2.1 Seed propagation</h2>
+<p>Adopt a <strong>single root seed</strong> and derive all sub-seeds by namespace.</p>
+<h3 id="required-rules">Required rules</h3>
+<ol>
+<li><code>run_seed</code> is mandatory for every training/eval run.</li>
+<li>Every component receives a deterministic child seed from <code>(run_seed, component_path, stream_idx)</code>.</li>
+<li>No direct calls to global RNGs (<code>random.*</code>, <code>np.random.*</code>, <code>torch.*</code> default generators) in core execution paths.</li>
+<li>Every stochastic event logs <code>rng_stream_id</code> and <code>rng_counter_before</code>.</li>
+</ol>
+<h3 id="deterministic-derivation">Deterministic derivation</h3>
+<p>Use a stable hash/KDF (e.g., SHA-256) and convert to <code>uint64</code>:</p>
+<pre class="codehilite"><code class="language-text">child_seed = u64(sha256(f&quot;{run_seed}:{component_path}:{stream_idx}&quot;))
+</code></pre>
+
+<p>Suggested namespaces:
+- <code>env/&lt;env_id&gt;/reset</code>
+- <code>actor/&lt;actor_id&gt;/policy_sample</code>
+- <code>learner/minibatch_sample</code>
+- <code>augmentation/&lt;pipeline_stage&gt;</code></p>
+<h3 id="runtime-seed-manifest">Runtime seed manifest</h3>
+<p>Persist a manifest at run start:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;run_id&quot;: &quot;run_2026_04_09_0001&quot;,
+  &quot;run_seed&quot;: 1337,
+  &quot;seed_schema_version&quot;: 1,
+  &quot;streams&quot;: {
+    &quot;actor/0/policy_sample&quot;: 103284948723,
+    &quot;actor/1/policy_sample&quot;: 92034823443,
+    &quot;env/0/reset&quot;: 8230948322,
+    &quot;learner/minibatch_sample&quot;: 5723904823
+  }
+}
+</code></pre>
+
+<h2 id="22-execution-ordering-control">2.2 Execution ordering control</h2>
+<p>Use a <strong>deterministic logical clock</strong> and a <strong>single canonical commit path</strong>.</p>
+<h3 id="event-model">Event model</h3>
+<p>Every produced event carries:
+- <code>tick</code>: global monotonically increasing logical counter.
+- <code>producer_id</code>: actor/env/learner identifier.
+- <code>local_seq</code>: producer-local monotonic sequence.
+- <code>event_type</code>: e.g., <code>ACTION_CHOSEN</code>, <code>ENV_STEP</code>, <code>GRADIENT_APPLIED</code>.</p>
+<h3 id="ordering-rules">Ordering rules</h3>
+<ol>
+<li>Producers emit events with <code>(producer_id, local_seq)</code>.</li>
+<li>A deterministic scheduler merges events using fixed comparator:</li>
+<li><code>tick</code></li>
+<li><code>event_type_priority</code> (static table)</li>
+<li><code>producer_id</code></li>
+<li><code>local_seq</code></li>
+<li>Only one component (the commit log writer) mutates global state.</li>
+<li>Any asynchronous worker communicates through append-only messages; no direct global mutation.</li>
+</ol>
+<h3 id="deterministic-scheduler-modes">Deterministic scheduler modes</h3>
+<ul>
+<li><strong>Strict mode (recommended for reproducibility):</strong></li>
+<li>Barrier at each tick.</li>
+<li>All events for tick <code>t</code> resolved before <code>t+1</code>.</li>
+<li><strong>Relaxed deterministic mode:</strong></li>
+<li>Bounded lookahead allowed.</li>
+<li>Still sorted by canonical comparator before commit.</li>
+</ul>
+<h3 id="frameworkruntime-toggles">Framework/runtime toggles</h3>
+<ul>
+<li>Pin thread counts (<code>OMP_NUM_THREADS=1</code>, etc.) where possible.</li>
+<li>Enable deterministic backend flags in ML framework.</li>
+<li>Fail fast when selected ops are known nondeterministic under strict mode.</li>
+</ul>
+<hr />
+<h2 id="3-replay-format-and-minimal-required-data">3) Replay Format and Minimal Required Data</h2>
+<h2 id="31-replay-format">3.1 Replay format</h2>
+<p>Use an append-only <strong>Run Event Log</strong> (<code>.jsonl</code>), with optional compressed chunking.</p>
+<h3 id="file-set">File set</h3>
+<ol>
+<li><code>manifest.json</code> — run metadata and versioned determinism config.</li>
+<li><code>events.jsonl</code> — ordered event stream (canonical replay source).</li>
+<li><code>artifacts/</code> — optional checkpoints, metrics snapshots.</li>
+</ol>
+<h3 id="manifestjson-required-fields"><code>manifest.json</code> (required fields)</h3>
+<pre class="codehilite"><code class="language-json">{
+  &quot;format_version&quot;: &quot;1.0&quot;,
+  &quot;run_id&quot;: &quot;run_2026_04_09_0001&quot;,
+  &quot;run_seed&quot;: 1337,
+  &quot;code_commit&quot;: &quot;&lt;git_sha&gt;&quot;,
+  &quot;config_hash&quot;: &quot;sha256:&lt;...&gt;&quot;,
+  &quot;env_spec_hash&quot;: &quot;sha256:&lt;...&gt;&quot;,
+  &quot;determinism&quot;: {
+    &quot;strict&quot;: true,
+    &quot;scheduler&quot;: &quot;barrier_tick&quot;,
+    &quot;seed_schema_version&quot;: 1
+  }
+}
+</code></pre>
+
+<h3 id="eventsjsonl-row-shape"><code>events.jsonl</code> row shape</h3>
+<pre class="codehilite"><code class="language-json">{
+  &quot;tick&quot;: 184,
+  &quot;event_id&quot;: &quot;184:ACTION_CHOSEN:actor0:91&quot;,
+  &quot;event_type&quot;: &quot;ACTION_CHOSEN&quot;,
+  &quot;producer_id&quot;: &quot;actor0&quot;,
+  &quot;local_seq&quot;: 91,
+  &quot;episode_id&quot;: 12,
+  &quot;step_id&quot;: 45,
+  &quot;payload&quot;: {
+    &quot;obs_hash&quot;: &quot;sha256:...&quot;,
+    &quot;action&quot;: 1,
+    &quot;logprob&quot;: -0.31,
+    &quot;rng_stream_id&quot;: &quot;actor/0/policy_sample&quot;,
+    &quot;rng_counter_before&quot;: 901
+  }
+}
+</code></pre>
+
+<h2 id="32-minimal-data-required-for-full-deterministic-replay">3.2 Minimal data required for full deterministic replay</h2>
+<p>At minimum, persist:
+1. <strong>Identity + versions</strong>
+   - <code>format_version</code>, <code>run_id</code>, <code>code_commit</code>.
+2. <strong>Determinism contract</strong>
+   - root seed, seed schema version, scheduler mode, backend determinism flags.
+3. <strong>Exact config and environment definitions</strong>
+   - canonicalized config blob/hash.
+   - env/task spec hash.
+4. <strong>Ordered event stream</strong>
+   - canonical sorted events with deterministic IDs.
+5. <strong>RNG progression markers</strong>
+   - stream ID + counter (or raw RNG state snapshots at checkpoints).
+6. <strong>State checkpoints (periodic)</strong>
+   - model/optimizer/replay-buffer snapshots + hash.</p>
+<p>Without (4) and (5), asynchronous replay typically diverges even with same initial seed.</p>
+<hr />
+<h2 id="4-full-run-replay-procedure">4) Full-Run Replay Procedure</h2>
+<h2 id="41-replay-algorithm">4.1 Replay algorithm</h2>
+<ol>
+<li>Load <code>manifest.json</code>.</li>
+<li>Validate compatibility:</li>
+<li>same major <code>format_version</code>, matching <code>code_commit</code> (or approved compatibility map), matching <code>config_hash</code>.</li>
+<li>Initialize deterministic runtime:</li>
+<li>set root seed and all child streams.</li>
+<li>enforce deterministic backend/thread flags.</li>
+<li>instantiate scheduler in manifest mode.</li>
+<li>Load checkpoints if available; else boot from initial state.</li>
+<li>Stream <code>events.jsonl</code> in order.</li>
+<li>For each event:</li>
+<li>verify monotonic <code>(tick, event_id)</code>.</li>
+<li>verify RNG marker before stochastic operation.</li>
+<li>apply transition/update through the same commit path used online.</li>
+<li>At checkpoint boundaries, recompute and compare state hashes.</li>
+<li>At end, compare terminal hash + key metrics against recorded values.</li>
+</ol>
+<h2 id="42-pseudocode">4.2 Pseudocode</h2>
+<pre class="codehilite"><code class="language-python">def replay_run(manifest, events):
+    rt = DeterministicRuntime.from_manifest(manifest)
+    state = rt.initialize_state()
+
+    last_tick = -1
+    for e in events:
+        assert e.tick &gt;= last_tick
+        last_tick = e.tick
+
+        rt.verify_rng_marker(e)
+        state = rt.apply_event(state, e)  # single canonical commit path
+
+        if e.event_type == &quot;CHECKPOINT&quot;:
+            assert hash_state(state) == e.payload[&quot;state_hash&quot;]
+
+    assert hash_state(state) == manifest[&quot;terminal_state_hash&quot;]
+    return state
+</code></pre>
+
+<hr />
+<h2 id="5-reference-architecture-component-view">5) Reference architecture (component view)</h2>
+<pre class="codehilite"><code class="language-text">[Config + run_seed]
+        |
+        v
+[Seed Registry] ---&gt; [Per-component RNG streams]
+        |
+        v
+[Async Producers: actors/env/learner]
+        |
+        v
+[Deterministic Scheduler + Ordering Comparator]
+        |
+        v
+[Single Commit Path (state mutation)]
+        |
+        +--&gt; [Run Event Log (jsonl)]
+        +--&gt; [Periodic Checkpoints + Hashes]
+        +--&gt; [Metrics]
+
+Replay:
+[Manifest + Event Log + Checkpoints] --&gt; [Deterministic Runtime] --&gt; [State/Metrics verification]
+</code></pre>
+
+<h2 id="6-acceptance-criteria-for-deterministic">6) Acceptance criteria for "deterministic"</h2>
+<p>A run is deterministic if, given identical <code>manifest + events + checkpoints</code>:
+1. Terminal state hash matches.
+2. Episode returns and key metrics match bitwise (or documented tolerance if float backend requires).
+3. Per-event IDs and ordering are identical.
+4. Replay can fail fast with a precise divergence location (<code>event_id</code>) when mismatches occur.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../product-strategy/" class="btn btn-neutral float-right" title="Product Strategy">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../product-strategy/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

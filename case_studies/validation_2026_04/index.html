@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/case_studies/validation_2026_04/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Atropos Validation Study: April 2026 - Atropos Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Atropos Validation Study: April 2026";
+        var mkdocs_page_input_path = "case_studies/validation_2026_04.md";
+        var mkdocs_page_url = "/atropos/case_studies/validation_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Atropos Validation Study: April 2026</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="atropos-validation-study-april-2026">Atropos Validation Study: April 2026</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<h2 id="abstract-150-words">Abstract (150 words)</h2>
+<p>We executed a preregistered April 2026 validation campaign to test Atropos pruning predictions on three deployment-relevant open models: Llama-2-7B, Mistral-7B, and CodeLlama-13B, each under mild (20%), moderate (40%), and aggressive (60%) sparsity targets. The protocol required measurement of memory, throughput, perplexity, and coding quality proxy (HumanEval-like) on A100 40GB (cloud) and T4 16GB (on-prem) hardware. Across nine planned model-strategy combinations, all end-to-end runs failed before post-pruning metric capture due inaccessible model artifacts in the execution environment (no successful model load from Hugging Face) and unavailable target GPUs. Therefore, prediction-accuracy and break-even calibration claims cannot be validated from this run, and we report them as unestimated rather than imputed. This case study intentionally publishes negative outcomes, complete raw logs, and exact configs to prevent survivorship bias, support external replication, and provide a concrete roadmap for reliable validation under controlled compute conditions and open governance.</p>
+<h2 id="executive-summary">Executive Summary</h2>
+<ul>
+<li><strong>Prediction accuracy</strong>: memory = <strong>N/A</strong>, throughput = <strong>N/A</strong> (0 successful runs with post-pruning measurements).</li>
+<li><strong>Break-even accuracy</strong>: <strong>N/A</strong>; no actual break-even measurements were produced.</li>
+<li><strong>Break-even within Z months (80% cases)</strong>: <strong>Not estimable</strong> from this run.</li>
+<li><strong>When it works</strong>: prediction generation and run planning worked for all 9 planned combinations.</li>
+<li><strong>When it fails</strong>: all execution attempts failed at model-loading stage before pruning/evaluation.</li>
+</ul>
+<h2 id="methodology">Methodology</h2>
+<ul>
+<li><strong>Model selection criteria</strong>: two general 7B models and one code-focused 13B model representing common deployment profiles.</li>
+<li><strong>Models tested</strong>: <code>meta-llama/Llama-2-7b-hf</code>, <code>mistralai/Mistral-7B-v0.1</code>, <code>codellama/CodeLlama-13b-hf</code>.</li>
+<li><strong>Pruning strategies</strong>: mild (20%), moderate (40%), aggressive (60%), implemented via Wanda/SparseGPT adapters.</li>
+<li><strong>Pruning framework versions</strong>: repository-integrated pruning frameworks in <code>docker/pruning_frameworks/*</code> and runtime from local Atropos environment.</li>
+<li><strong>Evaluation window</strong>: runs executed during April 2026 campaign (<code>2026-04-01</code> to <code>2026-04-06</code> UTC), matching a maximum two-week compute budget.</li>
+<li><strong>Hardware protocol</strong>:</li>
+<li>Target cloud: NVIDIA A100 40GB.</li>
+<li>Target on-prem: NVIDIA T4 16GB.</li>
+<li>Observed in this run: no target GPU available; no successful model artifact loading.</li>
+<li><strong>Metric protocol</strong>:</li>
+<li>Before/after memory and throughput.</li>
+<li>Perplexity (WikiText-2) and HumanEval-like coding proxy for code models.</li>
+<li>Break-even months and annual savings from Atropos predictions vs observed measurements.</li>
+</ul>
+<h2 id="results">Results</h2>
+<h3 id="predicted-vs-actual-results-all-9-combinations">Predicted vs actual results (all 9 combinations)</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Strategy</th>
+<th style="text-align: right;">Target sparsity</th>
+<th style="text-align: right;">Pred memory (GB)</th>
+<th style="text-align: right;">Actual memory (GB)</th>
+<th style="text-align: right;">Pred throughput (tok/s)</th>
+<th style="text-align: right;">Actual throughput (tok/s)</th>
+<th style="text-align: right;">Pred break-even (mo)</th>
+<th style="text-align: right;">Actual break-even (mo)</th>
+<th style="text-align: right;">Perplexity</th>
+<th style="text-align: right;">HumanEval-like</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>llama2_7b</td>
+<td style="text-align: right;">mild_20</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">11.89</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">48.15</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">15.87</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>llama2_7b</td>
+<td style="text-align: right;">moderate_40</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">9.28</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">51.30</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">7.49</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>llama2_7b</td>
+<td style="text-align: right;">aggressive_60</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">6.67</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">54.45</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">4.66</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>mistral_7b</td>
+<td style="text-align: right;">mild_20</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">12.30</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">44.94</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">16.24</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>mistral_7b</td>
+<td style="text-align: right;">moderate_40</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">9.60</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">47.88</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">7.66</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>mistral_7b</td>
+<td style="text-align: right;">aggressive_60</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">6.90</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">50.82</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">4.77</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>codellama_13b</td>
+<td style="text-align: right;">mild_20</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">22.14</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">25.92</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">28.88</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>codellama_13b</td>
+<td style="text-align: right;">moderate_40</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">17.28</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">27.84</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">13.64</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+<tr>
+<td>codellama_13b</td>
+<td style="text-align: right;">aggressive_60</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">12.42</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">29.76</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">8.49</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">N/A</td>
+<td>error</td>
+</tr>
+</tbody>
+</table>
+<h3 id="error-analysis-by-model-size-and-sparsity">Error analysis by model size and sparsity</h3>
+<ul>
+<li><strong>Completion rate</strong>: 0/9 successful runs (95% Wilson CI for completion rate: 0.00 to 0.30).</li>
+<li><strong>By model family</strong>: all Llama-2, Mistral, and CodeLlama runs failed uniformly at model loading.</li>
+<li><strong>By sparsity level</strong>: no observable dependence (20/40/60% all failed).</li>
+</ul>
+<h3 id="quality-degradation-patterns">Quality degradation patterns</h3>
+<ul>
+<li>No before/after quality metrics were captured due execution failures prior to pruning.</li>
+</ul>
+<h3 id="statistical-significance-testing">Statistical significance testing</h3>
+<ul>
+<li><strong>P-values for prediction-vs-actual error</strong>: not computable (no actual measurements).</li>
+<li><strong>Confidence intervals for metric errors</strong>: not computable for the same reason.</li>
+<li><strong>Binomial completion analysis</strong>: run completion = 0/9, Wilson 95% CI <code>[0.00, 0.30]</code>, indicating statistically insufficient evidence for production reliability under this environment.</li>
+</ul>
+<h2 id="failure-analysis">Failure Analysis</h2>
+<ul>
+<li><strong>What went wrong</strong>:</li>
+<li>Model-loading failed for all three target model IDs before pruning started.</li>
+<li>Target hardware (A100 40GB and T4 16GB) was specified but not available in this environment.</li>
+<li><strong>Why Atropos failed to predict this</strong>:</li>
+<li>Atropos prediction logic assumes model artifact and runtime availability; it does not model external repository access constraints or hardware provisioning failure.</li>
+<li><strong>Lessons learned</strong>:</li>
+<li>Add preflight gating checks (artifact access + GPU capability) that hard-stop and classify runs before scheduling.</li>
+<li>Split “prediction confidence” into algorithmic uncertainty vs infrastructure readiness uncertainty.</li>
+<li>Treat reproducibility package publication as mandatory even for zero-success runs.</li>
+</ul>
+<h2 id="recommendations">Recommendations</h2>
+<ul>
+<li><strong>When to trust Atropos</strong>:</li>
+<li>For planning-level estimates once model artifacts are accessible and target GPU class is confirmed.</li>
+<li><strong>When to be skeptical</strong>:</li>
+<li>Any run without successful preflight artifact/GPU checks.</li>
+<li>Aggressive sparsity plans where quality metrics are unavailable.</li>
+<li><strong>Future improvements needed</strong>:</li>
+<li>Automated Hugging Face access validation per model.</li>
+<li>Hardware matrix execution (cloud A100 + on-prem T4) as a required CI gate.</li>
+<li>Full HumanEval harness integration for code-model reporting.</li>
+</ul>
+<h2 id="commercial-baseline-comparison-just-prune-30">Commercial baseline comparison ("just prune 30%")</h2>
+<ul>
+<li>A naïve fixed policy (<code>always prune 30%</code>) cannot be benchmarked quantitatively in this campaign because no measured post-pruning metrics were captured.</li>
+<li>Operationally, a fixed-percentage baseline would have failed identically under the same artifact/GPU constraints, so the dominant risk was infrastructure readiness rather than pruning policy choice.</li>
+<li>Recommendation for commercial teams: add an infra readiness gate before either Atropos-guided or fixed-policy pruning to prevent wasted GPU reservation windows.</li>
+</ul>
+<h2 id="visualizations">Visualizations</h2>
+<ul>
+<li>Scatter plot: predicted vs actual savings proxy (memory).<br />
+<img alt="Predicted vs actual memory" src="../assets/validation_2026_04/pred_vs_actual_memory.svg" /></li>
+<li>Error bars with confidence context (throughput).<br />
+<img alt="Throughput error bars" src="../assets/validation_2026_04/throughput_error_bars.svg" /></li>
+<li>Calibration curve: predicted probability vs observed success frequency.<br />
+<img alt="Calibration curve" src="../assets/validation_2026_04/calibration_curve.svg" /></li>
+<li>Break-even timeline comparison.<br />
+<img alt="Break-even timeline" src="../assets/validation_2026_04/break_even_timeline.svg" /></li>
+</ul>
+<h2 id="replication-package">Replication Package</h2>
+<ul>
+<li>Configs: <code>configs/validation_2026_04/models.yaml</code>, <code>configs/validation_2026_04/validation_suite.yaml</code>.</li>
+<li>Seeds/scripts: <code>seed=1337</code>, <code>scripts/validate_on_models.py</code>, <code>scripts/generate_validation_visualizations.py</code>.</li>
+<li>Raw measurements: <code>validation_results/validation_2026_04/validation_runs.csv</code>, <code>validation_results/validation_2026_04/validation_runs.json</code>, per-run JSON files.</li>
+<li>Docker environment: existing framework Dockerfiles under <code>docker/pruning_frameworks/</code>.</li>
+<li>Reproduction instructions: <code>case_studies/validation_2026_04/README.md</code>.</li>
+<li>Academic packaging: <code>case_studies/validation_2026_04/validation_2026_04.tex</code> and <code>case_studies/validation_2026_04/references.bib</code>.</li>
+</ul>
+<h2 id="strategic-path-alignment">Strategic Path Alignment</h2>
+<ul>
+<li><strong>Academic</strong>: includes explicit methodology, negative outcomes, significance status, and reproducibility pointers for arXiv packaging.</li>
+<li><strong>Commercial</strong>: executive summary is ROI-first and explicitly flags inability to validate break-even with current infrastructure.</li>
+<li><strong>Reputation</strong>: publishes full negative results without cherry-picking and invites external reruns with the provided package.</li>
+</ul>
+<h2 id="disclosure-of-manual-adjustments">Disclosure of manual adjustments</h2>
+<p>No manual adjustments were applied to prediction or measurement outputs. Failed runs are reported exactly as emitted by the validation pipeline.</p>
+<h2 id="selected-pruning-literature">Selected pruning literature</h2>
+<ol>
+<li>Frantar &amp; Alistarh (2023), <em>SparseGPT: Massive Language Models Can be Accurately Pruned in One-Shot</em>.</li>
+<li>Sun et al. (2024), <em>Wanda: A Simple and Effective Pruning Approach for Large Language Models</em>.</li>
+<li>LeCun et al. (1990), <em>Optimal Brain Damage</em> (historical context on saliency-based pruning).</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

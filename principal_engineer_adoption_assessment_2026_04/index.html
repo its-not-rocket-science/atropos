@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/principal_engineer_adoption_assessment_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Principal Engineer Adoption Assessment (2026-04-08) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Principal Engineer Adoption Assessment (2026-04-08)";
+        var mkdocs_page_input_path = "principal_engineer_adoption_assessment_2026_04.md";
+        var mkdocs_page_url = "/atropos/principal_engineer_adoption_assessment_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Principal Engineer Adoption Assessment (2026-04-08)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="principal-engineer-adoption-assessment-2026-04-08">Principal Engineer Adoption Assessment (2026-04-08)</h1>
+<h2 id="1-top-5-blockers-to-adoption">1) Top 5 blockers to adoption</h2>
+<ol>
+<li><strong>Product identity is still fractured at the top of the funnel.</strong></li>
+<li>README positions Atropos as an RL-style experimentation/A-B platform, while package metadata and docs position it as an ROI estimator for pruning/quantization.</li>
+<li>
+<p>New users cannot tell what "hello world" success should look like.</p>
+</li>
+<li>
+<p><strong>Onboarding has known copy/paste failures in flagship docs.</strong></p>
+</li>
+<li>README A/B CLI command is not aligned with actual CLI argument shape.</li>
+<li>
+<p>Docs have invalid Python import examples using <code>atropos-llm</code> as a module.</p>
+</li>
+<li>
+<p><strong>Operational trust is not production-grade yet (timeouts/retries/circuit behavior).</strong></p>
+</li>
+<li>Pipeline executes external commands without hard timeouts in critical paths.</li>
+<li>
+<p>Deployment and telemetry network checks remain mostly single-shot.</p>
+</li>
+<li>
+<p><strong>Observability is too weak for real platform ownership.</strong></p>
+</li>
+<li>No consistent correlation IDs or structured context across run/deployment/stage boundaries.</li>
+<li>
+<p>Incidents will be slower and harder to root-cause than they need to be.</p>
+</li>
+<li>
+<p><strong>Telemetry fidelity is not reliable enough for decision automation.</strong></p>
+</li>
+<li>Collector/parser behavior includes heuristic fallbacks and silent zero-like defaults in failure/degraded paths.</li>
+<li>If teams do not trust metrics, they will not trust promotion/rejection outcomes.</li>
+</ol>
+<h2 id="2-top-5-sources-of-technical-debt">2) Top 5 sources of technical debt</h2>
+<ol>
+<li><strong>CLI god-module (<code>src/atropos/cli.py</code>) is oversized and mixed-responsibility.</strong></li>
+<li>
+<p>Parser definitions, orchestration logic, formatting, and command behavior are concentrated in one ~2.4k-line file.</p>
+</li>
+<li>
+<p><strong>Resilience behavior is fragmented by entrypoint.</strong></p>
+</li>
+<li>
+<p>Batch path has stronger timeout/retry controls than pipeline path; same product, different failure semantics.</p>
+</li>
+<li>
+<p><strong>Subprocess integration pattern is duplicated and unsafe by default.</strong></p>
+</li>
+<li>
+<p>Repeated shell command execution patterns lack centralized policy for timeout, stderr bounds, retries, and error typing.</p>
+</li>
+<li>
+<p><strong>Error contracts are inconsistent and often too generic.</strong></p>
+</li>
+<li>
+<p>Broad exception handling and plain-string failures make machine-level recovery and UX-level guidance hard.</p>
+</li>
+<li>
+<p><strong>Docs/runtime contract drift has already materialized.</strong></p>
+</li>
+<li>CLI/docs/schema mismatch indicates there is no enforced contract-testing loop between docs and code.</li>
+</ol>
+<h2 id="3-three-changes-that-would-10x-usability">3) Three changes that would 10x usability</h2>
+<ol>
+<li><strong>Ship one guaranteed-working "golden path" that CI executes on every PR.</strong></li>
+<li><code>atropos init</code> (template) + <code>atropos run</code> (single command) + deterministic artifact output.</li>
+<li>
+<p>Remove ambiguity by giving users exactly one trustworthy first journey.</p>
+</li>
+<li>
+<p><strong>Enforce a docs-as-contract gate in CI.</strong></p>
+</li>
+<li>Validate README/docs commands against CLI parser and validate YAML examples against data models.</li>
+<li>
+<p>Any drift should block merge/release.</p>
+</li>
+<li>
+<p><strong>Add reliability defaults users never have to think about.</strong></p>
+</li>
+<li>Centralized retry/timeout/circuit policies for HTTP + subprocess execution with structured errors and run IDs.</li>
+<li>This converts "research script behavior" into "platform behavior".</li>
+</ol>
+<h2 id="4-what-should-not-be-changed-core-strengths">4) What should NOT be changed (core strengths)</h2>
+<ol>
+<li><strong>Do not abandon the cross-domain objective function (cost + performance + quality + carbon).</strong></li>
+<li>
+<p>This is the differentiator vs one-dimensional benchmark tooling.</p>
+</li>
+<li>
+<p><strong>Do not collapse module boundaries that already exist.</strong></p>
+</li>
+<li>
+<p>The current split across pipeline, deployment, telemetry, validation, quality, and A/B testing is the right architecture direction.</p>
+</li>
+<li>
+<p><strong>Do not drop the CLI-first ergonomics.</strong></p>
+</li>
+<li>
+<p>The CLI is the fastest adoption wedge for infra/practical users; fix it structurally, don’t replace it with notebook-only workflows.</p>
+</li>
+<li>
+<p><strong>Do not remove reproducibility and validation assets.</strong></p>
+</li>
+<li>Existing validation suites, reports, and docs are a strong trust signal; they should be tightened and productized, not stripped.</li>
+</ol>
+<h2 id="brutal-bottom-line">Brutal bottom line</h2>
+<p>Atropos is <strong>close to being compelling</strong> but still behaves like a high-potential internal research toolkit in key user journeys. The adoption ceiling is not model science; it is <strong>product coherence + reliability + operator confidence</strong>. Solve those three, and adoption accelerates quickly.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

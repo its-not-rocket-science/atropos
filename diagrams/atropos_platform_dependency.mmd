@@ -1,0 +1,35 @@
+flowchart LR
+    Clients[Clients / Trainers / Operators]
+
+    subgraph RuntimePlatform[Platform-grade runtime]
+        API[atroposlib.api.server\nRuntime API]
+        Store[atroposlib.api.storage\nAtroposStore + backends]
+        Obs[atroposlib.observability\nMetrics + tracing]
+        Ctrl[atroposlib.envs.runtime_controller\nExecution control]
+        Workers[atroposlib.envs.worker_runtime\nWorker execution]
+        Transport[atroposlib.envs.transport_client\nRuntime transport]
+    end
+
+    subgraph Governance[Policy & governance layer]
+        Pipeline[atropos.pipeline.runner]
+        Deploy[atropos.deployment.*]
+        AB[atropos.abtesting.*]
+        Telemetry[atropos.telemetry_collector]
+    end
+
+    subgraph Experimental[Experimental lane]
+        Validation[atropos.validation.*]
+        Scripts[scripts/*]
+        Examples[examples/*]
+    end
+
+    Clients --> API
+    API --> Store
+    API --> Obs
+    Ctrl --> Workers
+    Ctrl --> Transport
+    Pipeline --> API
+    Deploy --> API
+    Telemetry --> API
+    AB --> Store
+    Governance --> Experimental

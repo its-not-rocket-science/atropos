@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/runtime_storage_contract_tests/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Runtime storage backend contract tests - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Runtime storage backend contract tests";
+        var mkdocs_page_input_path = "runtime_storage_contract_tests.md";
+        var mkdocs_page_url = "/atropos/runtime_storage_contract_tests/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Runtime storage backend contract tests</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="runtime-storage-backend-contract-tests">Runtime storage backend contract tests</h1>
+<p>This project includes a <strong>backend contract suite</strong> that validates the shared <code>AtroposStore</code> behavior across all storage implementations.</p>
+<p>Current backend adapters:</p>
+<ul>
+<li><code>InMemoryStore</code></li>
+<li><code>RedisStore</code></li>
+</ul>
+<p>Contract tests live in:</p>
+<ul>
+<li><code>tests/test_api_store_backends.py</code></li>
+<li>adapter definitions: <code>tests/contracts_store_adapters.py</code></li>
+</ul>
+<h2 id="behavioral-expectations-covered">Behavioral expectations covered</h2>
+<p>The suite verifies the core store-layer contract for:</p>
+<ol>
+<li><strong>enqueue</strong></li>
+<li>first enqueue inserts a queued job</li>
+<li>queue depth increments correctly</li>
+<li><code>get_job_status()</code> returns queued metadata</li>
+<li><strong>dedupe</strong></li>
+<li>idempotency key deduplicates duplicate <code>enqueue_job</code> requests</li>
+<li>repeated scored-data request/group ingestion is deduplicated</li>
+<li><strong>buffer</strong></li>
+<li>ingestion transitions through buffered lifecycle metadata</li>
+<li><strong>batch selection</strong></li>
+<li><code>list_scored_data(..., limit=N)</code> returns a bounded batch slice</li>
+<li><strong>env registration</strong></li>
+<li>explicit environment registration is idempotent</li>
+<li>registered environment inventory can be listed</li>
+<li>unknown environments return empty results</li>
+<li>ingested records are isolated per <code>environment_id</code></li>
+<li><strong>step/status updates</strong></li>
+<li>group lifecycle reaches <code>acknowledged</code></li>
+<li>lifecycle timestamps are set and monotonic</li>
+<li><strong>durability semantics</strong></li>
+<li>durable backends recover state across adapter-driven restart</li>
+<li>non-durable backends do not persist across restart</li>
+</ol>
+<h2 id="adding-a-future-backend-to-the-contract-suite">Adding a future backend to the contract suite</h2>
+<p>When a new store implementation is added, wire it into <code>tests/contracts_store_adapters.py</code>:</p>
+<ol>
+<li>Add a <code>BackendAdapter</code> factory that can:</li>
+<li>build a fresh store instance (<code>build</code>)</li>
+<li>build a restarted store against the same underlying persistence (<code>restart</code>)</li>
+<li>declare durability (<code>durable=True/False</code>)</li>
+<li>Add the adapter name to <code>CONTRACT_BACKEND_NAMES</code> and handle it in <code>create_backend_adapter(...)</code>.</li>
+<li>Run the required checks:</li>
+</ol>
+<pre class="codehilite"><code class="language-bash">ruff check .
+ruff format --check .
+pytest -m &quot;not integration and not stress&quot; --cov-report=xml:coverage.xml
+</code></pre>
+
+<p>If the backend is durable, restart assertions must pass with persisted state.
+If the backend is process-local/non-durable, restart assertions must show empty recovered state.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/doc-rewrite-plan/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Documentation Rewrite Plan - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Documentation Rewrite Plan";
+        var mkdocs_page_input_path = "doc-rewrite-plan.md";
+        var mkdocs_page_url = "/atropos/doc-rewrite-plan/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Documentation Rewrite Plan</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="documentation-rewrite-plan">Documentation Rewrite Plan</h1>
+<h2 id="goal">Goal</h2>
+<p>Unify documentation around one mental model by centralizing terminology in <code>/docs/canonical-glossary.md</code> and removing duplicate concept explanations.</p>
+<h2 id="canonical-source">Canonical source</h2>
+<ul>
+<li><strong>Concept definitions:</strong> <code>/docs/canonical-glossary.md</code></li>
+<li><strong>Product narrative and navigation:</strong> <code>docs/index.md</code></li>
+</ul>
+<h2 id="rewrite-strategy">Rewrite strategy</h2>
+<ol>
+<li><strong>Centralize definitions</strong></li>
+<li>Keep definitions only in the glossary.</li>
+<li>
+<p>Replace repeated in-file definitions with a short glossary reference.</p>
+</li>
+<li>
+<p><strong>Normalize concept usage</strong></p>
+</li>
+<li>Ensure these terms are used consistently across docs: environment, trajectory, group, rollout, server.</li>
+<li>
+<p>Treat “promotion” language as rollout language where applicable.</p>
+</li>
+<li>
+<p><strong>De-duplicate conceptual intros</strong></p>
+</li>
+<li>Remove long repeated “what is Atropos” sections from non-index docs.</li>
+<li>
+<p>Keep local docs focused on workflows, APIs, and operational guidance.</p>
+</li>
+<li>
+<p><strong>Cross-link instead of re-explaining</strong></p>
+</li>
+<li>
+<p>Add a standard line near the top of docs that use core terms:</p>
+<ul>
+<li>“Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.”</li>
+</ul>
+</li>
+<li>
+<p><strong>Sustainability guardrails</strong></p>
+</li>
+<li>Add docs review check: no alternate definitions for the five core concepts.</li>
+<li>Require glossary link in new docs that use core concepts.</li>
+</ol>
+<h2 id="execution-phases">Execution phases</h2>
+<h3 id="phase-1-completed-in-this-change">Phase 1 (completed in this change)</h3>
+<ul>
+<li>Add canonical glossary.</li>
+<li>Add this rewrite plan.</li>
+<li>Update primary entry docs (<code>README.md</code>, <code>docs/index.md</code>) to reference glossary.</li>
+<li>Add glossary reference line to docs that discuss core concepts.</li>
+</ul>
+<h3 id="phase-2">Phase 2</h3>
+<ul>
+<li>Tighten wording in legacy deep-dive docs to remove any remaining duplicate concept definitions.</li>
+<li>Consolidate overlapping architecture narratives into <code>docs/index.md</code> and keep deep dives implementation-focused.</li>
+</ul>
+<h3 id="phase-3">Phase 3</h3>
+<ul>
+<li>Add doc lint/checks for terminology drift.</li>
+<li>Periodic doc audit to catch reintroduced duplicates.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

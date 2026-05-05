@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/scored_data_ingestion_idempotency_audit_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Scored-Data Ingestion Idempotency Audit (April 2026) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Scored-Data Ingestion Idempotency Audit (April 2026)";
+        var mkdocs_page_input_path = "scored_data_ingestion_idempotency_audit_2026_04.md";
+        var mkdocs_page_url = "/atropos/scored_data_ingestion_idempotency_audit_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Scored-Data Ingestion Idempotency Audit (April 2026)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="scored-data-ingestion-idempotency-audit-april-2026">Scored-Data Ingestion Idempotency Audit (April 2026)</h1>
+<h2 id="scope">Scope</h2>
+<p>This audit traces scored-data flow from environment submission through trainer batch consumption and documents the idempotency contract enforced at each step.</p>
+<h2 id="path-trace-environment-submission-batch-consumption">Path trace: environment submission → batch consumption</h2>
+<ol>
+<li><strong>Environment runtime submission</strong></li>
+<li>Environment workers call the runtime API with <code>X-Request-ID</code> (or <code>X-Idempotency-Key</code>) on:<ul>
+<li><code>POST /scored_data</code></li>
+<li><code>POST /scored_data_list</code></li>
+</ul>
+</li>
+<li><strong>HTTP ingestion layer</strong></li>
+<li>Request headers are validated, and each payload is coerced into <code>ScoredDataGroup</code>.</li>
+<li>Missing idempotency header returns <code>400</code>.</li>
+<li><strong>Store ingestion (in-memory or Redis)</strong></li>
+<li>Request status (<code>processing</code>, <code>partial_failed</code>, <code>completed</code>) is tracked by request ID.</li>
+<li>Group dedupe key is <code>environment_id:group_id</code>.</li>
+<li>Duplicate groups are skipped and never appended to scored record storage.</li>
+<li><strong>Batch consumption</strong></li>
+<li>Trainers consume via <code>GET /scored_data_list?environment_id=...&amp;limit=...</code>.</li>
+<li>Only previously accepted unique groups contribute records.</li>
+</ol>
+<h2 id="idempotency-guarantees">Idempotency guarantees</h2>
+<ul>
+<li><strong>Request-level idempotency:</strong> replaying a completed request ID is a no-op.</li>
+<li><strong>Group-level idempotency:</strong> replayed or duplicated groups are skipped even across different request IDs.</li>
+<li><strong>Partial retry safety:</strong> retries for <code>partial_failed</code> requests accept only groups that were not previously accepted.</li>
+<li><strong>No duplicate queue entries:</strong> deduped groups do not create additional queued/buffered/batched group transitions and do not append duplicate records.</li>
+</ul>
+<h2 id="visibility-and-metrics">Visibility and metrics</h2>
+<p>The runtime now reports duplicate behavior through:</p>
+<ul>
+<li><code>atropos_duplicate_ingestion_rejections_total{env,endpoint}</code></li>
+<li>count of fully deduplicated replay requests.</li>
+<li><code>atropos_duplicate_ingestion_groups_total{env,endpoint}</code></li>
+<li>count of duplicate groups skipped during ingestion.</li>
+<li>API response fields:</li>
+<li><code>deduplicated</code> (request-level replay signal)</li>
+<li><code>duplicate_groups</code> (group-level duplicate skip count)</li>
+</ul>
+<h2 id="client-expectations">Client expectations</h2>
+<ul>
+<li>Generate a stable request ID per logical ingest operation.</li>
+<li>Reuse the same request ID on timeout/network retries.</li>
+<li>Keep <code>group_id</code> stable for each logical group so cross-request dedupe remains effective.</li>
+<li>For partial retries, resend the original request ID with corrected failed groups; previously accepted groups will be skipped safely.</li>
+</ul>
+<h2 id="validated-scenarios">Validated scenarios</h2>
+<ul>
+<li>Exact retry after timeout.</li>
+<li>Duplicated groups inside <code>scored_data_list</code>.</li>
+<li>Partial retry after network failure / partial acceptance.</li>
+<li>Duplicate request replay after successful prior ingestion.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

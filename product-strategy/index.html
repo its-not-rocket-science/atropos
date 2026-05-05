@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/product-strategy/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Product Strategy - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Product Strategy";
+        var mkdocs_page_input_path = "product-strategy.md";
+        var mkdocs_page_url = "/atropos/product-strategy/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Product Strategy</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#1-target-users">1) Target users</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-ideal-workflow-and-pain-points-by-user">2) Ideal workflow and pain points by user</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#a-researcher">A) Researcher</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#ideal-workflow">Ideal workflow</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#pain-points-today">Pain points today</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#b-infrastructure-engineer">B) Infrastructure Engineer</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#ideal-workflow_1">Ideal workflow</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#pain-points-today_1">Pain points today</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#c-hobbyist">C) Hobbyist</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#ideal-workflow_2">Ideal workflow</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#pain-points-today_2">Pain points today</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-features-required-to-become-the-default-choice">3) Features required to become the default choice</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#a-product-pillars">A) Product pillars</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#b-concrete-feature-roadmap-priority-order">B) Concrete feature roadmap (priority order)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#priority-0-adoption-accelerators-must-have">Priority 0: Adoption accelerators (must-have)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#priority-1-platform-stickiness-should-have">Priority 1: Platform stickiness (should-have)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#priority-2-strategic-moat-differentiators">Priority 2: Strategic moat (differentiators)</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-what-should-be-removed-to-accelerate-adoption">4) What should be removed to accelerate adoption</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-success-criteria-12-month-horizon">5) Success criteria (12-month horizon)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#strategy-summary">Strategy summary</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Product Strategy</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="product-strategy-making-atropos-the-default-platform">Product Strategy: Making Atropos the Default Platform</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<p>This strategy defines the target users, the workflow each user needs to succeed, the friction blocking adoption today, and the platform features required for Atropos to become the default choice.</p>
+<h2 id="1-target-users">1) Target users</h2>
+<p>Atropos should optimize for three primary user archetypes:</p>
+<ol>
+<li><strong>Researcher</strong> (applied ML, model optimization, evaluation)</li>
+<li><strong>Infrastructure Engineer</strong> (platform/SRE/MLOps responsible for reliability and cost)</li>
+<li><strong>Hobbyist</strong> (indie developer or small-team builder shipping practical apps)</li>
+</ol>
+<p>These archetypes map directly to distinct success criteria:</p>
+<ul>
+<li>Researchers optimize <strong>experiment velocity + scientific confidence</strong>.</li>
+<li>Infrastructure engineers optimize <strong>safe production rollout + operational efficiency</strong>.</li>
+<li>Hobbyists optimize <strong>time-to-value + simplicity</strong>.</li>
+</ul>
+<h2 id="2-ideal-workflow-and-pain-points-by-user">2) Ideal workflow and pain points by user</h2>
+<h3 id="a-researcher">A) Researcher</h3>
+<h4 id="ideal-workflow">Ideal workflow</h4>
+<ol>
+<li>Start from a reproducible preset and a documented baseline.</li>
+<li>Run multiple optimization strategies (pruning, quantization, combined) on the same task set.</li>
+<li>Track quality, latency, throughput, and cost in a single trajectory-backed artifact.</li>
+<li>Compare runs statistically with confidence intervals and significance guidance.</li>
+<li>Promote the best candidate into an integration-ready package with full experiment provenance.</li>
+</ol>
+<h4 id="pain-points-today">Pain points today</h4>
+<ul>
+<li>Fragmented tooling across notebooks, scripts, and ad-hoc evaluators.</li>
+<li>Poor reproducibility (seed/config/data drift across runs).</li>
+<li>Slow, manual comparison loops when testing many configurations.</li>
+<li>Difficulty converting offline benchmark wins into production-ready recommendations.</li>
+</ul>
+<h3 id="b-infrastructure-engineer">B) Infrastructure Engineer</h3>
+<h4 id="ideal-workflow_1">Ideal workflow</h4>
+<ol>
+<li>Register model endpoints and deployment constraints once.</li>
+<li>Run controlled control-vs-treatment experiments in staging with explicit rollout gates.</li>
+<li>Monitor SLO-sensitive metrics (p95 latency, error rate, capacity headroom, cost/hour).</li>
+<li>Automatically receive pass/hold/reject recommendations with rollback plans.</li>
+<li>Export audit-ready reports for operations and leadership review.</li>
+</ol>
+<h4 id="pain-points-today_1">Pain points today</h4>
+<ul>
+<li>Lack of a single source of truth for optimization decisions.</li>
+<li>High risk of regressions during deployment handoffs from research.</li>
+<li>Manual rollouts with weak guardrails and inconsistent decision criteria.</li>
+<li>Poor observability tying model changes to infra incidents and spend shifts.</li>
+</ul>
+<h3 id="c-hobbyist">C) Hobbyist</h3>
+<h4 id="ideal-workflow_2">Ideal workflow</h4>
+<ol>
+<li>Install Atropos quickly and run a guided setup in under 10 minutes.</li>
+<li>Select a goal (cheaper inference, faster responses, smaller memory footprint).</li>
+<li>Execute a one-command optimization + validation path.</li>
+<li>Get a clear "ship/don't ship" recommendation with plain-language tradeoffs.</li>
+<li>Deploy with generated configs and minimal custom ops work.</li>
+</ol>
+<h4 id="pain-points-today_2">Pain points today</h4>
+<ul>
+<li>Steep learning curve around optimization methods and metrics.</li>
+<li>Too many knobs for users with limited infra or ML depth.</li>
+<li>Confusing output that does not clearly answer "is this worth it?"</li>
+<li>Weak defaults for local, low-budget, and GPU-constrained environments.</li>
+</ul>
+<h2 id="3-features-required-to-become-the-default-choice">3) Features required to become the default choice</h2>
+<p>Atropos should win by being the fastest path from idea to confident deployment.</p>
+<h3 id="a-product-pillars">A) Product pillars</h3>
+<ol>
+<li><strong>Reproducibility by default</strong></li>
+<li>Immutable run manifests (config, model hash, dataset snapshot, seed).</li>
+<li>One-click rerun of any prior experiment.</li>
+<li>
+<p>Built-in lineage graph from baseline to promoted candidate.</p>
+</li>
+<li>
+<p><strong>Decision automation, not just measurement</strong></p>
+</li>
+<li>Policy engine for promotion gates (quality floor, latency ceiling, cost threshold).</li>
+<li>Auto-generated recommendations: promote, hold, reject.</li>
+<li>
+<p>Risk summaries with confidence annotations and failure-mode flags.</p>
+</li>
+<li>
+<p><strong>Opinionated golden paths per user type</strong></p>
+</li>
+<li>Research path: batch experiment matrix + significance-first comparison.</li>
+<li>Infra path: staged rollout templates + rollback automation.</li>
+<li>
+<p>Hobbyist path: minimal wizard + safe defaults + plain-language reports.</p>
+</li>
+<li>
+<p><strong>Ecosystem interoperability</strong></p>
+</li>
+<li>First-party integrations for common inference stacks and observability backends.</li>
+<li>Exporters to markdown/JSON + CI-native outputs for PR checks.</li>
+<li>
+<p>Stable SDK and API contracts to prevent integration churn.</p>
+</li>
+<li>
+<p><strong>Trust and governance</strong></p>
+</li>
+<li>Auditable artifacts for compliance and postmortems.</li>
+<li>Signed run metadata and reproducibility attestations.</li>
+<li>Team-level policy packs (startup, enterprise, regulated modes).</li>
+</ol>
+<h3 id="b-concrete-feature-roadmap-priority-order">B) Concrete feature roadmap (priority order)</h3>
+<h4 id="priority-0-adoption-accelerators-must-have">Priority 0: Adoption accelerators (must-have)</h4>
+<ul>
+<li><code>atropos quickstart --persona researcher|infra|hobbyist</code></li>
+<li>Benchmark-to-decision report with explicit recommendation and rationale.</li>
+<li>Preset libraries by model family and deployment target.</li>
+<li>CI action that fails PRs when optimization violates guardrail policies.</li>
+</ul>
+<h4 id="priority-1-platform-stickiness-should-have">Priority 1: Platform stickiness (should-have)</h4>
+<ul>
+<li>Experiment registry UI with lineage and run diffing.</li>
+<li>Scenario simulator for projected savings vs quality risk.</li>
+<li>Staged rollout orchestrator with canary + automatic rollback.</li>
+<li>Team workspaces with shared baselines and policy inheritance.</li>
+</ul>
+<h4 id="priority-2-strategic-moat-differentiators">Priority 2: Strategic moat (differentiators)</h4>
+<ul>
+<li>Cross-org anonymized benchmark network (opt-in) to compare against peers.</li>
+<li>Auto-tuning agent proposing candidate optimizations under user constraints.</li>
+<li>Domain packs (coding assistants, chatbots, RAG workloads, edge inference).</li>
+</ul>
+<h2 id="4-what-should-be-removed-to-accelerate-adoption">4) What should be removed to accelerate adoption</h2>
+<p>To become default, Atropos should remove friction aggressively.</p>
+<ol>
+<li><strong>Remove duplicate pathways that produce overlapping outputs</strong></li>
+<li>
+<p>Consolidate scattered scripts into a small set of supported CLI workflows.</p>
+</li>
+<li>
+<p><strong>Remove low-signal configuration surface area from default mode</strong></p>
+</li>
+<li>
+<p>Hide advanced knobs unless <code>--advanced</code> is enabled.</p>
+</li>
+<li>
+<p><strong>Remove ambiguous metrics and unclear labels in reports</strong></p>
+</li>
+<li>
+<p>Standardize to a canonical core metric set with definitions.</p>
+</li>
+<li>
+<p><strong>Remove non-opinionated onboarding</strong></p>
+</li>
+<li>
+<p>Replace open-ended setup with persona-based guided flows.</p>
+</li>
+<li>
+<p><strong>Remove undocumented or unstable interfaces from public promises</strong></p>
+</li>
+<li>
+<p>Mark experimental APIs clearly and keep stable APIs narrow and versioned.</p>
+</li>
+<li>
+<p><strong>Remove manual promotion decisions where policy can automate</strong></p>
+</li>
+<li>Shift from human-only interpretation to policy-backed recommendations.</li>
+</ol>
+<h2 id="5-success-criteria-12-month-horizon">5) Success criteria (12-month horizon)</h2>
+<ul>
+<li><strong>Activation</strong>: New users complete first meaningful run in &lt; 15 minutes.</li>
+<li><strong>Time-to-decision</strong>: 50% reduction from first benchmark to rollout recommendation.</li>
+<li><strong>Reproducibility</strong>: &gt; 95% of promoted decisions are rerunnable from stored artifacts.</li>
+<li><strong>Operational confidence</strong>: Measurable decrease in rollout regressions.</li>
+<li><strong>Retention</strong>: Teams run repeated optimization cycles rather than one-off evaluations.</li>
+</ul>
+<h2 id="strategy-summary">Strategy summary</h2>
+<p>Atropos becomes the default choice by delivering:</p>
+<ul>
+<li>The <strong>researcher's fastest reproducible experiment loop</strong>,</li>
+<li>The <strong>infrastructure engineer's safest rollout system</strong>, and</li>
+<li>The <strong>hobbyist's simplest path to concrete value</strong>.</li>
+</ul>
+<p>The platform should prioritize opinionated workflows, automation-backed decisions, and ruthless removal of complexity that does not directly improve decision quality.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../async_rl_reproducibility_architecture/" class="btn btn-neutral float-left" title="Async RL Reproducibility"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../stability-tiers/" class="btn btn-neutral float-right" title="Stability Tiers">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../async_rl_reproducibility_architecture/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../stability-tiers/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

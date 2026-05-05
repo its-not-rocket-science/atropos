@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/idempotency_scored_data_design/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Idempotency Design: /scored_data and /scored_data_list - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Idempotency Design: /scored_data and /scored_data_list";
+        var mkdocs_page_input_path = "idempotency_scored_data_design.md";
+        var mkdocs_page_url = "/atropos/idempotency_scored_data_design/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Idempotency Design: /scored_data and /scored_data_list</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="idempotency-design-scored_data-and-scored_data_list">Idempotency Design: <code>/scored_data</code> and <code>/scored_data_list</code></h1>
+<h2 id="context">Context</h2>
+<p>Distributed RL training often retries API writes during transient failures (timeouts, connection resets, worker restarts). Without request-scoped idempotency, duplicate deliveries can silently append duplicate scored samples and corrupt downstream training batches.</p>
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Make <code>POST /scored_data</code> safe under aggressive retries.</li>
+<li>Make <code>POST /scored_data_list</code> (batch ingestion) safe under aggressive retries.</li>
+<li>Keep <code>GET /scored_data_list</code> read-only and deterministic for a given storage snapshot.</li>
+<li>Provide a concrete deduplication contract that clients can rely on.</li>
+<li>Minimize silent data corruption risk during retry storms.</li>
+</ul>
+<h2 id="api-contract">API contract</h2>
+<h3 id="post-scored_data"><code>POST /scored_data</code></h3>
+<ul>
+<li>Requires <code>X-Request-ID</code> <strong>or</strong> <code>X-Idempotency-Key</code> header.</li>
+<li>Accepts JSON payload:</li>
+<li><code>environment_id</code> (string, default <code>"default"</code>)</li>
+<li><code>group_id</code> (optional string; if omitted server derives a deterministic hash)</li>
+<li><code>records</code> (list of scored record objects)</li>
+<li>Deduplicates at <strong>request level</strong> keyed by request UUID / idempotency key.</li>
+<li>Also deduplicates accepted <code>group_id</code>s to avoid re-enqueueing groups after partial success.</li>
+<li>Response includes:</li>
+<li><code>request_id</code></li>
+<li><code>accepted_count</code></li>
+<li><code>accepted_groups</code></li>
+<li><code>failed_groups</code></li>
+<li><code>status</code> (<code>completed</code> or <code>partial_failed</code>)</li>
+<li><code>deduplicated</code></li>
+</ul>
+<p>Behavior:
+- First request ID seen: data is ingested, <code>deduplicated=false</code>.
+- Retried same request ID:
+  - no additional ingestion when request is already <code>completed</code>.
+  - resume semantics for <code>partial_failed</code> requests (already accepted groups are skipped).</p>
+<h3 id="post-scored_data_list"><code>POST /scored_data_list</code></h3>
+<ul>
+<li>Requires <code>X-Request-ID</code> <strong>or</strong> <code>X-Idempotency-Key</code> header.</li>
+<li>Accepts JSON payload:</li>
+<li><code>groups</code>: list of per-group payloads with <code>environment_id</code>, optional <code>group_id</code>, and <code>records</code>.</li>
+<li>Uses the same request-status and group-level dedupe behavior as <code>POST /scored_data</code>.</li>
+</ul>
+<h3 id="get-scored_data_list"><code>GET /scored_data_list</code></h3>
+<ul>
+<li>Query params:</li>
+<li><code>environment_id</code> (required)</li>
+<li><code>limit</code> (default <code>100</code>, bounded to <code>&lt;=1000</code>)</li>
+<li>Returns data snapshot for the environment with no mutation.</li>
+</ul>
+<h2 id="deduplication-strategy">Deduplication strategy</h2>
+<h3 id="in-memory-backend">In-memory backend</h3>
+<ul>
+<li>Maintain:</li>
+<li>request status map (<code>processing</code> / <code>partial_failed</code> / <code>completed</code>).</li>
+<li>accepted group keys (<code>environment_id:group_id</code>) to prevent duplicate enqueue.</li>
+<li>append-only per-environment scored record list.</li>
+<li>On ingest:</li>
+<li>if request status is <code>completed</code> → short-circuit (deduplicated).</li>
+<li>else process each group independently and only append first-seen groups.</li>
+<li>mark request <code>partial_failed</code> if any group fails validation.</li>
+</ul>
+<h3 id="redis-backend">Redis backend</h3>
+<ul>
+<li>Persist request status keys and group-claim keys with TTL.</li>
+<li>Use <code>SET key value NX EX &lt;ttl&gt;</code> for atomic first-writer-wins on each group key.</li>
+<li>Treat already claimed groups as deduplicated skips.</li>
+<li>Reuse existing idempotency TTL window to bound memory footprint.</li>
+</ul>
+<h2 id="failure-and-retry-semantics">Failure and retry semantics</h2>
+<ul>
+<li>Client retries with same request key are safe and non-amplifying.</li>
+<li>Network failure after server commit is safe: retry returns deduplicated response.</li>
+<li>Distinct request IDs remain distinct writes, but previously accepted groups are skipped.</li>
+</ul>
+<h2 id="client-guidance">Client guidance</h2>
+<ul>
+<li>Generate UUID request IDs per logical ingest attempt and reuse the same ID across retries.</li>
+<li>Prefer stable <code>group_id</code> per logical scored-data group to get dedupe across request IDs.</li>
+<li>Never generate new request IDs for retry attempts of the same logical write.</li>
+</ul>
+<h2 id="validation-and-tests">Validation and tests</h2>
+<p>Added tests cover:
+- Missing request idempotency headers are rejected.
+- Retry storm (50 repeated identical writes) ingests data exactly once.
+- Distinct request IDs ingest independently.
+- Batch ingestion dedupe for repeated submissions.
+- Partial failures and retry resume behavior (already accepted groups are not re-enqueued).
+- Existing runtime idempotency behavior for <code>/jobs</code> remains intact.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

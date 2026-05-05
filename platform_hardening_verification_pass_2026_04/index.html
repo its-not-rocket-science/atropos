@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/platform_hardening_verification_pass_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Platform Hardening Verification Pass (2026-04-24) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Platform Hardening Verification Pass (2026-04-24)";
+        var mkdocs_page_input_path = "platform_hardening_verification_pass_2026_04.md";
+        var mkdocs_page_url = "/atropos/platform_hardening_verification_pass_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Platform Hardening Verification Pass (2026-04-24)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="platform-hardening-verification-pass-2026-04-24">Platform Hardening Verification Pass (2026-04-24)</h1>
+<p>Date: 2026-04-24</p>
+<p>This pass re-verifies implementation status directly from current code and tests (without assuming prior refactors were correct), and closes any identified gaps.</p>
+<h2 id="summary-status">Summary status</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runtime decoupling from <code>BaseEnv</code></td>
+<td><strong>Complete</strong></td>
+<td>Runtime orchestration is delegated to protocol-driven collaborators and wiring factory.</td>
+</tr>
+<tr>
+<td>Durable store-backed API control plane</td>
+<td><strong>Complete</strong></td>
+<td>FastAPI control plane supports <code>InMemoryStore</code> and durable <code>RedisStore</code> with production durability enforcement.</td>
+</tr>
+<tr>
+<td>Idempotent ingestion</td>
+<td><strong>Complete</strong></td>
+<td>Request-level and group-level idempotency semantics implemented in both store backends.</td>
+</tr>
+<tr>
+<td>Structured logging</td>
+<td><strong>Complete</strong></td>
+<td>API and runtime controller emit context-rich structured logs; production profile requires JSON logging.</td>
+</tr>
+<tr>
+<td>Metrics / observability</td>
+<td><strong>Complete</strong></td>
+<td>Prometheus-style metrics, API middleware latency/error accounting, queue/ingestion gauges/counters, tracing spans.</td>
+</tr>
+<tr>
+<td>Readiness / liveness semantics</td>
+<td><strong>Complete</strong></td>
+<td>Distinct <code>/health/live</code>, <code>/health/ready</code>, and dependency health endpoints with status-code semantics.</td>
+</tr>
+<tr>
+<td>Restart recovery</td>
+<td><strong>Complete</strong></td>
+<td>Redis-backed control plane preserves idempotency and queued state across app restarts; covered in tests.</td>
+</tr>
+<tr>
+<td>Integration and concurrency tests</td>
+<td><strong>Complete</strong></td>
+<td>E2E runtime tests and high-concurrency control-plane tests exist and validate dedupe + pressure paths.</td>
+</tr>
+<tr>
+<td>Deployable artifacts</td>
+<td><strong>Complete</strong></td>
+<td>Docker API/worker images + compose + Kubernetes manifests include probes/config wiring.</td>
+</tr>
+<tr>
+<td>Explicit prod mode</td>
+<td><strong>Closed in this pass</strong></td>
+<td>Added strict profile↔tier validation to enforce explicit production mode semantics.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="evidence-by-item">Evidence by item</h2>
+<h3 id="1-runtime-decoupling-from-baseenv-complete">1) Runtime decoupling from <code>BaseEnv</code> — Complete</h3>
+<ul>
+<li><code>BaseEnv</code> is a thin facade; orchestration sits in <code>RuntimeController</code> and compatibility adapter layers. (<code>src/atroposlib/envs/base.py</code>)</li>
+<li>Protocol contracts define seams (<code>ItemSource</code>, <code>BacklogManager</code>, <code>SendToApiPath</code>, <code>RolloutCollector</code>, <code>EvalRunner</code>). (<code>src/atroposlib/envs/runtime_interfaces.py</code>)</li>
+<li><code>RuntimeController</code> uses these interfaces end-to-end (prepare → orchestrate → transport → collect). (<code>src/atroposlib/envs/runtime_controller.py</code>)</li>
+<li>Decomposition tests verify wiring and compatibility behavior. (<code>tests/test_base_env_runtime_decomposition.py</code>)</li>
+</ul>
+<h3 id="2-durable-store-backed-api-control-plane-complete">2) Durable store-backed API control plane — Complete</h3>
+<ul>
+<li>Store protocol and durable startup/dependency metadata are formalized in <code>AtroposStore</code>. (<code>src/atroposlib/api/storage.py</code>)</li>
+<li><code>RedisStore</code> implements durable queue/status/ingestion/environment operations. (<code>src/atroposlib/api/storage.py</code>)</li>
+<li>Production-safe tier rejects non-durable store backends. (<code>src/atroposlib/api/server.py</code>)</li>
+<li>Tests assert production tier requires durable store and works with injected Redis backend. (<code>tests/test_runtime_server_storage.py</code>)</li>
+</ul>
+<h3 id="3-idempotent-ingestion-complete">3) Idempotent ingestion — Complete</h3>
+<ul>
+<li>Job enqueue idempotency via <code>X-Idempotency-Key</code> and backend-specific dedupe maps/keys. (<code>src/atroposlib/api/server.py</code>, <code>src/atroposlib/api/storage.py</code>)</li>
+<li>Scored data ingestion requires request identity (<code>X-Request-ID</code> or <code>X-Idempotency-Key</code>). (<code>src/atroposlib/api/server.py</code>)</li>
+<li>Request-level and group-level dedupe in both in-memory and Redis stores. (<code>src/atroposlib/api/storage.py</code>)</li>
+<li>E2E tests cover duplicate retries and partial failure retry paths. (<code>tests/test_api_runtime_e2e_integration.py</code>)</li>
+</ul>
+<h3 id="4-structured-logging-complete">4) Structured logging — Complete</h3>
+<ul>
+<li>API middleware and write endpoints emit structured context fields through <code>build_log_context</code>. (<code>src/atroposlib/api/server.py</code>, <code>src/atroposlib/logging_utils.py</code>)</li>
+<li>Runtime controller emits structured start/finish event logs. (<code>src/atroposlib/envs/runtime_controller.py</code>)</li>
+<li>Production config validation requires JSON logs. (<code>src/atroposlib/api/runtime_config.py</code>)</li>
+<li>Structured logging behavior is tested. (<code>tests/test_structured_logging.py</code>)</li>
+</ul>
+<h3 id="5-metrics-observability-complete">5) Metrics / observability — Complete</h3>
+<ul>
+<li>Observability registry provides API, queue, ingestion, worker, and dependency metrics plus tracing controls. (<code>src/atroposlib/observability.py</code>)</li>
+<li>API middleware records request counts/latency/status and error paths. (<code>src/atroposlib/api/server.py</code>)</li>
+<li>Ingestion path records queue/group/duplicate/latency metrics. (<code>src/atroposlib/api/server.py</code>)</li>
+<li><code>/metrics</code> endpoint exposed for scraping. (<code>src/atroposlib/api/server.py</code>)</li>
+</ul>
+<h3 id="6-readiness-liveness-semantics-complete">6) Readiness / liveness semantics — Complete</h3>
+<ul>
+<li>Distinct endpoints: <code>/health</code>, <code>/health/live</code>, <code>/health/ready</code>, <code>/health/dependencies</code>. (<code>src/atroposlib/api/server.py</code>)</li>
+<li>Readiness combines control-plane state, store startup/health, and shutdown flag; returns <code>503</code> when not ready. (<code>src/atroposlib/api/server.py</code>)</li>
+<li>ASGI bootstrap can assert required health routes are present. (<code>src/atroposlib/api/asgi.py</code>)</li>
+</ul>
+<h3 id="7-restart-recovery-complete">7) Restart recovery — Complete</h3>
+<ul>
+<li>Redis store startup reports recovered queue/group counts and dependency status. (<code>src/atroposlib/api/storage.py</code>)</li>
+<li>Restart tests validate persistence of queue + idempotency state across app instances. (<code>tests/test_runtime_server_storage.py</code>)</li>
+</ul>
+<h3 id="8-integration-and-concurrency-tests-complete">8) Integration and concurrency tests — Complete</h3>
+<ul>
+<li>Runtime E2E integration tests run against in-memory and Redis doubles. (<code>tests/test_api_runtime_e2e_integration.py</code>)</li>
+<li>Control-plane concurrency tests cover high parallel submissions, duplicate storms, mixed load, and polling during spikes. (<code>tests/control_plane_integration/test_control_plane_concurrency.py</code>)</li>
+</ul>
+<h3 id="9-deployable-artifacts-complete">9) Deployable artifacts — Complete</h3>
+<ul>
+<li>API container artifact exists and runs ASGI runtime entrypoint. (<code>docker/Dockerfile.api</code>)</li>
+<li>Compose deployment wires Redis + API + worker with healthchecks and production profile defaults. (<code>docker-compose.deploy.yml</code>)</li>
+<li>Kubernetes manifests include readiness/liveness probes for API and worker. (<code>deploy/k8s/api.yaml</code>, <code>deploy/k8s/worker.yaml</code>)</li>
+</ul>
+<h3 id="10-explicit-prod-mode-closed-in-this-pass">10) Explicit prod mode — Closed in this pass</h3>
+<p><strong>Gap identified:</strong> prior validation enforced production constraints only when profile was already <code>production</code>, but did not prevent selecting <code>production-safe</code> hardening tier from non-production profile.</p>
+<p><strong>Fix implemented:</strong></p>
+<ul>
+<li>Enforce <code>production-safe</code> tier requires <code>ATROPOS_RUNTIME_PROFILE=production</code>.</li>
+<li>Enforce <code>ATROPOS_RUNTIME_PROFILE=production</code> requires <code>ATROPOS_HARDENING_TIER=production-safe</code>.</li>
+</ul>
+<p>Implemented in <code>RuntimeDeploymentConfig.validate_for_runtime</code>. (<code>src/atroposlib/api/runtime_config.py</code>)</p>
+<p>Added regression tests for both directions of the invariant. (<code>tests/test_runtime_config_profiles.py</code>)</p>
+<h2 id="remaining-items">Remaining items</h2>
+<p>No unresolved platform-hardening gaps were found for the listed scope after this pass.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

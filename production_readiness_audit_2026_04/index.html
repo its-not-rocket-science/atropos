@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/production_readiness_audit_2026_04/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Production Readiness Audit (2026-04-08) - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Production Readiness Audit (2026-04-08)";
+        var mkdocs_page_input_path = "production_readiness_audit_2026_04.md";
+        var mkdocs_page_url = "/atropos/production_readiness_audit_2026_04/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Production Readiness Audit (2026-04-08)</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="production-readiness-audit-2026-04-08">Production Readiness Audit (2026-04-08)</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<h2 id="scope">Scope</h2>
+<p>Audit focus areas requested:
+- reliability
+- observability
+- failure modes
+- reproducibility</p>
+<p>Primary modules reviewed:
+- <code>src/atropos/pipeline/runner.py</code>
+- <code>src/atropos/utils/resilience.py</code>
+- <code>src/atropos/utils/error_categories.py</code>
+- <code>src/atropos/deployment/health.py</code>
+- <code>src/atropos/deployment/strategies.py</code>
+- <code>src/atropos/telemetry_collector.py</code>
+- <code>src/atropos/telemetry.py</code>
+- <code>src/atropos/logging_config.py</code>
+- <code>src/atropos/model_tester.py</code></p>
+<hr />
+<h2 id="1-prioritized-risk-list">1) Prioritized risk list</h2>
+<h3 id="p0-unbounded-external-command-execution-can-hang-pipeline-stages">P0 — Unbounded external command execution can hang pipeline stages</h3>
+<p><strong>Where:</strong> <code>pipeline/runner.py</code> (<code>subprocess.run(..., shell=True, check=True, capture_output=True, text=True)</code>) in prune/recover/validate/deploy/rollback custom command paths.</p>
+<p><strong>Why this is high risk:</strong>
+- No <code>timeout</code> is passed, so a stalled external tool can block stage completion indefinitely.
+- <code>shell=True</code> increases command-injection and quoting fragility risks if commands are user/config supplied.
+- <code>capture_output=True</code> can accumulate large stdout/stderr in memory for long-running processes.</p>
+<p><strong>Failure mode:</strong> pipeline deadlock/hang; process memory pressure; no deterministic recovery path.</p>
+<hr />
+<h3 id="p0-no-retry-backoff-or-circuit-breaker-around-deployment-time-network-checks">P0 — No retry, backoff, or circuit breaker around deployment-time network checks</h3>
+<p><strong>Where:</strong> <code>deployment/health.py</code>, <code>deployment/strategies.py</code>, <code>telemetry_collector.py</code>.</p>
+<p><strong>Why this is high risk:</strong>
+- Health checks and telemetry HTTP calls are mostly single-shot requests.
+- Transient DNS/TCP/TLS failures and brief 5xx spikes are treated as immediate failures.
+- Canary/blue-green loops poll status but do not implement explicit exponential backoff with jitter or circuit open/half-open semantics.</p>
+<p><strong>Failure mode:</strong> false negatives during rollout; unnecessary rollback; noisy incident pages.</p>
+<hr />
+<h3 id="p1-process-isolation-exists-only-in-batch-path-not-in-pipeline-execution-path">P1 — Process isolation exists only in batch path, not in pipeline execution path</h3>
+<p><strong>Where:</strong> <code>utils/resilience.py</code> is used by <code>batch.py</code>, but pipeline stage execution does not use timeout wrappers or isolated worker processes.</p>
+<p><strong>Why this matters:</strong>
+- <code>batch_process</code> has a robust timeout+retry envelope.
+- Core pipeline stage code for external commands/platform calls does not share the same resilience controls.</p>
+<p><strong>Failure mode:</strong> reliability behavior differs by entrypoint; operational surprises between batch and pipeline modes.</p>
+<hr />
+<h3 id="p1-logging-lacks-correlation-ids-and-structured-context-needed-for-production-tracing">P1 — Logging lacks correlation IDs and structured context needed for production tracing</h3>
+<p><strong>Where:</strong> <code>logging_config.py</code>, plus general logging patterns in pipeline/deployment/telemetry modules.</p>
+<p><strong>Observed gaps:</strong>
+- No request/run/deployment correlation ID propagated across modules.
+- JSON logging is available but minimal; no standard fields for trace/span IDs, scenario, strategy, stage, retry-attempt, endpoint, error category.
+- Many exceptions are logged as plain text without machine-parseable error taxonomy.</p>
+<p><strong>Failure mode:</strong> slow incident triage, poor root-cause analysis, weak SLO debugging.</p>
+<hr />
+<h3 id="p1-inferencemodel-loading-paths-can-run-long-without-hard-deadline-enforcement">P1 — Inference/model-loading paths can run long without hard deadline enforcement</h3>
+<p><strong>Where:</strong> <code>model_tester.py</code> accepts <code>timeout_sec</code> but does not enforce it during model load/inference.</p>
+<p><strong>Why this matters:</strong>
+- Large model pulls or cold-start loads can stall long enough to block CI/validation workflows.</p>
+<p><strong>Failure mode:</strong> validation jobs exceed budget or never finish under degraded remote model registry/network conditions.</p>
+<hr />
+<h3 id="p2-telemetry-parsingcollection-quality-issues-reduce-metric-trust">P2 — Telemetry parsing/collection quality issues reduce metric trust</h3>
+<p><strong>Where:</strong> <code>telemetry.py</code>, <code>telemetry_collector.py</code>.</p>
+<p><strong>Examples:</strong>
+- Triton parser uses rough/fixed assumptions for time windows and token estimates.
+- vLLM/TGI collectors fallback silently and often return zeros for key fields.
+- Health/path errors are frequently swallowed into generic failure messages.</p>
+<p><strong>Failure mode:</strong> incorrect baseline metrics lead to wrong ROI and gating decisions.</p>
+<hr />
+<h3 id="p2-reproducibility-controls-are-not-explicit-in-runtime-paths">P2 — Reproducibility controls are not explicit in runtime paths</h3>
+<p><strong>Where:</strong> pipeline/deployment/telemetry execution paths.</p>
+<p><strong>Observed gaps:</strong>
+- No standardized run manifest capturing exact package versions, model revision/hash, config hash, random seeds, hardware fingerprint, and git SHA.
+- External commands may depend on mutable environment state.</p>
+<p><strong>Failure mode:</strong> non-reproducible outcomes between environments and between runs.</p>
+<hr />
+<h2 id="2-points-of-failure-inventory">2) Points of failure inventory</h2>
+<h3 id="network-failure-points">Network failure points</h3>
+<ul>
+<li>HTTP health checks (<code>urllib.request.urlopen</code>) in deployment checks.</li>
+<li>Collector endpoint calls (<code>/health</code>, <code>/metrics</code>, <code>/v1/completions</code>, <code>/v2/models/stats</code>).</li>
+<li>Potential model hub downloads in <code>model_tester.py</code> via <code>transformers</code> loading.</li>
+</ul>
+<h3 id="model-inference-failure-points">Model inference failure points</h3>
+<ul>
+<li>Runtime OOM and model load/inference failures in <code>model_tester.py</code>.</li>
+<li>Pruning framework integration catches broad exceptions and returns opaque error strings.</li>
+<li>Telemetry benchmark requests can fail and be silently ignored during warmup/sampling.</li>
+</ul>
+<h3 id="environmentprocess-crash-points">Environment/process crash points</h3>
+<ul>
+<li>External tooling subprocesses launched by pipeline stages.</li>
+<li>GPU runtime instability and CUDA OOM during model/pruning work.</li>
+<li>Worker subprocess dead exits handled in batch mode, but not consistently in pipeline mode.</li>
+</ul>
+<hr />
+<h2 id="3-concrete-fixes">3) Concrete fixes</h2>
+<h3 id="a-retry-strategy-standards">A) Retry strategy standards</h3>
+<ol>
+<li><strong>Adopt per-call retry policy object for all outbound network calls</strong></li>
+<li>exponential backoff with jitter (e.g., 100ms base, cap 5s)</li>
+<li>max attempts by endpoint class:<ul>
+<li>health check reads: 3 attempts</li>
+<li>deployment control-plane writes: 5 attempts (idempotency key required)</li>
+<li>telemetry sample reads: 2 attempts</li>
+</ul>
+</li>
+<li><strong>Retry only transient classes</strong></li>
+<li>retry: DNS/TCP reset/timeout/HTTP 429/502/503/504</li>
+<li>do not retry: 400/401/403/404 validation/auth errors</li>
+<li><strong>Surface attempt metadata in logs/metrics</strong></li>
+<li><code>attempt</code>, <code>max_attempts</code>, <code>backoff_ms</code>, <code>error_type</code>.</li>
+</ol>
+<h3 id="b-timeout-defaults-hard-limits">B) Timeout defaults (hard limits)</h3>
+<ol>
+<li><strong>Subprocess stage commands</strong></li>
+<li>add <code>timeout=</code> for every <code>subprocess.run</code> in pipeline stage code.</li>
+<li>suggested defaults:<ul>
+<li>prune: 2h</li>
+<li>recover: 4h</li>
+<li>validate: 1h</li>
+<li>deploy/rollback shell ops: 10m</li>
+</ul>
+</li>
+<li><strong>HTTP calls</strong></li>
+<li>split connect/read timeout (if library supports); if staying with urllib, enforce conservative total timeout and wrapping watchdog timer.</li>
+<li><strong>Global pipeline budget</strong></li>
+<li>add overall run deadline and per-stage deadline; fail fast when exceeded.</li>
+</ol>
+<h3 id="c-circuit-breakers">C) Circuit breakers</h3>
+<ol>
+<li><strong>Per-endpoint breaker</strong> for health and telemetry endpoints</li>
+<li>open after N consecutive transient failures (e.g., 5)</li>
+<li>half-open after cool-down (e.g., 30s)</li>
+<li>close after M successful probes (e.g., 2)</li>
+<li><strong>Per-platform breaker</strong> in deployment strategy loops</li>
+<li>avoid hammering unhealthy control planes.</li>
+<li><strong>Emit breaker state transition logs/metrics</strong> for on-call visibility.</li>
+</ol>
+<h3 id="d-reproducibility-controls">D) Reproducibility controls</h3>
+<ol>
+<li>Generate a <strong>run manifest</strong> at pipeline start:</li>
+<li>git SHA, dirty flag, package lock snapshot, Python version, CUDA version, host/GPU info</li>
+<li>model IDs + exact revisions</li>
+<li>effective config + hash</li>
+<li>random seeds for Python/NumPy/Torch</li>
+<li>Persist manifest with outputs and include manifest ID in every stage log.</li>
+<li>For external commands, store fully rendered command + environment whitelist (redacted secrets).</li>
+</ol>
+<h3 id="e-failure-semantics-and-error-contracts">E) Failure semantics and error contracts</h3>
+<ol>
+<li>Replace broad <code>except Exception</code> returns with typed error envelopes (<code>category</code>, <code>recoverable</code>, <code>retryable</code>, <code>root_cause</code>).</li>
+<li>Preserve structured stderr/stdout excerpts (bounded) and exit code for subprocess failures.</li>
+<li>Align batch and pipeline to shared resilience middleware.</li>
+</ol>
+<hr />
+<h2 id="4-logging-evaluation-what-is-missing">4) Logging evaluation (what is missing)</h2>
+<h3 id="missing-now">Missing now</h3>
+<ul>
+<li>Correlation IDs (<code>run_id</code>, <code>deployment_id</code>, <code>experiment_id</code>, <code>stage_id</code>).</li>
+<li>Consistent structured fields (scenario, strategy, stage, endpoint, attempt, timeout_ms, duration_ms, error_category).</li>
+<li>Standardized error payload schema across modules.</li>
+<li>Log volume controls/sampling policy for noisy loops.</li>
+<li>Redaction policy for sensitive command args/env.</li>
+</ul>
+<h3 id="recommended-logging-schema-json">Recommended logging schema (JSON)</h3>
+<p>Minimum keys in every event:
+- <code>ts</code>, <code>level</code>, <code>service</code>, <code>module</code>, <code>event</code>, <code>message</code>
+- <code>run_id</code>, <code>stage</code>, <code>scenario</code>, <code>strategy</code>
+- <code>attempt</code>, <code>duration_ms</code>, <code>timeout_ms</code>
+- <code>error_category</code>, <code>exception_type</code>, <code>retryable</code>
+- <code>endpoint</code> or <code>command</code></p>
+<hr />
+<h2 id="5-metrics-to-track-in-production">5) Metrics to track in production</h2>
+<h3 id="reliability-failure-metrics">Reliability &amp; failure metrics</h3>
+<ul>
+<li><code>pipeline_runs_total{status}</code></li>
+<li><code>pipeline_stage_duration_seconds{stage,status}</code></li>
+<li><code>pipeline_stage_failures_total{stage,error_category}</code></li>
+<li><code>retries_total{component,operation,error_category}</code></li>
+<li><code>timeouts_total{component,operation}</code></li>
+<li><code>circuit_breaker_state{component,endpoint,state}</code></li>
+</ul>
+<h3 id="networkdependency-metrics">Network/dependency metrics</h3>
+<ul>
+<li><code>http_client_requests_total{target,method,status}</code></li>
+<li><code>http_client_latency_seconds{target,method}</code> (histogram)</li>
+<li><code>dependency_availability{dependency}</code></li>
+</ul>
+<h3 id="inferenceworkload-metrics">Inference/workload metrics</h3>
+<ul>
+<li><code>inference_requests_total{model,variant,status}</code></li>
+<li><code>inference_latency_seconds{model,variant,quantile}</code></li>
+<li><code>tokens_generated_total{model,variant}</code></li>
+<li><code>throughput_tokens_per_second{model,variant}</code></li>
+<li><code>gpu_memory_bytes{device}</code> / <code>gpu_oom_total{device}</code></li>
+</ul>
+<h3 id="reproducibility-quality-metrics">Reproducibility &amp; quality metrics</h3>
+<ul>
+<li><code>run_manifest_mismatch_total{field}</code></li>
+<li><code>config_hash_cardinality</code> / <code>model_revision_cardinality</code></li>
+<li><code>quality_degradation_percent{model,strategy}</code></li>
+<li><code>roi_prediction_error_percent{model,strategy}</code></li>
+</ul>
+<hr />
+<h2 id="6-suggested-observability-stack">6) Suggested observability stack</h2>
+<h3 id="baseline-good-default">Baseline (good default)</h3>
+<ul>
+<li><strong>OpenTelemetry SDK</strong> for traces + metrics instrumentation in Python modules.</li>
+<li><strong>Prometheus</strong> for metrics scraping/alerting (or OTEL collector -&gt; managed metrics backend).</li>
+<li><strong>Grafana</strong> for dashboards (pipeline health, stage latency, retry/circuit panels).</li>
+<li><strong>Loki</strong> (or ELK/OpenSearch) for structured logs.</li>
+<li><strong>Tempo/Jaeger</strong> for distributed traces.</li>
+</ul>
+<h3 id="deployment-topology">Deployment topology</h3>
+<ol>
+<li>App emits OTEL logs/metrics/traces.</li>
+<li>OTEL Collector performs:</li>
+<li>batching</li>
+<li>retry/export buffering</li>
+<li>attribute enrichment (env, commit SHA)</li>
+<li>Export paths:</li>
+<li>metrics -&gt; Prometheus remote write</li>
+<li>traces -&gt; Tempo/Jaeger</li>
+<li>logs -&gt; Loki/OpenSearch</li>
+</ol>
+<h3 id="alerting-starter-set">Alerting starter set</h3>
+<ul>
+<li>stage failure rate &gt; 2% for 10m</li>
+<li>p95 stage duration breach per stage budget</li>
+<li>consecutive breaker-open events &gt; threshold</li>
+<li>telemetry collection success &lt; 95%</li>
+<li>deployment rollback count &gt; 0 in rolling 1h window</li>
+</ul>
+<hr />
+<h2 id="7-implementation-sequence-306090">7) Implementation sequence (30/60/90)</h2>
+<h3 id="030-days">0–30 days</h3>
+<ul>
+<li>Add timeouts to all pipeline subprocess calls.</li>
+<li>Introduce shared network client wrapper with retry + jitter.</li>
+<li>Add correlation IDs and structured JSON logging fields.</li>
+</ul>
+<h3 id="3160-days">31–60 days</h3>
+<ul>
+<li>Add circuit breaker utility and integrate deployment health + telemetry collectors.</li>
+<li>Instrument core pipeline stages with metrics and trace spans.</li>
+<li>Add run manifest generation + persistence.</li>
+</ul>
+<h3 id="6190-days">61–90 days</h3>
+<ul>
+<li>Harmonize batch and pipeline resilience contracts.</li>
+<li>Add SLO dashboards and burn-rate alerts.</li>
+<li>Run game-day tests for dependency outages and model OOM scenarios.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

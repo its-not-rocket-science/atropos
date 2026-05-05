@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/validation_readme/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Validation Suite: Multi-Scale ROI Accuracy - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Validation Suite: Multi-Scale ROI Accuracy";
+        var mkdocs_page_input_path = "validation_readme.md";
+        var mkdocs_page_url = "/atropos/validation_readme/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Validation Suite: Multi-Scale ROI Accuracy</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="validation-suite-multi-scale-roi-accuracy">Validation Suite: Multi-Scale ROI Accuracy</h1>
+<h2 id="purpose">Purpose</h2>
+<p>This suite validates whether Atropos ROI predictions remain accurate when moving beyond GPT-2 (124M) to practical open models at 1B/7B/13B/34B scale.</p>
+<h2 id="files">Files</h2>
+<ul>
+<li><code>scripts/validate_on_models.py</code>: full validation driver.</li>
+<li><code>configs/models.yaml</code>: model catalog (two open models per size bucket).</li>
+<li><code>configs/validation_suite.yaml</code>: hardware, pruning, and metric settings.</li>
+<li><code>docs/validation_report_template.md</code>: report format for publication and executive review.</li>
+<li><code>validation_results/*.json</code>: per-model strategy outputs and suite summary.</li>
+</ul>
+<h2 id="hardware-requirements">Hardware Requirements</h2>
+<p>Recommended baseline machine:
+- 1x NVIDIA A100 40GB (minimum for reliable 7B pruning runs).
+- 128GB host RAM.
+- CUDA 12.x + recent NVIDIA driver.
+- Linux with <code>nvidia-smi</code> available.</p>
+<p>Expected per-model runtime on A100 40GB:
+- 1B: ~1 hour / strategy
+- 7B: ~4 hours / strategy
+- 13B: ~7 hours / strategy
+- 34B: ~14 hours / strategy</p>
+<h2 id="setup">Setup</h2>
+<pre class="codehilite"><code class="language-bash">conda env create -f validation_environment.yaml
+conda activate atropos-validation
+pip install -e .
+</code></pre>
+
+<h2 id="run">Run</h2>
+<p>Dry-run planning (no model downloads/pruning):</p>
+<pre class="codehilite"><code class="language-bash">python scripts/validate_on_models.py --dry-run
+</code></pre>
+
+<p>Run full suite:</p>
+<pre class="codehilite"><code class="language-bash">python scripts/validate_on_models.py
+</code></pre>
+
+<p>Run a subset (recommended for first end-to-end check):</p>
+<pre class="codehilite"><code class="language-bash">python scripts/validate_on_models.py --models mistral_7b
+</code></pre>
+
+<h2 id="reproducibility-controls">Reproducibility controls</h2>
+<ul>
+<li>Seed pinned in <code>configs/validation_suite.yaml</code>.</li>
+<li>Hardware snapshot (GPU model, CUDA runtime, driver) is captured per run.</li>
+<li>All run outputs are JSON artifacts suitable for public sharing.</li>
+</ul>
+<h2 id="failure-handling-behavior">Failure handling behavior</h2>
+<p>If pruning fails for a model/strategy (OOM, framework error, unsupported architecture), the suite:
+1. Writes a result JSON with status <code>pruning_failed</code> or <code>error</code>.
+2. Stores error message and continues to next run unless <code>fail_fast: true</code>.</p>
+<h2 id="public-sharing-guidance">Public sharing guidance</h2>
+<p>To support academic rigor and reputation transparency:
+- Publish all <code>validation_results/*.json</code>, including failed runs.
+- Report negative results in <code>docs/validation_report_template.md</code>.
+- Include comparison against naive 20% savings guess from suite summary.</p>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

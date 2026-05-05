@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/formal_api_spec/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Formal API Specification: RL Core Components - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Formal API Specification: RL Core Components";
+        var mkdocs_page_input_path = "formal_api_spec.md";
+        var mkdocs_page_url = "/atropos/formal_api_spec/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Formal API Specification: RL Core Components</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="formal-api-specification-rl-core-components">Formal API Specification: RL Core Components</h1>
+<p>This document defines strict interfaces for core RL environment components in <code>atropos.rl_env</code>.</p>
+<h2 id="1-component-contracts">1) Component contracts</h2>
+<h3 id="1-parser">1. Parser</h3>
+<p><strong>Interface</strong></p>
+<pre class="codehilite"><code class="language-python">class Parser(Protocol):
+    async def parse(self, raw_action: int) -&gt; LineWorldParsedAction: ...
+</code></pre>
+
+<p><strong>Inputs</strong>
+- <code>raw_action: int</code> (bool explicitly rejected).</p>
+<p><strong>Outputs</strong>
+- <code>LineWorldParsedAction</code> where <code>delta ∈ {-1, +1}</code>.</p>
+<p><strong>Invariants</strong>
+- Parsed action is canonical and domain-valid.</p>
+<hr />
+<h3 id="2-generator">2. Generator</h3>
+<p><strong>Interface</strong></p>
+<pre class="codehilite"><code class="language-python">class Generator(Protocol):
+    async def generate(
+        self,
+        state: LineWorldState,
+        parsed_action: LineWorldParsedAction,
+    ) -&gt; LineWorldTransition: ...
+</code></pre>
+
+<p><strong>Inputs</strong>
+- <code>state: LineWorldState</code>
+- <code>parsed_action: LineWorldParsedAction</code></p>
+<p><strong>Outputs</strong>
+- <code>LineWorldTransition</code></p>
+<p><strong>Invariants</strong>
+- <code>step_idx &gt;= 1</code>
+- <code>done == (reached_goal or out_of_steps)</code>
+- <code>position_after - position_before == action</code></p>
+<hr />
+<h3 id="3-rewardfunction">3. RewardFunction</h3>
+<p><strong>Interface</strong></p>
+<pre class="codehilite"><code class="language-python">class RewardFunction(Protocol):
+    async def compute(self, transition: LineWorldTransition) -&gt; LineWorldReward: ...
+</code></pre>
+
+<p><strong>Inputs</strong>
+- <code>transition: LineWorldTransition</code></p>
+<p><strong>Outputs</strong>
+- <code>LineWorldReward</code></p>
+<p><strong>Invariants</strong>
+- <code>components</code> keys are exactly <code>{"progress", "success_bonus", "timeout_penalty"}</code>
+- <code>value == sum(components.values())</code></p>
+<hr />
+<h3 id="4-trajectorybuilder">4. TrajectoryBuilder</h3>
+<p><strong>Interface</strong></p>
+<pre class="codehilite"><code class="language-python">class TrajectoryBuilder(Protocol):
+    async def build_step(
+        self,
+        transition: LineWorldTransition,
+        reward: LineWorldReward,
+        introspection: LineWorldIntrospection,
+    ) -&gt; LineWorldStepRecord: ...
+
+    def reset(self) -&gt; None: ...
+</code></pre>
+
+<p><strong>Inputs</strong>
+- <code>transition: LineWorldTransition</code>
+- <code>reward: LineWorldReward</code>
+- <code>introspection: LineWorldIntrospection</code></p>
+<p><strong>Outputs</strong>
+- <code>LineWorldStepRecord</code></p>
+<p><strong>Invariants</strong>
+- <code>step_idx &gt;= 1</code>
+- per-episode step index monotonicity enforced by builder implementation.</p>
+<hr />
+<h3 id="5-orchestrator">5. Orchestrator</h3>
+<p><strong>Interface</strong></p>
+<pre class="codehilite"><code class="language-python">@dataclass
+class LineWorldOrchestrator:
+    initial_state: LineWorldState
+    parser: Parser
+    generator: Generator
+    reward_function: RewardFunction
+    trajectory_builder: TrajectoryBuilder
+
+    async def async_reset(self) -&gt; LineWorldState: ...
+    async def async_step(self, raw_action: int) -&gt; LineWorldStepRecord: ...
+</code></pre>
+
+<p><strong>Inputs</strong>
+- Initial component instances and initial state.
+- Runtime action input through <code>async_step(raw_action)</code>.</p>
+<p><strong>Outputs</strong>
+- Reset state from <code>async_reset</code>.
+- Step artifact record from <code>async_step</code>.</p>
+<p><strong>Invariants</strong>
+- state object always satisfies <code>LineWorldState</code> invariants before stepping.
+- all subcomponent outputs are validated before propagation.</p>
+<h2 id="2-validation-layer">2) Validation layer</h2>
+<p>The contract module provides runtime validators:</p>
+<ul>
+<li><code>validate_state(...)</code></li>
+<li><code>validate_parsed_action(...)</code></li>
+<li><code>validate_transition(...)</code></li>
+<li><code>validate_reward(...)</code></li>
+<li><code>validate_step_record(...)</code></li>
+</ul>
+<p>These are called at orchestration boundaries and inside component implementations to fail fast with explicit errors.</p>
+<h2 id="3-type-enforcement">3) Type enforcement</h2>
+<p>Type strictness is enforced by:</p>
+<ul>
+<li><code>Protocol</code>-based interfaces for parser/generator/reward/builder.</li>
+<li><code>Literal[-1, 1]</code> (<code>LineWorldAction</code>) for canonical action domain.</li>
+<li><code>dataclass(..., slots=True)</code> models with constructor-time invariant checks.</li>
+<li>immutable/frozen DTOs where mutation is unsafe (<code>ParsedAction</code>, <code>Transition</code>, <code>Reward</code>, <code>StepRecord</code>).</li>
+</ul>
+<h2 id="4-versioning-strategy">4) Versioning strategy</h2>
+<p>Adopt <strong>semantic interface versioning</strong> for component contracts:</p>
+<ul>
+<li><strong>MAJOR</strong>: Breaking changes to Protocol signatures, required fields, or invariants.</li>
+<li><strong>MINOR</strong>: Backward-compatible additions (new optional metadata fields, additive introspection keys).</li>
+<li><strong>PATCH</strong>: Bugfixes and tighter validation that do not change accepted/returned schema shape.</li>
+</ul>
+<h3 id="recommended-implementation-policy">Recommended implementation policy</h3>
+<ol>
+<li>Expose contract version in package metadata and docs (<code>API_CONTRACT_VERSION = "1.x.y"</code>).</li>
+<li>For upcoming breaking changes, add compatibility shims for one minor cycle.</li>
+<li>Document deprecations with target removal version.</li>
+<li>Gate breaking behavior behind an explicit opt-in flag during migration windows.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

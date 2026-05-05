@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/case-study/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Case Study - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Case Study";
+        var mkdocs_page_input_path = "case-study.md";
+        var mkdocs_page_url = "/atropos/case-study/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Case Study</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#executive-summary">Executive Summary</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#background">Background</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#methodology">Methodology</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#models-tested">Models Tested</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#pruning-strategy">Pruning Strategy</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#roi-calculation">ROI Calculation</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#results">Results</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#summary-metrics">Summary Metrics</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#detailed-analysis">Detailed Analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#achieved-sparsity-by-model-architecture">Achieved Sparsity by Model Architecture</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#key-findings">Key Findings</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-unstructured-pruning-achieves-lower-memory-savings-than-projected">1. Unstructured Pruning Achieves Lower Memory Savings Than Projected</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-model-architecture-matters-significantly">2. Model Architecture Matters Significantly</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#3-quality-degradation-varies-by-model-size">3. Quality Degradation Varies by Model Size</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#4-only-1-of-8-scenarios-meets-production-viability">4. Only 1 of 8 Scenarios Meets Production Viability</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#root-cause-analysis">Root Cause Analysis</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#why-the-variance">Why the Variance?</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#recommendations">Recommendations</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#for-production-deployments">For Production Deployments</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#for-atropos-users">For Atropos Users</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#for-atropos-development">For Atropos Development</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#conclusion">Conclusion</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#deliverables">Deliverables</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Case Study</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="case-study-validating-atropos-pruning-projections">Case Study: Validating Atropos Pruning Projections</h1>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>This case study validates Atropos ROI projections against actual pruning results using magnitude-based unstructured pruning on 5 candidate language models. The exercise reveals significant variance between projected and actual savings, providing actionable insights for production deployment decisions.</p>
+<p><strong>Key Finding:</strong> Actual savings averaged <strong>-53.4%</strong> below projections when using unstructured pruning, with only <strong>1 of 8 scenarios</strong> meeting viability thresholds for production deployment.</p>
+<hr />
+<h2 id="background">Background</h2>
+<p>Atropos estimates ROI for LLM pruning and quantization optimizations. To validate these projections, we executed a comprehensive pruning exercise comparing:</p>
+<ul>
+<li><strong>Baseline Atropos projections</strong> for memory reduction, throughput gains, and cost savings</li>
+<li><strong>Actual pruning results</strong> using PyTorch magnitude-based unstructured pruning</li>
+<li><strong>Quality benchmarks</strong> measuring perplexity and code completion performance</li>
+<li><strong>Break-even analysis</strong> using real achieved sparsity vs. target sparsity</li>
+</ul>
+<hr />
+<h2 id="methodology">Methodology</h2>
+<h3 id="models-tested">Models Tested</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Parameters</th>
+<th>Preset</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gpt2</td>
+<td>124M</td>
+<td>edge-coder</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>gpt2-medium</td>
+<td>355M</td>
+<td>edge-coder</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>gpt2-xl</td>
+<td>1.5B</td>
+<td>medium-coder</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>facebook/opt-1.3b</td>
+<td>1.3B</td>
+<td>medium-coder</td>
+<td>Apache-2.0</td>
+</tr>
+<tr>
+<td>EleutherAI/pythia-2.8b</td>
+<td>2.8B</td>
+<td>large-coder</td>
+<td>Apache-2.0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pruning-strategy">Pruning Strategy</h3>
+<ul>
+<li><strong>Method:</strong> PyTorch magnitude-based unstructured pruning (<code>torch.nn.utils.prune</code>)</li>
+<li><strong>Target sparsity:</strong> 10% (mild) and 22% (structured)</li>
+<li><strong>Implementation:</strong> Global L1 unstructured pruning on all Linear layer weights</li>
+<li><strong>Quality evaluation:</strong> Perplexity + code completion keyword matching</li>
+</ul>
+<h3 id="roi-calculation">ROI Calculation</h3>
+<ul>
+<li><strong>Savings proportional</strong> to achieved sparsity vs. target sparsity</li>
+<li><strong>One-time project cost:</strong> $5,000 (engineering effort estimate)</li>
+<li><strong>Break-even formula:</strong> <code>(Project Cost / Annual Savings) × 12 months</code></li>
+</ul>
+<hr />
+<h2 id="results">Results</h2>
+<h3 id="summary-metrics">Summary Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total models analyzed</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Average projected annual savings</td>
+<td>$1,696/year</td>
+</tr>
+<tr>
+<td>Average actual annual savings</td>
+<td>$790/year</td>
+</tr>
+<tr>
+<td>Savings variance</td>
+<td><strong>-53.4%</strong></td>
+</tr>
+<tr>
+<td>Viable pruning scenarios</td>
+<td><strong>1 of 8</strong></td>
+</tr>
+<tr>
+<td>Non-viable scenarios</td>
+<td>6 of 8</td>
+</tr>
+</tbody>
+</table>
+<h3 id="detailed-analysis">Detailed Analysis</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Strategy</th>
+<th>Proj Savings</th>
+<th>Actual Savings</th>
+<th>Variance</th>
+<th>Break-even</th>
+<th>Quality Impact</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gpt2</td>
+<td>mild</td>
+<td>$414</td>
+<td>$128</td>
+<td>-69%</td>
+<td>468mo</td>
+<td>-64%</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td>gpt2</td>
+<td>structured</td>
+<td>$910</td>
+<td>$282</td>
+<td>-69%</td>
+<td>213mo</td>
+<td>-92%</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td>gpt2-medium</td>
+<td>mild</td>
+<td>$414</td>
+<td>$60</td>
+<td>-85%</td>
+<td>1000mo</td>
+<td>+50%</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td>gpt2-medium</td>
+<td>structured</td>
+<td>$910</td>
+<td>$132</td>
+<td>-85%</td>
+<td>455mo</td>
+<td>+87%</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td>gpt2-xl</td>
+<td>mild</td>
+<td>$1,707</td>
+<td>$88</td>
+<td>-95%</td>
+<td>681mo</td>
+<td>N/A</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td>gpt2-xl</td>
+<td>structured</td>
+<td>$3,752</td>
+<td>$194</td>
+<td>-95%</td>
+<td>310mo</td>
+<td>N/A</td>
+<td>Not recommended</td>
+</tr>
+<tr>
+<td><strong>opt-1.3b</strong></td>
+<td><strong>mild</strong></td>
+<td><strong>$1,707</strong></td>
+<td><strong>$1,701</strong></td>
+<td><strong>-0.4%</strong></td>
+<td><strong>35mo</strong></td>
+<td>N/A</td>
+<td><strong>Conditionally recommended</strong></td>
+</tr>
+<tr>
+<td><strong>opt-1.3b</strong></td>
+<td><strong>structured</strong></td>
+<td><strong>$3,752</strong></td>
+<td><strong>$3,738</strong></td>
+<td><strong>-0.4%</strong></td>
+<td><strong>16mo</strong></td>
+<td>N/A</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="achieved-sparsity-by-model-architecture">Achieved Sparsity by Model Architecture</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Target</th>
+<th>Achieved</th>
+<th>Achievement Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gpt2</td>
+<td>10-22%</td>
+<td>3.1-6.8%</td>
+<td>31-31%</td>
+</tr>
+<tr>
+<td>gpt2-medium</td>
+<td>10-22%</td>
+<td>1.5-3.2%</td>
+<td>15-15%</td>
+</tr>
+<tr>
+<td>gpt2-xl</td>
+<td>10-22%</td>
+<td>0.5-1.1%</td>
+<td>5-5%</td>
+</tr>
+<tr>
+<td><strong>opt-1.3b</strong></td>
+<td><strong>10-22%</strong></td>
+<td><strong>10.0-21.9%</strong></td>
+<td><strong>100-100%</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-findings">Key Findings</h2>
+<h3 id="1-unstructured-pruning-achieves-lower-memory-savings-than-projected">1. Unstructured Pruning Achieves Lower Memory Savings Than Projected</h3>
+<p>Atropos projections assume <strong>structured pruning</strong> (channel/head removal) which actually reduces model size. PyTorch magnitude-based pruning creates <strong>unstructured sparsity</strong> (zeros in weight matrices) without reducing memory footprint unless sparse tensor formats are used.</p>
+<p><strong>Impact:</strong> Memory reduction was <strong>3-7%</strong> actual vs. <strong>10-22%</strong> projected for GPT models.</p>
+<h3 id="2-model-architecture-matters-significantly">2. Model Architecture Matters Significantly</h3>
+<p>OPT models achieved target sparsity perfectly (10-22%), while GPT models achieved only 5-31% of target:</p>
+<ul>
+<li><strong>OPT-1.3b:</strong> 100% target achievement → viable break-even (16-35 months)</li>
+<li><strong>GPT models:</strong> 5-31% target achievement → non-viable break-even (213-1000+ months)</li>
+</ul>
+<p>This suggests architectural differences in how weights are distributed across layers.</p>
+<h3 id="3-quality-degradation-varies-by-model-size">3. Quality Degradation Varies by Model Size</h3>
+<ul>
+<li><strong>Small models (gpt2):</strong> Surprisingly stable or improved quality after pruning (likely due to regularization effect)</li>
+<li><strong>Medium models (gpt2-medium):</strong> Significant degradation (-25% to -43% completion score)</li>
+<li><strong>OPT models:</strong> Perplexity increase proportional to sparsity (+8.7% to +29.2%)</li>
+</ul>
+<h3 id="4-only-1-of-8-scenarios-meets-production-viability">4. Only 1 of 8 Scenarios Meets Production Viability</h3>
+<p>Using criteria of:
+- Break-even &lt; 5 years
+- Quality degradation &lt; 20%
+- Achieved sparsity &gt; 5%</p>
+<p>Only <strong>opt-1.3b with structured pruning</strong> (22% target) met all thresholds.</p>
+<hr />
+<h2 id="root-cause-analysis">Root Cause Analysis</h2>
+<h3 id="why-the-variance">Why the Variance?</h3>
+<ol>
+<li><strong>Unstructured vs. Structured Pruning</strong></li>
+<li>Atropos projections assume structured pruning (LLM-Pruner style)</li>
+<li>Our method used unstructured pruning (PyTorch native)</li>
+<li>
+<p>Unstructured sparsity doesn't reduce memory without sparse inference support</p>
+</li>
+<li>
+<p><strong>Weight Distribution Differences</strong></p>
+</li>
+<li>GPT models: Weights more uniformly distributed → harder to prune</li>
+<li>
+<p>OPT models: More concentrated weight magnitudes → easier to prune</p>
+</li>
+<li>
+<p><strong>Conservative vs. Aggressive Targets</strong></p>
+</li>
+<li>10% sparsity (mild): Generally achievable with minimal quality loss</li>
+<li>22% sparsity (structured): Architecture-dependent viability</li>
+</ol>
+<hr />
+<h2 id="recommendations">Recommendations</h2>
+<h3 id="for-production-deployments">For Production Deployments</h3>
+<ol>
+<li><strong>Use Structured Pruning (LLM-Pruner)</strong> for actual memory savings</li>
+<li>Removes entire channels/heads</li>
+<li>Reduces actual model size</li>
+<li>
+<p>Better alignment with Atropos projections</p>
+</li>
+<li>
+<p><strong>Limit Unstructured Pruning to &lt;10% sparsity</strong> for models requiring high quality</p>
+</li>
+<li>Minimal quality degradation</li>
+<li>Marginal memory savings</li>
+<li>
+<p>Consider only with sparse inference framework</p>
+</li>
+<li>
+<p><strong>Consider Quantization + Pruning Combination</strong></p>
+</li>
+<li>INT8 quantization: 50% memory reduction</li>
+<li>+10% pruning: Additional marginal savings</li>
+<li>
+<p>Better combined ROI than pruning alone</p>
+</li>
+<li>
+<p><strong>Test Architecture-Specific Behavior</strong></p>
+</li>
+<li>OPT models tolerate pruning better than GPT models</li>
+<li>Validate on target model architecture before deployment</li>
+</ol>
+<h3 id="for-atropos-users">For Atropos Users</h3>
+<ol>
+<li><strong>Select Appropriate Strategy</strong></li>
+<li>Use <code>mild_pruning</code> / <code>structured_pruning</code> for LLM-Pruner workflows</li>
+<li>Use <code>unstructured_mild</code> / <code>unstructured_moderate</code> for PyTorch magnitude pruning</li>
+<li>
+<p>Use <code>opt_magnitude_pruning</code> for OPT-specific workflows</p>
+</li>
+<li>
+<p><strong>Validate Projections with Actual Pruning</strong></p>
+</li>
+<li>Run pruning exercise on target model before committing</li>
+<li>Measure actual sparsity achieved</li>
+<li>Recalculate ROI with real numbers</li>
+</ol>
+<h3 id="for-atropos-development">For Atropos Development</h3>
+<ol>
+<li><strong>Distinguish Pruning Types in Projections</strong></li>
+<li>Clearly label structured vs. unstructured pruning strategies</li>
+<li>Provide different default values for each type</li>
+<li>
+<p>Add warnings about memory reduction limitations</p>
+</li>
+<li>
+<p><strong>Add Architecture-Specific Presets</strong></p>
+</li>
+<li>Different default sparsity targets for GPT vs. OPT vs. Llama models</li>
+<li>Architecture detection for better recommendations</li>
+</ol>
+<hr />
+<h2 id="conclusion">Conclusion</h2>
+<p>This pruning exercise validates the importance of testing actual pruning methods against Atropos projections before making deployment decisions. While Atropos provides valuable estimates, the <strong>-53.4% variance</strong> in actual vs. projected savings demonstrates that:</p>
+<ol>
+<li><strong>Pruning method matters significantly</strong> — unstructured vs. structured yield very different results</li>
+<li><strong>Model architecture affects viability</strong> — not all models tolerate pruning equally</li>
+<li><strong>Break-even calculations need real data</strong> — projections alone are insufficient for decision-making</li>
+</ol>
+<p>The exercise successfully demonstrates that <strong>opt-1.3b with structured pruning</strong> can achieve the projected 22% memory reduction with viable 16-month break-even, while GPT models under unstructured pruning fall significantly short of viability thresholds.</p>
+<h3 id="deliverables">Deliverables</h3>
+<ul>
+<li><strong>8 pruned model variants</strong> in <code>test_data/pruned_models/</code> (25 GB)</li>
+<li><strong>Complete analysis scripts</strong> in <code>scripts/prune_*.py</code></li>
+<li><strong>Benchmark results</strong> comparing quality pre/post pruning</li>
+<li><strong>Updated Atropos strategies</strong> distinguishing structured vs. unstructured pruning</li>
+<li><strong>This case study</strong> documenting ROI validation methodology</li>
+</ul>
+<hr />
+<h2 id="citation">Citation</h2>
+<p>If you use Atropos or reference this case study:</p>
+<pre class="codehilite"><code class="language-bibtex">@software{atropos,
+  title = {Atropos: ROI Estimation for LLM Pruning},
+  year = {2026},
+  url = {https://github.com/its-not-rocket-science/atropos}
+}
+</code></pre>
+
+<hr />
+<p><em>Generated: 2026-03-12 | Case Study Version: 1.0</em></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../examples/" class="btn btn-neutral float-left" title="Examples"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../examples/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

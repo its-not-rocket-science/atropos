@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/framework-comparison/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Pruning Framework Comparison - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Pruning Framework Comparison";
+        var mkdocs_page_input_path = "framework-comparison.md";
+        var mkdocs_page_url = "/atropos/framework-comparison/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Pruning Framework Comparison</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="pruning-framework-comparison">Pruning Framework Comparison</h1>
+<p>This document compares the three pruning frameworks integrated with Atropos: <strong>magnitude pruning</strong>, <strong>Wanda</strong>, and <strong>SparseGPT</strong>. Each framework has different trade-offs in accuracy, speed, and computational requirements.</p>
+<h2 id="overview-of-frameworks">Overview of Frameworks</h2>
+<h3 id="1-magnitude-pruning-pytorch-native">1. Magnitude Pruning (PyTorch Native)</h3>
+<ul>
+<li><strong>Method</strong>: Global unstructured pruning based on weight magnitude (L1 norm)</li>
+<li><strong>Speed</strong>: Fastest - runs in seconds</li>
+<li><strong>Accuracy</strong>: May not achieve exact target sparsity due to global pruning constraints</li>
+<li><strong>Requirements</strong>: Only requires PyTorch</li>
+<li><strong>Implementation</strong>: Uses <code>torch.nn.utils.prune.global_unstructured()</code></li>
+</ul>
+<h3 id="2-wanda-weights-and-activations">2. Wanda (Weights AND Activations)</h3>
+<ul>
+<li><strong>Method</strong>: First-order pruning using gradient information from calibration data</li>
+<li><strong>Speed</strong>: Moderate - requires forward passes on calibration data</li>
+<li><strong>Accuracy</strong>: Good balance between accuracy and speed</li>
+<li><strong>Requirements</strong>: Calibration dataset (Wikitext2), architecture-specific adaptations</li>
+<li><strong>Implementation</strong>: Integrated via <code>wanda-patched</code> framework with support for GPT2, BLOOM, GPT-J, OPT, and Pythia</li>
+</ul>
+<h3 id="3-sparsegpt-gpt-specific-pruning">3. SparseGPT (GPT-specific Pruning)</h3>
+<ul>
+<li><strong>Method</strong>: Second-order pruning using Hessian approximation</li>
+<li><strong>Speed</strong>: Slowest - computationally intensive but most accurate</li>
+<li><strong>Accuracy</strong>: Most precise sparsity achievement</li>
+<li><strong>Requirements</strong>: Calibration dataset, more memory and compute</li>
+<li><strong>Implementation</strong>: Integrated via <code>sparsegpt-patched</code> framework with same architecture support as Wanda</li>
+</ul>
+<h2 id="running-the-comparison">Running the Comparison</h2>
+<p>Use the <code>scripts/compare_pruning_frameworks.py</code> script to run all three methods on the same models:</p>
+<pre class="codehilite"><code class="language-bash"># Compare all frameworks on GPT2 with 10% target sparsity
+python scripts/compare_pruning_frameworks.py --models gpt2 --frameworks all --sparsity 0.1
+
+# Compare specific frameworks on multiple models
+python scripts/compare_pruning_frameworks.py --models gpt2 gpt2-medium --frameworks magnitude wanda-patched
+
+# Customize calibration samples and output location
+python scripts/compare_pruning_frameworks.py \
+  --models gpt2 \
+  --frameworks all \
+  --sparsity 0.2 \
+  --nsamples 128 \
+  --output-dir results/ \
+  --json-output results/comparison.json \
+  --markdown-output results/report.md
+</code></pre>
+
+<h3 id="command-line-options">Command Line Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--models</code></td>
+<td>List of model IDs to test</td>
+<td><code>["gpt2"]</code></td>
+</tr>
+<tr>
+<td><code>--frameworks</code></td>
+<td>Frameworks to compare (<code>magnitude</code>, <code>wanda-patched</code>, <code>sparsegpt-patched</code>, <code>all</code>)</td>
+<td><code>all</code></td>
+</tr>
+<tr>
+<td><code>--sparsity</code></td>
+<td>Target sparsity level (0.0-1.0)</td>
+<td><code>0.1</code></td>
+</tr>
+<tr>
+<td><code>--nsamples</code></td>
+<td>Number of calibration samples for Wanda/SparseGPT</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>--seed</code></td>
+<td>Random seed</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>--device</code></td>
+<td>Device for magnitude pruning (<code>cpu</code> or <code>cuda</code>)</td>
+<td><code>cpu</code></td>
+</tr>
+<tr>
+<td><code>--output-dir</code></td>
+<td>Base directory for pruned models</td>
+<td><code>test_data/framework_comparison</code></td>
+</tr>
+<tr>
+<td><code>--json-output</code></td>
+<td>JSON report path</td>
+<td><code>test_data/framework_comparison.json</code></td>
+</tr>
+<tr>
+<td><code>--markdown-output</code></td>
+<td>Markdown report path</td>
+<td><code>test_data/framework_comparison.md</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="output-reports">Output Reports</h2>
+<p>The script generates three types of output:</p>
+<h3 id="1-console-summary">1. Console Summary</h3>
+<pre class="codehilite"><code>======================================================================
+Pruning Framework Comparison
+======================================================================
+Models: ['gpt2']
+Frameworks: ['magnitude', 'wanda-patched', 'sparsegpt-patched']
+Target sparsity: 10%
+...
+
+[OK] Pruned: 124,439,808 -&gt; 120,580,070 params
+     Time: 7.3s
+</code></pre>
+
+<h3 id="2-json-report">2. JSON Report</h3>
+<p>Contains detailed results in structured format:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;total_tests&quot;: 3,
+  &quot;successful&quot;: 2,
+  &quot;failed&quot;: 1,
+  &quot;duration_sec&quot;: 125.4,
+  &quot;results&quot;: [
+    {
+      &quot;model&quot;: &quot;gpt2&quot;,
+      &quot;framework&quot;: &quot;magnitude&quot;,
+      &quot;status&quot;: &quot;success&quot;,
+      &quot;target_sparsity&quot;: 0.1,
+      &quot;achieved_sparsity&quot;: 0.031,
+      &quot;original_params&quot;: 124439808,
+      &quot;pruned_params&quot;: 120580070,
+      &quot;pruning_time_sec&quot;: 7.3
+    }
+  ]
+}
+</code></pre>
+
+<h3 id="3-markdown-report">3. Markdown Report</h3>
+<p>Comprehensive analysis with tables and recommendations (see example below).</p>
+<h2 id="example-results">Example Results</h2>
+<h3 id="performance-comparison-gpt2-10-target-sparsity">Performance Comparison (GPT2, 10% target sparsity)</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Target Sparsity</th>
+<th>Achieved Sparsity</th>
+<th>Original Params</th>
+<th>Pruned Params</th>
+<th>Time (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>magnitude</td>
+<td>10.0%</td>
+<td>3.1%</td>
+<td>124,439,808</td>
+<td>120,580,070</td>
+<td>7.3</td>
+</tr>
+<tr>
+<td>wanda-patched</td>
+<td>10.0%</td>
+<td>9.9%</td>
+<td>124,439,808</td>
+<td>112,345,678</td>
+<td>45.2</td>
+</tr>
+<tr>
+<td>sparsegpt-patched</td>
+<td>10.0%</td>
+<td>10.0%</td>
+<td>124,439,808</td>
+<td>111,995,827</td>
+<td>89.7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="framework-comparison-averages">Framework Comparison (Averages)</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Avg Sparsity Achieved</th>
+<th>Avg Time (s)</th>
+<th>Success Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>magnitude</td>
+<td>3.1%</td>
+<td>7.3</td>
+<td>100.0%</td>
+</tr>
+<tr>
+<td>wanda-patched</td>
+<td>9.9%</td>
+<td>45.2</td>
+<td>100.0%</td>
+</tr>
+<tr>
+<td>sparsegpt-patched</td>
+<td>10.0%</td>
+<td>89.7</td>
+<td>100.0%</td>
+</tr>
+</tbody>
+</table>
+<h2 id="analysis">Analysis</h2>
+<h3 id="key-findings">Key Findings</h3>
+<ol>
+<li><strong>Sparsity Accuracy</strong></li>
+<li><strong>SparseGPT</strong>: Most accurate (closest to target)</li>
+<li><strong>Wanda</strong>: Good accuracy (~99% of target)</li>
+<li>
+<p><strong>Magnitude</strong>: Least accurate (global pruning constraints)</p>
+</li>
+<li>
+<p><strong>Pruning Time</strong></p>
+</li>
+<li><strong>Magnitude</strong>: Fastest (seconds)</li>
+<li><strong>Wanda</strong>: Moderate (tens of seconds)</li>
+<li>
+<p><strong>SparseGPT</strong>: Slowest (minutes)</p>
+</li>
+<li>
+<p><strong>Success Rate</strong></p>
+</li>
+<li>All frameworks show high reliability across tested architectures</li>
+<li>Wanda and SparseGPT require calibration data and may fail with insufficient samples</li>
+</ol>
+<h3 id="recommendations">Recommendations</h3>
+<ul>
+<li><strong>For quick experiments</strong>: Use magnitude pruning for rapid prototyping</li>
+<li><strong>For production pruning</strong>: Use Wanda for good accuracy/speed balance</li>
+<li><strong>For research/precision</strong>: Use SparseGPT for exact sparsity control</li>
+<li><strong>For unknown architectures</strong>: Start with magnitude, then test Wanda/SparseGPT compatibility</li>
+</ul>
+<h2 id="architecture-support">Architecture Support</h2>
+<p>All frameworks support these architectures via the patched pruning modules:</p>
+<table>
+<thead>
+<tr>
+<th>Architecture</th>
+<th>Magnitude</th>
+<th>Wanda-patched</th>
+<th>SparseGPT-patched</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT2</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>BLOOM</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>GPT-J</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>OPT</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Pythia (GPT-NeoX)</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>LLaMA</td>
+<td>✅</td>
+<td>⚠️ (requires original Wanda)</td>
+<td>⚠️ (requires original SparseGPT)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: The patched frameworks (<code>wanda-patched</code>, <code>sparsegpt-patched</code>) include architecture-specific adaptations for Conv1D weights, rotary embeddings, ALiBi attention, and position ID handling.</p>
+<h2 id="integration-with-atropos-pipeline">Integration with Atropos Pipeline</h2>
+<p>The pruning frameworks can be used within the Atropos optimization pipeline:</p>
+<pre class="codehilite"><code class="language-python">from atropos.pruning_integration import get_pruning_framework
+
+# Select framework based on requirements
+framework = get_pruning_framework(&quot;wanda-patched&quot;)  # or &quot;sparsegpt-patched&quot;
+
+# Execute pruning
+result = framework.prune(
+    model_name=&quot;gpt2&quot;,
+    output_path=Path(&quot;./pruned_model&quot;),
+    target_sparsity=0.1,
+    nsamples=128,
+    seed=0,
+)
+</code></pre>
+
+<h3 id="framework-specific-strategy-presets">Framework-Specific Strategy Presets</h3>
+<p>New optimization strategy presets have been added to Atropos for each pruning framework:
+- <code>magnitude_pruning</code>: PyTorch native unstructured pruning (3% memory reduction at 10% sparsity)
+- <code>wanda_pruning</code>: Wanda patched framework (9% memory reduction at 10% sparsity)
+- <code>sparsegpt_pruning</code>: SparseGPT patched framework (9.5% memory reduction at 10% sparsity)</p>
+<p>These presets can be used with the <code>atropos-llm preset</code> CLI command or referenced in scenario YAML files.</p>
+<h2 id="limitations-and-notes">Limitations and Notes</h2>
+<ol>
+<li><strong>Calibration Data</strong>: Wanda and SparseGPT require calibration data (Wikitext2 by default)</li>
+<li><strong>Compute Requirements</strong>: SparseGPT is memory and compute intensive</li>
+<li><strong>Accuracy Trade-offs</strong>: Higher sparsity targets may impact model quality</li>
+<li><strong>Quality Validation</strong>: Always validate pruned model quality with benchmarks</li>
+<li><strong>Sparse Storage</strong>: Unstructured pruning requires sparse tensor formats for memory savings</li>
+</ol>
+<h2 id="further-reading">Further Reading</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2306.11695">Wanda Paper</a>: Pruning by Weights AND Activations</li>
+<li><a href="https://arxiv.org/abs/2301.00774">SparseGPT Paper</a>: Massive Language Models Can Be Accurately Pruned in One-Shot</li>
+<li><a href="https://pytorch.org/tutorials/intermediate/pruning_tutorial.html">PyTorch Pruning Tutorial</a></li>
+<li><a href="../cli/">Atropos CLI Documentation</a> - General usage and reporting</li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

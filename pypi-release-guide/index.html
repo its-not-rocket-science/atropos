@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/pypi-release-guide/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>PyPI Release Guide for Maintainers - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "PyPI Release Guide for Maintainers";
+        var mkdocs_page_input_path = "pypi-release-guide.md";
+        var mkdocs_page_url = "/atropos/pypi-release-guide/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../stability-tiers/">Stability Tiers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">PyPI Release Guide for Maintainers</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="pypi-release-guide-for-maintainers">PyPI Release Guide for Maintainers</h1>
+<blockquote>
+<p>Terminology follows the canonical glossary: <code>/docs/canonical-glossary.md</code>.</p>
+</blockquote>
+<p>This guide documents the process for releasing Atropos to PyPI and Test PyPI.</p>
+<h2 id="overview">Overview</h2>
+<p>Atropos uses GitHub Actions to automatically build and publish packages when tags are pushed. The release pipeline includes:</p>
+<ol>
+<li><strong>Testing</strong> – Run full test suite, linting, and type checking</li>
+<li><strong>Building</strong> – Create source distribution and wheel</li>
+<li><strong>Verification</strong> – Install built package and run smoke tests</li>
+<li><strong>Publishing</strong> – Upload to Test PyPI (for testing) and PyPI (for production)</li>
+</ol>
+<h2 id="github-secrets-setup">GitHub Secrets Setup</h2>
+<p>To enable publishing, you need to configure the following secrets in your GitHub repository:</p>
+<h3 id="for-pypi-production">For PyPI (production)</h3>
+<ol>
+<li>Go to <a href="https://pypi.org/manage/account/token/">PyPI Account Settings &gt; API tokens</a></li>
+<li>Create a new API token with scope "Entire account" (for new projects) or restrict to the "atropos-llm" project</li>
+<li>Copy the token value (it will only be shown once)</li>
+<li>In your GitHub repository: Settings → Secrets and variables → Actions → New repository secret</li>
+<li>Name: <code>PYPI_API_TOKEN</code></li>
+<li>Value: Paste the token</li>
+</ol>
+<h3 id="for-test-pypi-testing">For Test PyPI (testing)</h3>
+<ol>
+<li>Go to <a href="https://test.pypi.org/manage/account/token/">TestPyPI Account Settings &gt; API tokens</a></li>
+<li>Create a new API token with appropriate scope</li>
+<li>Copy the token value</li>
+<li>Create a new GitHub secret named <code>TEST_PYPI_API_TOKEN</code></li>
+</ol>
+<h2 id="environments-in-github-actions">Environments in GitHub Actions</h2>
+<p>The release workflow uses GitHub environments for additional security and approval gates:</p>
+<ol>
+<li><strong>test-pypi</strong> – For publishing to Test PyPI</li>
+<li><strong>pypi</strong> – For publishing to production PyPI</li>
+</ol>
+<p>To set up environments:</p>
+<ol>
+<li>Go to your repository Settings → Environments</li>
+<li>Click "New environment"</li>
+<li>Name: <code>test-pypi</code></li>
+<li>Add the required secret: <code>TEST_PYPI_API_TOKEN</code></li>
+<li>Repeat for <code>pypi</code> environment with <code>PYPI_API_TOKEN</code></li>
+</ol>
+<h2 id="release-process">Release Process</h2>
+<h3 id="1-prepare-the-release">1. Prepare the Release</h3>
+<pre class="codehilite"><code class="language-bash"># Update version in pyproject.toml and src/atropos/__init__.py
+# Run the release preparation script
+python scripts/prepare_release.py
+
+# Update CHANGELOG.md with changes for the new version
+# Commit changes
+git commit -am &quot;Prepare release v&lt;version&gt;&quot;
+</code></pre>
+
+<h3 id="2-create-and-push-tag">2. Create and Push Tag</h3>
+<pre class="codehilite"><code class="language-bash"># Create an annotated tag
+git tag -a v&lt;version&gt; -m &quot;Release v&lt;version&gt;&quot;
+
+# Push the tag (triggers GitHub Actions)
+git push origin v&lt;version&gt;
+</code></pre>
+
+<h3 id="3-monitor-the-release-workflow">3. Monitor the Release Workflow</h3>
+<ol>
+<li>Go to the GitHub repository → Actions</li>
+<li>Watch the "Release Build and Publish" workflow</li>
+<li>Verify all jobs pass:</li>
+<li><code>test</code> – Tests, linting, type checking</li>
+<li><code>build</code> – Package building</li>
+<li><code>verify</code> – Smoke test installation</li>
+<li><code>publish-test-pypi</code> – Upload to Test PyPI (if stable tag)</li>
+<li><code>publish-pypi</code> – Upload to PyPI (if stable tag)</li>
+</ol>
+<h3 id="4-verify-the-release">4. Verify the Release</h3>
+<p><strong>Test PyPI:</strong></p>
+<pre class="codehilite"><code class="language-bash">pip install --index-url https://test.pypi.org/simple/ atropos-llm
+</code></pre>
+
+<p><strong>Production PyPI:</strong></p>
+<pre class="codehilite"><code class="language-bash">pip install atropos-llm
+</code></pre>
+
+<p>Visit:
+- https://test.pypi.org/project/atropos-llm/ (Test PyPI)
+- https://pypi.org/project/atropos-llm/ (Production PyPI)</p>
+<h3 id="5-create-github-release">5. Create GitHub Release</h3>
+<ol>
+<li>Go to repository → Releases</li>
+<li>Click "Draft a new release"</li>
+<li>Select the tag you pushed</li>
+<li>Add release notes (copy from CHANGELOG.md)</li>
+<li>Publish the release</li>
+</ol>
+<h2 id="manual-publishing-fallback">Manual Publishing (Fallback)</h2>
+<p>If GitHub Actions fails, you can publish manually:</p>
+<pre class="codehilite"><code class="language-bash"># Install build tools
+pip install build twine
+
+# Build packages
+python -m build
+
+# Upload to Test PyPI
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+# Upload to PyPI (production)
+twine upload dist/*
+</code></pre>
+
+<h2 id="version-management">Version Management</h2>
+<ul>
+<li>Follow <a href="https://semver.org/">Semantic Versioning</a></li>
+<li>Update version in two places:</li>
+<li><code>pyproject.toml</code> – <code>version = "x.y.z"</code></li>
+<li><code>src/atropos/__init__.py</code> – <code>__version__ = "x.y.z"</code></li>
+<li>Use the <code>prepare_release.py</code> script to validate version consistency</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="repository-requires-trusted-publishing">"Repository requires trusted publishing"</h3>
+<p>The workflow uses PyPI's trusted publishing (OIDC). Ensure:
+- The <code>pypa/gh-action-pypi-publish</code> action is used
+- The job has <code>permissions: id-token: write</code>
+- The PyPI project has GitHub Actions enabled (go to PyPI project → Settings → Trusted Publishers)</p>
+<h3 id="package-already-exists-on-test-pypi">"Package already exists" on Test PyPI</h3>
+<p>Test PyPI doesn't allow re-uploading the same version. Either:
+- Increment the version number
+- Use <code>skip-existing: true</code> (already configured in workflow)</p>
+<h3 id="authentication-failures">Authentication failures</h3>
+<p>Check that:
+- GitHub Secrets are correctly set
+- Environment names match (<code>test-pypi</code>, <code>pypi</code>)
+- The API token has appropriate permissions</p>
+<h3 id="smoke-tests-fail-after-installation">Smoke tests fail after installation</h3>
+<p>Verify that:
+- All dependencies are correctly specified in <code>pyproject.toml</code>
+- The package includes all necessary files (check <code>MANIFEST.in</code>)
+- Entry points are correctly configured</p>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://packaging.python.org/">Python Packaging User Guide</a></li>
+<li><a href="https://docs.pypi.org/trusted-publishers/">PyPI Trusted Publishers</a></li>
+<li><a href="https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python">GitHub Actions for Python</a></li>
+</ul>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

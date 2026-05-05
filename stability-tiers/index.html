@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://its-not-rocket-science.github.io/atropos/stability-tiers/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Stability Tiers - Atropos Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Stability Tiers";
+        var mkdocs_page_input_path = "stability-tiers.md";
+        var mkdocs_page_url = "/atropos/stability-tiers/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Atropos Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../async_rl_reproducibility_architecture/">Async RL Reproducibility</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../product-strategy/">Product Strategy</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Stability Tiers</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#tier-definitions">Tier definitions</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#tier-1-platform-core">Tier 1: Platform core</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tier-2-supported-research-infrastructure">Tier 2: Supported research infrastructure</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tier-3-experimentalcommunity-code">Tier 3: Experimental/community code</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#compatibility-policy-by-tier">Compatibility policy by tier</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#experimental-surface-marking-policy">Experimental surface marking policy</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#test-and-ci-expectations-by-tier">Test and CI expectations by tier</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#working-guidance">Working guidance</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#operating-mode-alignment">Operating mode alignment</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../api/">Python API</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../extending-with-plugins/">Extending with Plugins</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cloud-cost-modeling/">Cloud Cost Modeling</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../examples/">Examples</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../case-study/">Case Study</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Atropos Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Stability Tiers</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="stability-tiers">Stability Tiers</h1>
+<p>This document defines Atropos module stability tiers, compatibility expectations, and CI/testing policy.</p>
+<p>Use these tiers to choose dependencies, review upgrade risk, and decide what quality bar applies to a code path.</p>
+<h2 id="tier-definitions">Tier definitions</h2>
+<h3 id="tier-1-platform-core">Tier 1: Platform core</h3>
+<p>Tier 1 is the production backbone of Atropos. It includes runtime/API/store contracts that are expected to be dependable across normal upgrades.</p>
+<p><strong>Primary module scope</strong>
+- <code>src/atroposlib/api/*</code>
+- <code>src/atroposlib/envs/runtime_controller.py</code>
+- <code>src/atroposlib/envs/worker_runtime.py</code>
+- <code>src/atroposlib/envs/transport_client.py</code>
+- <code>src/atroposlib/api/storage.py</code>
+- <code>src/atroposlib/workers/runtime.py</code>
+- <code>src/atroposlib/observability.py</code></p>
+<p><strong>Compatibility expectations</strong>
+- Backward compatibility is expected across minor releases for public Python interfaces and HTTP request/response schemas.
+- Behavior changes should be additive by default.
+- Removals/renames require deprecation notice and a documented migration path.
+- Breaking changes are major-release changes unless required for urgent security/correctness fixes.</p>
+<h3 id="tier-2-supported-research-infrastructure">Tier 2: Supported research infrastructure</h3>
+<p>Tier 2 includes maintained research and decision-support infrastructure that is actively supported, but may evolve faster than the platform core.</p>
+<p><strong>Primary module scope</strong>
+- <code>src/atropos/pipeline/*</code>
+- <code>src/atropos/abtesting/*</code>
+- <code>src/atropos/quality/*</code>
+- <code>src/atropos/trajectory/*</code>
+- <code>src/atropos/validation/*</code>
+- <code>src/atropos/telemetry.py</code>
+- <code>src/atropos/telemetry_collector.py</code></p>
+<p><strong>Compatibility expectations</strong>
+- Interfaces are intended to remain usable across minor releases.
+- Parameter shapes and extension points may evolve when needed.
+- Deprecation notices are preferred before high-impact changes.
+- Downstream users should pin minor versions for deep integrations.</p>
+<h3 id="tier-3-experimentalcommunity-code">Tier 3: Experimental/community code</h3>
+<p>Tier 3 includes prototype, community, and fast-iteration surfaces.</p>
+<p><strong>Primary module scope</strong>
+- <code>src/environments/*</code>
+- <code>src/atroposlib/plugins/*</code>
+- <code>examples/plugins/*</code>
+- <code>examples/*</code> (except where explicitly promoted)
+- <code>scripts/*</code></p>
+<p><strong>Compatibility expectations</strong>
+- Interfaces may change at any release boundary.
+- Features may be renamed, moved, or removed with limited notice.
+- Production users should vendor/fork or pin exact versions when depending on Tier 3 behavior.</p>
+<h2 id="compatibility-policy-by-tier">Compatibility policy by tier</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Tier 1</th>
+<th>Tier 2</th>
+<th>Tier 3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public API/runtime contracts</td>
+<td>Strong compatibility target</td>
+<td>Best-effort compatibility</td>
+<td>No compatibility guarantee</td>
+</tr>
+<tr>
+<td>Deprecation requirement</td>
+<td>Required for planned breaks</td>
+<td>Strongly preferred</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Migration notes</td>
+<td>Required for behavior/schema shifts</td>
+<td>Recommended for major UX breaks</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Operational hardening expectation</td>
+<td>Required</td>
+<td>Recommended</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<h2 id="experimental-surface-marking-policy">Experimental surface marking policy</h2>
+<p>Atropos marks experimental/community surfaces in the following ways:</p>
+<ol>
+<li>Module/package docstrings (for major entry-point packages).</li>
+<li>README and docs maturity maps.</li>
+<li>This policy page as canonical source.</li>
+</ol>
+<p>When promoting or demoting a module, update all three in one change.</p>
+<h2 id="test-and-ci-expectations-by-tier">Test and CI expectations by tier</h2>
+<p>Tiers define minimum expectations for test coverage in CI gates.</p>
+<ul>
+<li><strong>Tier 1 (platform core)</strong></li>
+<li>Must remain covered by default CI unit/contract/API checks.</li>
+<li>Regressions in Tier 1 tests block merge.</li>
+<li>
+<p>Runtime/API schema behavior changes require targeted tests.</p>
+</li>
+<li>
+<p><strong>Tier 2 (supported research infrastructure)</strong></p>
+</li>
+<li>Must be covered by default unit/integration tests where practical.</li>
+<li>Regressions block merge for maintained modules, with short-lived exceptions only when explicitly documented.</li>
+<li>
+<p>Changes should include tests for new public behavior.</p>
+</li>
+<li>
+<p><strong>Tier 3 (experimental/community code)</strong></p>
+</li>
+<li>Smoke tests and focused checks are encouraged, but not all paths are hard-blocking.</li>
+<li>Breakage may be tolerated temporarily if it does not affect Tier 1/Tier 2 guarantees.</li>
+</ul>
+<h2 id="working-guidance">Working guidance</h2>
+<ul>
+<li>Building production services: prefer Tier 1 modules.</li>
+<li>Building internal research workflows: Tier 2 is appropriate with minor-version pinning.</li>
+<li>Prototyping custom integrations: Tier 3 is acceptable, but expect churn.</li>
+</ul>
+<h2 id="operating-mode-alignment">Operating mode alignment</h2>
+<ul>
+<li><strong>Research mode:</strong> Tier 2 + Tier 3 are acceptable when optimizing for speed.</li>
+<li><strong>Local dev mode:</strong> validate Tier 1 contracts and develop surrounding behavior in Tier 2.</li>
+<li><strong>Production mode:</strong> anchor critical paths on Tier 1; adopt Tier 2 selectively with version pinning and rollout safeguards; avoid Tier 3 in critical paths.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../product-strategy/" class="btn btn-neutral float-left" title="Product Strategy"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../installation/" class="btn btn-neutral float-right" title="Installation">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../product-strategy/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../installation/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
